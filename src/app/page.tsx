@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { demoUsers } from "@/lib/demo-data";
+import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 
 export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
@@ -113,6 +114,31 @@ export default function Home() {
             </ul>
           </div>
         </div>
+
+        <section style={styles.accountingArea}>
+          <h2>Master registry demo</h2>
+          <p>{masterDatabaseNote}</p>
+
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {demoOrganizations.map((organization) => (
+              <div
+                key={organization.id}
+                style={{
+                  padding: "16px",
+                  borderRadius: "14px",
+                  border: "1px solid #e3d8c7",
+                  background: "#f7f3ea",
+                }}
+              >
+                <strong>{organization.name}</strong>
+                <p style={{ margin: "8px 0" }}>{organization.shortDescription}</p>
+                <small>
+                  ՀՎՀՀ demo: {organization.taxId} · status: {organization.status} · tenant DB demo: {organization.tenantDatabaseName}
+                </small>
+              </div>
+            ))}
+          </div>
+        </section>
 
         <section style={styles.accountingArea}>
           <h2>Հաշվապահական տարածք</h2>
