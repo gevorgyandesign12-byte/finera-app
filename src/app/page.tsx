@@ -2,15 +2,36 @@
 
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { demoUsers } from "@/lib/demo-data";
+import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
+
+function getAllowedDemoOrganizations(user: DemoUser) {
+  if (user.organizations.includes("System / Infrastructure")) {
+    return [];
+  }
+
+  return demoOrganizations.filter((organization) =>
+    user.organizations.includes(organization.name)
+  );
+}
 
 export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
+  const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser) : [];
+  const selectedOrganization =
+    allowedOrganizations.find((organization) => organization.id === selectedOrganizationId) ??
+    allowedOrganizations[0];
+
+  function handleDemoLogin() {
+    const allowed = getAllowedDemoOrganizations(selectedUser);
+    setLoggedInUserId(selectedUser.id);
+    setSelectedOrganizationId(allowed[0]?.id ?? "");
+  }
 
   if (!loggedInUser) {
     return (
@@ -48,7 +69,7 @@ export default function Home() {
               <p style={{ marginBottom: 0 }}>{selectedUser.description}</p>
             </div>
 
-            <button style={styles.primaryButton} onClick={() => setLoggedInUserId(selectedUser.id)}>
+            <button style={styles.primaryButton} onClick={handleDemoLogin}>
               Մուտք demo ռեժիմով
             </button>
           </div>
@@ -116,6 +137,46 @@ export default function Home() {
         </div>
 
         <section style={styles.accountingArea}>
+          <h2>Կազմակերպության ընտրություն</h2>
+
+          {allowedOrganizations.length > 0 ? (
+            <>
+              <label style={styles.label} htmlFor="organization">
+                Ընտրիր հասանելի կազմակերպությունը
+              </label>
+
+              <select
+                id="organization"
+                value={selectedOrganization?.id ?? ""}
+                onChange={(event) => setSelectedOrganizationId(event.target.value)}
+                style={styles.select}
+              >
+                {allowedOrganizations.map((organization) => (
+                  <option key={organization.id} value={organization.id}>
+                    {organization.name}
+                  </option>
+                ))}
+              </select>
+
+              {selectedOrganization ? (
+                <div style={styles.previewBox}>
+                  <strong>{selectedOrganization.name}</strong>
+                  <p style={{ marginBottom: "8px" }}>{selectedOrganization.shortDescription}</p>
+                  <small>
+                    ՀՎՀՀ demo: {selectedOrganization.taxId} · tenant DB demo:{" "}
+                    {selectedOrganization.tenantDatabaseName}
+                  </small>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <p>
+              Այս դերը կապված չէ կոնկրետ client organization-ի հետ։ Օրինակ՝ տեխնիկական թիմը տեսնում է system-level dashboard։
+            </p>
+          )}
+        </section>
+
+        <section style={styles.accountingArea}>
           <h2>Master registry demo</h2>
           <p>{masterDatabaseNote}</p>
 
@@ -133,7 +194,8 @@ export default function Home() {
                 <strong>{organization.name}</strong>
                 <p style={{ margin: "8px 0" }}>{organization.shortDescription}</p>
                 <small>
-                  ՀՎՀՀ demo: {organization.taxId} · status: {organization.status} · tenant DB demo: {organization.tenantDatabaseName}
+                  ՀՎՀՀ demo: {organization.taxId} · status: {organization.status} · tenant DB demo:{" "}
+                  {organization.tenantDatabaseName}
                 </small>
               </div>
             ))}
