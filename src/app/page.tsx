@@ -1,58 +1,8 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
-
-const demoUsers = [
-  {
-    id: "manager",
-    name: "Demo Manager",
-    role: "Կառավարիչներ / Managers",
-    description: "Տեսնում է ամբողջ համակարգի ընդհանուր վիճակը։",
-    organizations: ["Արարատ ՍՊԸ", "Լոռի Թրեյդ ՍՊԸ", "Սյունիք Արտադրություն ՍՊԸ"],
-  },
-  {
-    id: "chief-accountant",
-    name: "Demo Chief Accountant",
-    role: "Գլխավոր հաշվապահ",
-    description: "Տեսնում է միայն իրեն վստահված կազմակերպությունները։",
-    organizations: ["Արարատ ՍՊԸ", "Լոռի Թրեյդ ՍՊԸ"],
-  },
-  {
-    id: "bookkeeper",
-    name: "Demo Bookkeeper",
-    role: "Հաշվետար / Bookkeeper",
-    description: "Տեսնում է միայն թույլատրված կազմակերպությունները և մոդուլները։",
-    organizations: ["Արարատ ՍՊԸ"],
-  },
-  {
-    id: "client",
-    name: "Demo Client Organization",
-    role: "Գործընկեր կազմակերպություն",
-    description: "Տեսնում է միայն իր կազմակերպության dashboard/report վիճակը։",
-    organizations: ["Արարատ ՍՊԸ"],
-  },
-  {
-    id: "hr-legal",
-    name: "Demo HR / Legal",
-    role: "Կադրային / իրավաբանական բաժին",
-    description: "Աշխատում է աշխատակիցների, պայմանագրերի, արձակուրդների և ազատումների հետ։",
-    organizations: ["Արարատ ՍՊԸ", "Լոռի Թրեյդ ՍՊԸ"],
-  },
-  {
-    id: "support",
-    name: "Demo Support",
-    role: "Սպասարկող բաժին",
-    description: "Ստանում և դասակարգում է գործընկերների հարցումները։",
-    organizations: ["Արարատ ՍՊԸ", "Լոռի Թրեյդ ՍՊԸ", "Սյունիք Արտադրություն ՍՊԸ"],
-  },
-  {
-    id: "tech",
-    name: "Demo Technical Team",
-    role: "Ծրագրավորողներ / տեխնիկական թիմ",
-    description: "Տեսնում է technical dashboard՝ uptime, logs, errors, deployments, backups։",
-    organizations: ["System / Infrastructure"],
-  },
-];
+import { demoUsers } from "@/lib/demo-data";
 
 export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
@@ -153,6 +103,15 @@ export default function Home() {
               ))}
             </ul>
           </div>
+
+          <div style={styles.card}>
+            <h2 style={styles.cardTitle}>Թույլատրված մոդուլներ</h2>
+            <ul>
+              {loggedInUser.allowedModules.map((module) => (
+                <li key={module}>{module}</li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <section style={styles.accountingArea}>
@@ -170,7 +129,7 @@ export default function Home() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+const styles: Record<string, CSSProperties> = {
   page: {
     minHeight: "100vh",
     padding: "48px",
