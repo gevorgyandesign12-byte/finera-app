@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
+import { demoMenuByRole } from "@/lib/demo-menu";
 
 function getAllowedDemoOrganizations(user: DemoUser) {
   if (user.organizations.includes("System / Infrastructure")) {
@@ -23,6 +24,7 @@ export default function Home() {
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
   const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser) : [];
+  const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
   const selectedOrganization =
     allowedOrganizations.find((organization) => organization.id === selectedOrganizationId) ??
     allowedOrganizations[0];
@@ -85,11 +87,14 @@ export default function Home() {
         <p style={styles.sidebarSmall}>Accounting app</p>
 
         <nav style={styles.menu}>
-          <button style={styles.menuItem}>Գլխավոր</button>
-          <button style={styles.menuItem}>Կազմակերպություններ</button>
-          <button style={styles.menuItem}>Հաշվապահական տարածք</button>
-          <button style={styles.menuItem}>Հարցումներ</button>
-          <button style={styles.menuItem}>Կարգավորումներ</button>
+          {menuItems.map((item) => (
+            <button key={item.label} style={styles.menuItem} title={item.note}>
+              <span style={{ display: "block", fontWeight: 700 }}>{item.label}</span>
+              <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
+                {item.note}
+              </small>
+            </button>
+          ))}
         </nav>
       </aside>
 
