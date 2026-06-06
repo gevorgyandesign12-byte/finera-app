@@ -20,6 +20,7 @@ export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [openMenuLabel, setOpenMenuLabel] = useState<string | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
@@ -86,16 +87,39 @@ export default function Home() {
         <h2 style={styles.sidebarTitle}>Finera</h2>
         <p style={styles.sidebarSmall}>Accounting app</p>
 
-        <nav style={styles.menu}>
-          {menuItems.map((item) => (
-            <button key={item.label} style={styles.menuItem} title={item.note}>
-              <span style={{ display: "block", fontWeight: 700 }}>{item.label}</span>
-              <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
-                {item.note}
-              </small>
-            </button>
-          ))}
-        </nav>
+          <nav style={styles.menu}>
+            {menuItems.map((item) => {
+              const isOpen = openMenuLabel === item.label;
+
+              return (
+                <div key={item.label}>
+                  <button
+                    style={styles.menuItem}
+                    title={item.note}
+                    onClick={() => item.children?.length && setOpenMenuLabel(isOpen ? null : item.label)}
+                  >
+                    <span style={{ display: "flex", justifyContent: "space-between", gap: "10px", fontWeight: 700 }}>
+                      <span>{item.label}</span>
+                      {item.children?.length ? <span>{isOpen ? "▾" : "▸"}</span> : null}
+                    </span>
+                    <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
+                      {item.note}
+                    </small>
+                  </button>
+
+                  {isOpen && item.children?.length ? (
+                    <div style={{ display: "grid", gap: "8px", margin: "8px 0 4px 16px" }}>
+                      {item.children.map((child) => (
+                        <button key={child.label} style={styles.menuItem} title={child.note}>
+                          <span style={{ display: "block", fontWeight: 700 }}>{child.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </nav>
       </aside>
 
       <section style={styles.content}>
