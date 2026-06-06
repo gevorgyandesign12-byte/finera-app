@@ -1,13 +1,21 @@
 export type DemoMenuItem = {
   label: string;
   note: string;
+  children?: DemoMenuItem[];
 };
 
 export const demoMenuByRole: Record<string, DemoMenuItem[]> = {
   manager: [
     { label: "Գլխավոր", note: "Ամբողջ համակարգի ընդհանուր պատկեր" },
     { label: "Կազմակերպություններ", note: "Բոլոր client organization-ները" },
-    { label: "Հաշվապահական տարածք", note: "Բոլոր հաշվապահական մոդուլները" },
+    {
+  label: "Հաշվապահական տարածք",
+  note: "Բոլոր հաշվապահական մոդուլները",
+  children: [
+    { label: "Գլխավոր հաշվառում", note: "Հաշվապահական ընդհանուր տարածք" },
+    { label: "Փաստաթղթեր", note: "Մուտքագրվող փաստաթղթեր" },
+  ],
+},
     { label: "Հարցումներ", note: "Բոլոր գործընկերների հարցումները" },
     { label: "Կարգավորումներ", note: "System-level կարգավորումներ" },
   ],
