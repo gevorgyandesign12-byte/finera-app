@@ -107,8 +107,25 @@ export default function Home() {
                     </small>
                   </button>
 
-                  {isOpen && item.children?.length ? (
-                    <div style={{ display: "grid", gap: "8px", margin: "8px 0 4px 16px" }}>
+                  {item.children?.length ? (
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "7px",
+                        margin: isOpen ? "10px 0 6px 14px" : "0 0 0 14px",
+                        padding: isOpen ? "10px" : "0 10px",
+                        maxHeight: isOpen ? "260px" : "0px",
+                        opacity: isOpen ? 1 : 0,
+                        transform: isOpen ? "translateY(0)" : "translateY(-6px)",
+                        overflow: "hidden",
+                        borderRadius: "16px",
+                        border: isOpen ? "1px solid rgba(255,255,255,0.10)" : "1px solid transparent",
+                        background: "rgba(255,255,255,0.045)",
+                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+                        transition: "max-height 220ms ease, opacity 180ms ease, transform 180ms ease, margin 180ms ease, padding 180ms ease, border-color 180ms ease",
+                        pointerEvents: isOpen ? "auto" : "none",
+                      }}
+                    >
                       {item.children.map((child) => (
                         <button key={child.label} style={styles.menuItem} title={child.note}>
                           <span style={{ display: "block", fontWeight: 700 }}>{child.label}</span>
