@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import { useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
-import { demoMenuByRole } from "@/lib/demo-menu";
+import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 
 function getAllowedDemoOrganizations(user: DemoUser) {
   if (user.organizations.includes("System / Infrastructure")) {
@@ -20,7 +20,7 @@ export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
-  const [openMenuLabel, setOpenMenuLabel] = useState<string | null>(null);
+  const [openMenuLabels, setOpenMenuLabels] = useState<Record<string, boolean>>({});
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
@@ -34,6 +34,64 @@ export default function Home() {
     const allowed = getAllowedDemoOrganizations(selectedUser);
     setLoggedInUserId(selectedUser.id);
     setSelectedOrganizationId(allowed[0]?.id ?? "");
+    setOpenMenuLabels({});
+  }
+
+  function toggleMenu(label: string) {
+    setOpenMenuLabels((current) => ({
+      ...current,
+      [label]: !current[label],
+    }));
+  }
+
+  function renderMenuItems(items: DemoMenuItem[], level = 0) {
+    return items.map((item) => {
+      const isOpen = Boolean(openMenuLabels[item.label]);
+      const hasChildren = Boolean(item.children?.length);
+
+      return (
+        <div key={item.label}>
+          <button
+            style={level === 0 ? styles.menuItem : styles.submenuItem}
+            title={item.note}
+            onClick={() => hasChildren && toggleMenu(item.label)}
+          >
+            <span style={{ display: "flex", justifyContent: "space-between", gap: "10px", fontWeight: 700 }}>
+              <span>{item.label}</span>
+              {hasChildren ? <span>{isOpen ? "▾" : "▸"}</span> : null}
+            </span>
+            {level === 0 ? (
+              <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
+                {item.note}
+              </small>
+            ) : null}
+          </button>
+
+          {hasChildren ? (
+            <div
+              style={{
+                display: "grid",
+                gap: "7px",
+                margin: isOpen ? "10px 0 6px 14px" : "0 0 0 14px",
+                padding: isOpen ? "10px" : "0 10px",
+                maxHeight: isOpen ? "900px" : "0px",
+                opacity: isOpen ? 1 : 0,
+                transform: isOpen ? "translateY(0)" : "translateY(-6px)",
+                overflow: "hidden",
+                borderRadius: "16px",
+                border: isOpen ? "1px solid rgba(255,255,255,0.10)" : "1px solid transparent",
+                background: level === 0 ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.035)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+                transition: "max-height 260ms ease, opacity 190ms ease, transform 190ms ease, margin 190ms ease, padding 190ms ease, border-color 190ms ease",
+                pointerEvents: isOpen ? "auto" : "none",
+              }}
+            >
+              {renderMenuItems(item.children ?? [], level + 1)}
+            </div>
+          ) : null}
+        </div>
+      );
+    });
   }
 
   if (!loggedInUser) {
@@ -88,54 +146,7 @@ export default function Home() {
         <p style={styles.sidebarSmall}>Accounting app</p>
 
           <nav style={styles.menu}>
-            {menuItems.map((item) => {
-              const isOpen = openMenuLabel === item.label;
-
-              return (
-                <div key={item.label}>
-                  <button
-                    style={styles.menuItem}
-                    title={item.note}
-                    onClick={() => item.children?.length && setOpenMenuLabel(isOpen ? null : item.label)}
-                  >
-                    <span style={{ display: "flex", justifyContent: "space-between", gap: "10px", fontWeight: 700 }}>
-                      <span>{item.label}</span>
-                      {item.children?.length ? <span>{isOpen ? "▾" : "▸"}</span> : null}
-                    </span>
-                    <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
-                      {item.note}
-                    </small>
-                  </button>
-
-                  {item.children?.length ? (
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: "7px",
-                        margin: isOpen ? "10px 0 6px 14px" : "0 0 0 14px",
-                        padding: isOpen ? "10px" : "0 10px",
-                        maxHeight: isOpen ? "260px" : "0px",
-                        opacity: isOpen ? 1 : 0,
-                        transform: isOpen ? "translateY(0)" : "translateY(-6px)",
-                        overflow: "hidden",
-                        borderRadius: "16px",
-                        border: isOpen ? "1px solid rgba(255,255,255,0.10)" : "1px solid transparent",
-                        background: "rgba(255,255,255,0.045)",
-                        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-                        transition: "max-height 220ms ease, opacity 180ms ease, transform 180ms ease, margin 180ms ease, padding 180ms ease, border-color 180ms ease",
-                        pointerEvents: isOpen ? "auto" : "none",
-                      }}
-                    >
-                      {item.children.map((child) => (
-                        <button key={child.label} style={styles.menuItem} title={child.note}>
-                          <span style={{ display: "block", fontWeight: 700 }}>{child.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+            {renderMenuItems(menuItems)}
           </nav>
       </aside>
 
