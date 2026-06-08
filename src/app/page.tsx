@@ -5,6 +5,13 @@ import { useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
+import {
+  demoDepartments,
+  demoEmployees,
+  getDepartmentName,
+  getPositionName,
+  masterDbDemoNote,
+} from "@/lib/demo-master-db";
 
 function getAllowedDemoOrganizations(user: DemoUser) {
   if (user.organizations.includes("System / Infrastructure")) {
@@ -305,56 +312,200 @@ export default function Home() {
   }
 
   function renderOurCompanyForm() {
+    const pageLabel = "Մեր կազմակերպությունը";
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
+
     return (
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Գլխավոր մենյու</p>
         <h2>Մեր կազմակերպությունը</h2>
-        <p>
-          Այստեղ պահվում են Finera/Sose-ի սեփական իրավաբանական և գործառնական demo տվյալները։
-          Այս փուլում տվյալները չեն պահպանվում, database չկա։
-        </p>
+        <p>{masterDbDemoNote}</p>
 
-        <div style={styles.formGrid}>
-          <label style={styles.label}>
-            Իրավական անվանում
-            <input style={styles.input} type="text" placeholder="Օրինակ՝ Սոսե ՍՊԸ" />
-          </label>
-
-          <label style={styles.label}>
-            Բրենդային անուն
-            <input style={styles.input} type="text" placeholder="Օրինակ՝ Ֆինեռա / Finera" />
-          </label>
-
-          <label style={styles.label}>
-            ՀՎՀՀ
-            <input style={styles.input} type="text" placeholder="Մեր ՀՎՀՀ" />
-          </label>
-
-          <label style={styles.label}>
-            Գրանցման համար
-            <input style={styles.input} type="text" placeholder="Մեր պետական գրանցման համարը" />
-          </label>
-
-          <label style={styles.label}>
-            Իրավաբանական հասցե
-            <input style={styles.input} type="text" placeholder="Մեր իրավաբանական հասցեն" />
-          </label>
-
-          <label style={styles.label}>
-            Գործունեության հասցե
-            <input style={styles.input} type="text" placeholder="Մեր գրասենյակի կամ գործունեության հասցեն" />
-          </label>
-
-          <label style={styles.label}>
-            Տնօրեն
-            <input style={styles.input} type="text" placeholder="Անուն Ազգանուն" />
-          </label>
-
-          <label style={styles.label}>
-            Հեռախոս / էլ. հասցե
-            <input style={styles.input} type="text" placeholder="+374 ... / email" />
-          </label>
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+
+        {activeTab === "Ընդհանուր տվյալներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Ընդհանուր տվյալներ</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Իրավական անվանում
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Սոսե ՍՊԸ" />
+              </label>
+
+              <label style={styles.label}>
+                Բրենդային անուն
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Ֆինեռա / Finera" />
+              </label>
+
+              <label style={styles.label}>
+                ՀՎՀՀ
+                <input style={styles.input} type="text" placeholder="Մեր ՀՎՀՀ" />
+              </label>
+
+              <label style={styles.label}>
+                Գործունեության նկարագրություն
+                <input style={styles.input} type="text" placeholder="Հաշվապահական և ֆինանսական սպասարկում" />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Աշխատակիցներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Մեր աշխատակիցներ</h3>
+            <p>
+              Սա Master DB-ի demo աշխատակիցների ցանկն է։
+              Այս մարդիկ Finera/Sose-ի ներքին թիմն են, ոչ թե սպասարկվող գործընկերների աշխատակիցները։
+            </p>
+
+            <div style={styles.statsGrid}>
+              <div style={styles.statCard}>
+                <strong>{demoEmployees.length}</strong>
+                <span>աշխատակից</span>
+              </div>
+              <div style={styles.statCard}>
+                <strong>{demoDepartments.length}</strong>
+                <span>բաժին</span>
+              </div>
+              <div style={styles.statCard}>
+                <strong>{demoEmployees.filter((employee) => employee.canLogin).length}</strong>
+                <span>login ունեցող</span>
+              </div>
+            </div>
+
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Կոդ</th>
+                    <th style={styles.th}>Աշխատակից</th>
+                    <th style={styles.th}>Բաժին</th>
+                    <th style={styles.th}>Պաշտոն</th>
+                    <th style={styles.th}>Դեր</th>
+                    <th style={styles.th}>Scope</th>
+                    <th style={styles.th}>Կարգավիճակ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {demoEmployees.map((employee) => (
+                    <tr key={employee.id}>
+                      <td style={styles.td}>{employee.employeeNumber}</td>
+                      <td style={styles.td}>
+                        <strong>{employee.fullName}</strong>
+                        <small style={styles.cellNote}>{employee.note}</small>
+                      </td>
+                      <td style={styles.td}>{getDepartmentName(employee.departmentId)}</td>
+                      <td style={styles.td}>{getPositionName(employee.positionId)}</td>
+                      <td style={styles.td}>{employee.roleGroup}</td>
+                      <td style={styles.td}>{employee.assignedPartnerScope}</td>
+                      <td style={styles.td}>{employee.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Բաժիններ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Բաժիններ</h3>
+            <div style={styles.cardsGrid}>
+              {demoDepartments.map((department) => (
+                <div key={department.id} style={styles.smallCard}>
+                  <strong>{department.name}</strong>
+                  <p>{department.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Իրավական տվյալներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Իրավական տվյալներ</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Գրանցման համար
+                <input style={styles.input} type="text" placeholder="Մեր պետական գրանցման համարը" />
+              </label>
+
+              <label style={styles.label}>
+                Իրավաբանական հասցե
+                <input style={styles.input} type="text" placeholder="Մեր իրավաբանական հասցեն" />
+              </label>
+
+              <label style={styles.label}>
+                Տնօրեն
+                <input style={styles.input} type="text" placeholder="Անուն Ազգանուն" />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Կոնտակտներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Կոնտակտներ</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Հեռախոս
+                <input style={styles.input} type="text" placeholder="+374 ..." />
+              </label>
+
+              <label style={styles.label}>
+                Էլ. հասցե
+                <input style={styles.input} type="email" placeholder="info@finera.am" />
+              </label>
+
+              <label style={styles.label}>
+                Կայք
+                <input style={styles.input} type="text" placeholder="finera.am" />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Բանկային տվյալներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Բանկային տվյալներ</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Բանկ
+                <input style={styles.input} type="text" placeholder="Բանկի անվանում" />
+              </label>
+
+              <label style={styles.label}>
+                Հաշվեհամար
+                <input style={styles.input} type="text" placeholder="Հաշվեհամար" />
+              </label>
+
+              <label style={styles.label}>
+                Նշում
+                <input style={styles.input} type="text" placeholder="Լրացուցիչ բանկային տվյալներ" />
+              </label>
+            </div>
+          </div>
+        ) : null}
 
         <div style={styles.formActions}>
           <button style={styles.primaryButton} type="button">
@@ -366,93 +517,299 @@ export default function Home() {
     );
   }
 
+
+
   function renderNewPartnerForm() {
+    const pageLabel = "Նոր գործընկեր գրանցել";
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
+
     return (
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գործողություններ</p>
         <h2>Նոր գործընկեր գրանցել</h2>
         <p>
-          Այստեղ լրացվում են նոր սպասարկվող գործընկերոջ տվյալները։
           Գործընկերը կարող է լինել ՍՊԸ, ԱՁ կամ այլ իրավական սուբյեկտ։
-          Այս փուլում սա միայն demo ձև է, database չկա։
+          Այս էջը tabs-երով demo ձև է․ տվյալները չեն պահպանվում, database չկա։
         </p>
 
-        <div style={styles.formGrid}>
-          <label style={styles.label}>
-            Գործընկերոջ տեսակ
-            <select style={styles.select} defaultValue="">
-              <option value="" disabled>Ընտրել տեսակը</option>
-              <option value="llc">ՍՊԸ</option>
-              <option value="sole">ԱՁ</option>
-              <option value="ngo">ՀԿ</option>
-              <option value="foundation">Հիմնադրամ</option>
-              <option value="other">Այլ</option>
-            </select>
-          </label>
-
-          <label style={styles.label}>
-            Անվանում / ԱՁ անուն ազգանուն
-            <input style={styles.input} type="text" placeholder="Օրինակ՝ Արամ Արամյան ԱՁ կամ Example ՍՊԸ" />
-          </label>
-
-          <label style={styles.label}>
-            ՀՎՀՀ
-            <input style={styles.input} type="text" placeholder="Գործընկերոջ ՀՎՀՀ" />
-          </label>
-
-          <label style={styles.label}>
-            Գրանցման համար
-            <input style={styles.input} type="text" placeholder="Պետական գրանցման համար, եթե կիրառելի է" />
-          </label>
-
-          <label style={styles.label}>
-            Իրավաբանական հասցե
-            <input style={styles.input} type="text" placeholder="Գործընկերոջ իրավաբանական հասցե" />
-          </label>
-
-          <label style={styles.label}>
-            Գործունեության հասցե
-            <input style={styles.input} type="text" placeholder="Գործունեության իրական հասցե, եթե տարբերվում է" />
-          </label>
-
-          <label style={styles.label}>
-            Տնօրեն / պատասխանատու անձ
-            <input style={styles.input} type="text" placeholder="Անուն Ազգանուն" />
-          </label>
-
-          <label style={styles.label}>
-            Հեռախոս
-            <input style={styles.input} type="text" placeholder="+374 ..." />
-          </label>
-
-          <label style={styles.label}>
-            Էլ. հասցե
-            <input style={styles.input} type="email" placeholder="example@partner.am" />
-          </label>
-
-          <label style={styles.label}>
-            Սպասարկման սկիզբ
-            <input style={styles.input} type="date" />
-          </label>
-
-          <label style={styles.label}>
-            Պատասխանատու գլխավոր հաշվապահ
-            <input style={styles.input} type="text" placeholder="Finera-ի պատասխանատու անձը" />
-          </label>
-
-          <label style={styles.label}>
-            Սպասարկման կարգավիճակ
-            <select style={styles.select} defaultValue="active">
-              <option value="active">Գործող</option>
-              <option value="pending">Սպասման մեջ</option>
-              <option value="paused">Ժամանակավոր դադարեցված</option>
-            </select>
-          </label>
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+
+        {activeTab === "Ընդհանուր տվյալներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Ընդհանուր տվյալներ</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Գործընկերոջ տեսակ
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել տեսակը</option>
+                  <option value="llc">ՍՊԸ</option>
+                  <option value="sole">ԱՁ</option>
+                  <option value="ngo">ՀԿ</option>
+                  <option value="foundation">Հիմնադրամ</option>
+                  <option value="other">Այլ</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Անվանում / ԱՁ անուն ազգանուն
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Արամ Արամյան ԱՁ կամ Example ՍՊԸ" />
+              </label>
+
+              <label style={styles.label}>
+                Կարճ անվանում
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Example" />
+              </label>
+
+              <label style={styles.label}>
+                ՀՎՀՀ
+                <input style={styles.input} type="text" placeholder="Գործընկերոջ ՀՎՀՀ" />
+              </label>
+
+              <label style={styles.label}>
+                Գրանցման համար
+                <input style={styles.input} type="text" placeholder="Պետական գրանցման համար, եթե կիրառելի է" />
+              </label>
+
+              <label style={styles.label}>
+                Կարգավիճակ
+                <select style={styles.select} defaultValue="draft">
+                  <option value="draft">Նախնական</option>
+                  <option value="active">Գործող</option>
+                  <option value="pending">Սպասման մեջ</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Իրավաբանական հասցե
+                <input style={styles.input} type="text" placeholder="Գործընկերոջ իրավաբանական հասցե" />
+              </label>
+
+              <label style={styles.label}>
+                Գործունեության հասցե
+                <input style={styles.input} type="text" placeholder="Եթե տարբերվում է իրավաբանական հասցեից" />
+              </label>
+
+              <label style={styles.label}>
+                Տնօրեն / պատասխանատու անձ
+                <input style={styles.input} type="text" placeholder="Անուն Ազգանուն" />
+              </label>
+
+              <label style={styles.label}>
+                Հեռախոս / էլ. հասցե
+                <input style={styles.input} type="text" placeholder="+374 ... / example@partner.am" />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Կառուցվածքային ստորաբաժանումներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Կառուցվածքային ստորաբաժանումներ</h3>
+            <p>
+              Այստեղ նշում ենք գործընկերոջ ներքին բաժինները, որոնք մեզ պետք են սպասարկման և հաշվառման կազմակերպման համար։
+            </p>
+
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Ստորաբաժանման անվանում
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Պահեստ, Վաճառք, Արտադրամաս" />
+              </label>
+
+              <label style={styles.label}>
+                Ներքին կոդ
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ DEP-001" />
+              </label>
+
+              <label style={styles.label}>
+                Ստորաբաժանման տեսակ
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել տեսակը</option>
+                  <option value="management">Ղեկավարում</option>
+                  <option value="accounting">Հաշվապահություն</option>
+                  <option value="warehouse">Պահեստ</option>
+                  <option value="production">Արտադրություն</option>
+                  <option value="sales">Վաճառք / մատակարարում</option>
+                  <option value="hr">Կադրեր</option>
+                  <option value="other">Այլ</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Վերադաս ստորաբաժանում
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Տնօրինություն" />
+              </label>
+
+              <label style={styles.label}>
+                Պատասխանատու անձ
+                <input style={styles.input} type="text" placeholder="Անուն Ազգանուն" />
+              </label>
+
+              <label style={styles.label}>
+                Նշում
+                <input style={styles.input} type="text" placeholder="Լրացուցիչ պարզաբանում" />
+              </label>
+            </div>
+
+            <div style={styles.previewBox}>
+              <strong>Demo ցանկ</strong>
+              <ul>
+                <li>Տնօրինություն</li>
+                <li>Հաշվապահություն</li>
+                <li>Պահեստ</li>
+                <li>Վաճառք / սպասարկում</li>
+              </ul>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Նշանակել սպասարկում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Նշանակել սպասարկում</h3>
+            <p>
+              Այստեղ որոշում ենք՝ Finera-ի ներսում ով է սպասարկելու տվյալ գործընկերոջը և ինչ շրջանակով։
+            </p>
+
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Սպասարկման սկիզբ
+                <input style={styles.input} type="date" />
+              </label>
+
+              <label style={styles.label}>
+                Սպասարկման փաթեթ
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել փաթեթը</option>
+                  <option value="basic">Հիմնական հաշվապահական</option>
+                  <option value="full">Լիարժեք հաշվապահական</option>
+                  <option value="tax">Միայն հարկային հաշվետվություններ</option>
+                  <option value="hr">Հաշվապահական + կադրային</option>
+                  <option value="custom">Անհատական</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Պատասխանատու գլխավոր հաշվապահ
+                <input style={styles.input} type="text" placeholder="Գլխավոր հաշվապահի անունը" />
+              </label>
+
+              <label style={styles.label}>
+                Պատասխանատու հաշվետար
+                <input style={styles.input} type="text" placeholder="Հաշվետարի անունը" />
+              </label>
+
+              <label style={styles.label}>
+                HR / իրավական պատասխանատու
+                <input style={styles.input} type="text" placeholder="Եթե անհրաժեշտ է" />
+              </label>
+
+              <label style={styles.label}>
+                Սպասարկման կարգավիճակ
+                <select style={styles.select} defaultValue="active">
+                  <option value="active">Գործող</option>
+                  <option value="pending">Սպասման մեջ</option>
+                  <option value="paused">Ժամանակավոր դադարեցված</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Հասանելի մոդուլներ
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ Ֆինանսներ, Պահեստ, Աշխատավարձ" />
+              </label>
+
+              <label style={styles.label}>
+                Ներքին նշում
+                <input style={styles.input} type="text" placeholder="Ինչ պետք է իմանա Finera թիմը" />
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Պայմանագիր" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Պայմանագիր</h3>
+            <p>
+              Այստեղ պահվում են սպասարկման պայմանագրի demo տվյալները։
+              Հետագայում այստեղ կարող է լինել պայմանագրի ֆայլ, ժամկետներ և վճարային պայմաններ։
+            </p>
+
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Պայմանագրի համար
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ FIN-2026-001" />
+              </label>
+
+              <label style={styles.label}>
+                Պայմանագրի ամսաթիվ
+                <input style={styles.input} type="date" />
+              </label>
+
+              <label style={styles.label}>
+                Սկիզբ
+                <input style={styles.input} type="date" />
+              </label>
+
+              <label style={styles.label}>
+                Ավարտ / վերանայման ժամկետ
+                <input style={styles.input} type="date" />
+              </label>
+
+              <label style={styles.label}>
+                Ամսական սպասարկման վճար
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ 150,000 AMD" />
+              </label>
+
+              <label style={styles.label}>
+                Վճարման պայման
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել պայմանը</option>
+                  <option value="prepaid">Կանխավճար</option>
+                  <option value="monthly">Ամսական վճարում</option>
+                  <option value="postpaid">Հետվճարում</option>
+                  <option value="custom">Անհատական պայման</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Ծառայությունների շրջանակ
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ հաշվապահություն, հարկային, կադրեր" />
+              </label>
+
+              <label style={styles.label}>
+                Պայմանագրի կարգավիճակ
+                <select style={styles.select} defaultValue="draft">
+                  <option value="draft">Նախագիծ</option>
+                  <option value="signed">Ստորագրված</option>
+                  <option value="active">Գործող</option>
+                  <option value="ended">Ավարտված</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        ) : null}
 
         <div style={styles.formActions}>
           <button style={styles.primaryButton} type="button">
-            Գրանցել demo
+            Պահպանել demo
           </button>
           <p style={styles.mutedNotice}>Demo կոճակ է․ այս պահին ոչինչ չի պահպանում։</p>
         </div>
@@ -460,24 +817,19 @@ export default function Home() {
     );
   }
 
+
+
   function getTabsForDemoPage(pageLabel: string) {
     if (pageLabel === "Գործընկերներ") {
       return ["Ընդհանուր", "Ցանկ", "Գործողություններ", "Հաշվետվություններ"];
     }
 
     if (pageLabel === "Նոր գործընկեր գրանցել") {
-      return [
-        "Հիմնական տվյալներ",
-        "Իրավական տվյալներ",
-        "Հասցեներ",
-        "Կոնտակտներ",
-        "Սպասարկման տվյալներ",
-        "Պատասխանատուներ",
-      ];
+      return ["Ընդհանուր տվյալներ", "Կառուցվածքային ստորաբաժանումներ", "Նշանակել սպասարկում", "Պայմանագիր"];
     }
 
     if (pageLabel === "Մեր կազմակերպությունը") {
-      return ["Հիմնական տվյալներ", "Իրավական տվյալներ", "Հասցեներ", "Կոնտակտներ", "Բանկային տվյալներ", "Պատասխանատուներ"];
+      return ["Ընդհանուր տվյալներ", "Աշխատակիցներ", "Բաժիններ", "Իրավական տվյալներ", "Կոնտակտներ", "Բանկային տվյալներ"];
     }
 
     if (pageLabel === "Դրամարկղ") {
@@ -974,6 +1326,76 @@ const styles: Record<string, CSSProperties> = {
     borderRadius: "0 0 16px 16px",
     background: "#fffaf2",
     lineHeight: 1.6,
+  },
+
+  sectionTitle: {
+    marginTop: 0,
+    marginBottom: "14px",
+    fontSize: "20px",
+    color: "#172033",
+  },
+
+  statsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: "12px",
+    margin: "18px 0",
+  },
+  statCard: {
+    display: "grid",
+    gap: "4px",
+    padding: "14px",
+    borderRadius: "14px",
+    border: "1px solid #e3d8c7",
+    background: "#f7f3ea",
+  },
+
+  tableWrap: {
+    width: "100%",
+    overflowX: "auto",
+    marginTop: "18px",
+    borderRadius: "14px",
+    border: "1px solid #e3d8c7",
+  },
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: "900px",
+    background: "#fffaf2",
+  },
+  th: {
+    textAlign: "left",
+    padding: "12px",
+    borderBottom: "1px solid #e3d8c7",
+    background: "#f7f3ea",
+    fontSize: "13px",
+    color: "#5f513f",
+  },
+  td: {
+    padding: "12px",
+    borderBottom: "1px solid #eee2d0",
+    verticalAlign: "top",
+    fontSize: "14px",
+  },
+  cellNote: {
+    display: "block",
+    marginTop: "4px",
+    color: "#7a6a55",
+    lineHeight: 1.4,
+  },
+
+  cardsGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "14px",
+    marginTop: "18px",
+  },
+  smallCard: {
+    padding: "16px",
+    borderRadius: "14px",
+    border: "1px solid #e3d8c7",
+    background: "#f7f3ea",
+    lineHeight: 1.5,
   },
 
 };

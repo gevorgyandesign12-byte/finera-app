@@ -84,3 +84,9 @@ Do not add or change without explicit human approval:
 - releases
 
 Every step must be small, understandable, and reviewable.
+
+## Safety and backup policy
+
+Finera-ի production և real accounting անվտանգության հիմնական կանոնները առանձին գրանցված են այստեղ՝
+
+- docs/SAFETY_AND_BACKUP_POLICY.md
