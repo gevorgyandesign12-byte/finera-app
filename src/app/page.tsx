@@ -377,6 +377,18 @@ const styles: Record<string, CSSProperties> = {
     color: "#ffffff",
     cursor: "pointer",
   },
+  submenuItem: {
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: "11px",
+    border: "1px solid rgba(255,255,255,0.14)",
+    background: "rgba(255,255,255,0.10)",
+    color: "#ffffff",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 600,
+  },
   content: {
     flex: 1,
     padding: "36px",
