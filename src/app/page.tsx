@@ -17,6 +17,10 @@ type AppOrganization = {
   legalAddress?: string | null;
   businessAddress?: string | null;
   tenantDatabaseName?: string | null;
+  serviceStatus?: string | null;
+  serviceStoppedAt?: string | null;
+  serviceStopReason?: string | null;
+  archivedAt?: string | null;
   registryCheckStatus?: string | null;
   registryCheckedAt?: string | null;
   registryCheckedBy?: string | null;
@@ -84,6 +88,12 @@ export default function Home() {
   const [isSavingRegistryCheck, setIsSavingRegistryCheck] = useState(false);
   const [registryCheckMessage, setRegistryCheckMessage] = useState<string | null>(null);
   const [registryDifferences, setRegistryDifferences] = useState<string[]>([]);
+  const [archiveTargetOrganizationId, setArchiveTargetOrganizationId] = useState<string | null>(null);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [isArchivingOrganization, setIsArchivingOrganization] = useState(false);
+  const [archiveMessage, setArchiveMessage] = useState<string | null>(null);
+  const [archivedOrganizations, setArchivedOrganizations] = useState<AppOrganization[]>([]);
+  const [archiveListMessage, setArchiveListMessage] = useState<string | null>(null);
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
@@ -92,6 +102,9 @@ export default function Home() {
   const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
   const selectedOrganization = allowedOrganizations.find(
     (organization) => organization.id === selectedOrganizationId
+  );
+  const archiveTargetOrganization = organizations.find(
+    (organization) => organization.id === archiveTargetOrganizationId
   );
   const activeMenuTitle = activeMenuPath[activeMenuPath.length - 1]?.label;
   const visibleMenuItems =
@@ -691,7 +704,7 @@ export default function Home() {
       setSelectedOrganizationId(data.organization.id);
       setOrganizationSaveStatus(`Պահպանվեց՝ ${data.organization.name}`);
       form.reset();
-      setActiveDemoPage("Բոլոր կազմակերպությունները");
+      setActiveDemoPage("Գործող սպասարկում");
     } catch {
       setOrganizationSaveStatus("Չհաջողվեց կապ հաստատել DEV DB API-ի հետ։");
     } finally {
@@ -702,7 +715,7 @@ export default function Home() {
   function renderDbNewOrganizationForm() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · DEV Master DB</p>
+        <p style={styles.kicker}>Կազմակերպություններ · DEV Master DB</p>
         <h2>Նոր գործընկեր գրանցել</h2>
         <p>
           Այս ձևը արդեն պահում է տվյալները DEV Master DB-ում։ Սա դեռ փորձնական գրանցում է՝
@@ -871,6 +884,77 @@ export default function Home() {
     );
   }
 
+  function openArchiveOrganizationDialog(organizationId: string) {
+    setArchiveTargetOrganizationId(organizationId);
+    setArchiveReason("");
+    setArchiveMessage(null);
+  }
+
+  function closeArchiveOrganizationDialog() {
+    setArchiveTargetOrganizationId(null);
+    setArchiveReason("");
+    setArchiveMessage(null);
+    setIsArchivingOrganization(false);
+  }
+
+  async function handleArchiveOrganization() {
+    if (!archiveTargetOrganization) {
+      setArchiveMessage("Կազմակերպությունը ընտրված չէ։");
+      return;
+    }
+
+    const reason = archiveReason.trim();
+
+    if (!reason) {
+      setArchiveMessage("Սպասարկումը դադարեցնելու պատճառը պարտադիր է։");
+      return;
+    }
+
+    setIsArchivingOrganization(true);
+    setArchiveMessage("Դադարեցնում ենք սպասարկումը և արխիվացնում ենք...");
+
+    try {
+      const response = await fetch("/api/organizations/archive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: archiveTargetOrganization.id,
+          reason,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        organization?: AppOrganization;
+        error?: string;
+      };
+
+      if (!response.ok || !data.organization) {
+        setArchiveMessage(data.error ?? "Չհաջողվեց արխիվացնել կազմակերպությունը։");
+        return;
+      }
+
+      setOrganizations((current) =>
+        current.filter((organization) => organization.id !== data.organization?.id)
+      );
+
+      if (selectedOrganizationId === data.organization.id) {
+        setSelectedOrganizationId("");
+      }
+
+      setArchiveMessage("Կազմակերպությունը արխիվացվեց և այլևս չի երևում սպասարկվող ցուցակում։");
+
+      window.setTimeout(() => {
+        closeArchiveOrganizationDialog();
+      }, 900);
+    } catch {
+      setArchiveMessage("Չհաջողվեց կապ հաստատել archive API-ի հետ։");
+    } finally {
+      setIsArchivingOrganization(false);
+    }
+  }
+
   function getRegistryCheckLabel(status?: string | null) {
     if (status === "verified") {
       return "Ստուգված";
@@ -980,16 +1064,16 @@ export default function Home() {
     if (!organization) {
       return (
         <section style={styles.accountingArea}>
-          <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Ստուգում</p>
+          <p style={styles.kicker}>Կազմակերպություններ · Ստուգում</p>
           <h2>Կազմակերպությունը ընտրված չէ</h2>
-          <p>Վերադարձիր «Բոլոր կազմակերպությունները» էջ և ընտրիր կազմակերպությունը։</p>
+          <p>Վերադարձիր «Գործող սպասարկում» էջ և ընտրիր կազմակերպությունը։</p>
         </section>
       );
     }
 
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Տվյալների ստուգում</p>
+        <p style={styles.kicker}>Կազմակերպություններ · Տվյալների ստուգում</p>
         <h2>Ստուգել ներմուծված տվյալները</h2>
         <p>
           Այս էջում համադրում ենք մեր DEV Master DB-ում գրանցված տվյալները պետռեգիստրից
@@ -1134,7 +1218,7 @@ export default function Home() {
 
   function openAccountingWorkspaceForOrganization(organizationId: string) {
     const servicedOrganizationsMenu = menuItems.find(
-      (item) => item.label === "Սպասարկվող կազմակերպություններ"
+      (item) => item.label === "Կազմակերպություններ"
     );
     const accountingWorkspaceMenu = servicedOrganizationsMenu?.children?.find(
       (item) => item.label === "Կազմակերպության հաշվապահական տարածք"
@@ -1155,7 +1239,7 @@ export default function Home() {
   function renderOrganizationPickerForAccounting() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Հաշվապահական տարածք</p>
+        <p style={styles.kicker}>Կազմակերպություններ · Հաշվապահական տարածք</p>
         <h2>Ընտրել կազմակերպություն</h2>
         <p>
           Հաշվապահական տարածքը բացվում է միայն կոնկրետ սպասարկվող կազմակերպության համար։
@@ -1196,14 +1280,228 @@ export default function Home() {
     );
   }
 
+  async function loadArchivedOrganizations() {
+    setArchiveListMessage("Բեռնում ենք արխիվացված կազմակերպությունները...");
+
+    try {
+      const response = await fetch("/api/organizations?includeArchived=1", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setArchiveListMessage("Չհաջողվեց բեռնել կազմակերպությունների արխիվը։");
+        return;
+      }
+
+      const data = (await response.json()) as { organizations?: AppOrganization[] };
+      const archived = (data.organizations ?? []).filter(
+        (organization) => organization.serviceStatus === "archived"
+      );
+
+      setArchivedOrganizations(archived);
+      setArchiveListMessage(
+        archived.length > 0
+          ? `Գտնվեց արխիվացված կազմակերպություն՝ ${archived.length}`
+          : "Արխիվացված կազմակերպություններ դեռ չկան։"
+      );
+    } catch {
+      setArchiveListMessage("Չհաջողվեց կապ հաստատել archive list API-ի հետ։");
+    }
+  }
+
+  function renderOrganizationsArchivePage() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Կազմակերպություններ · Արխիվ</p>
+        <h2>Կազմակերպությունների արխիվ</h2>
+        <p>
+          Այստեղ երևում են այն կազմակերպությունները, որոնց սպասարկումը դադարեցվել է։
+          Դրանք չեն ջնջվում DB-ից և չեն երևում «Գործող սպասարկում» ցուցակում։
+        </p>
+
+        <button type="button" style={styles.primaryButton} onClick={loadArchivedOrganizations}>
+          Թարմացնել արխիվը
+        </button>
+
+        {archiveListMessage ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>{archiveListMessage}</strong>
+          </div>
+        ) : null}
+
+        {archivedOrganizations.length > 0 ? (
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {archivedOrganizations.map((organization) => (
+              <article
+                key={organization.id}
+                style={{
+                  ...styles.previewBox,
+                  display: "grid",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: "18px" }}>{organization.name}</strong>
+                  <p style={{ margin: "8px 0" }}>
+                    {organization.shortDescription ?? "Նկարագրություն չկա"}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  <small>
+                    <strong>ՀՎՀՀ</strong>
+                    <br />
+                    {organization.taxId ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Սպասարկում</strong>
+                    <br />
+                    Արխիվացված
+                  </small>
+                  <small>
+                    <strong>Դադարեցման ամսաթիվ</strong>
+                    <br />
+                    {organization.serviceStoppedAt
+                      ? new Date(organization.serviceStoppedAt).toLocaleDateString("hy-AM")
+                      : "—"}
+                  </small>
+                  <small>
+                    <strong>Արխիվացման ամսաթիվ</strong>
+                    <br />
+                    {organization.archivedAt
+                      ? new Date(organization.archivedAt).toLocaleDateString("hy-AM")
+                      : "—"}
+                  </small>
+                </div>
+
+                <div style={styles.previewBox}>
+                  <strong>Դադարեցման պատճառ</strong>
+                  <p style={{ marginBottom: 0 }}>{organization.serviceStopReason ?? "—"}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...styles.previewBox, marginTop: "18px" }}>
+            <strong>Արխիվը դատարկ է</strong>
+            <p style={{ marginBottom: 0 }}>
+              Երբ «Գործող սպասարկում» բաժնից կազմակերպության սպասարկումը դադարեցվի,
+              այն կհայտնվի այստեղ։
+            </p>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   function renderAllOrganizationsPage() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · DEV Master DB</p>
-        <h2>Բոլոր կազմակերպությունները</h2>
+        {archiveTargetOrganization ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Դադարեցնել սպասարկումը և արխիվացնել"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              display: "grid",
+              placeItems: "center",
+              background: "rgba(0, 0, 0, 0.45)",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                width: "min(520px, 100%)",
+                borderRadius: "18px",
+                border: "1px solid #d8c7ad",
+                background: "#fffaf2",
+                padding: "22px",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <strong style={{ display: "block", fontSize: "18px", marginBottom: "10px" }}>
+                Դադարեցնել սպասարկումը և արխիվացնել
+              </strong>
+
+              <p>
+                Կազմակերպությունը չի ջնջվելու DB-ից։ Այն միայն կարխիվացվի և այլևս չի երևա
+                սպասարկվող կազմակերպությունների հիմնական ցուցակում։
+              </p>
+
+              <div style={styles.previewBox}>
+                <strong>{archiveTargetOrganization.name}</strong>
+                <p style={{ margin: "8px 0 0" }}>
+                  ՀՎՀՀ՝ {archiveTargetOrganization.taxId ?? "—"}
+                </p>
+              </div>
+
+              <label style={{ ...styles.label, marginTop: "14px" }}>
+                Պատճառ
+                <textarea
+                  value={archiveReason}
+                  onChange={(event) => {
+                    setArchiveReason(event.target.value);
+                    setArchiveMessage(null);
+                  }}
+                  style={{
+                    ...styles.input,
+                    minHeight: "90px",
+                    resize: "vertical",
+                  }}
+                  placeholder="Օրինակ՝ պայմանագրի ժամկետը ավարտվել է / հաճախորդը դադարեցրել է սպասարկումը"
+                />
+              </label>
+
+              {archiveMessage ? (
+                <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+                  <strong>{archiveMessage}</strong>
+                </div>
+              ) : null}
+
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "16px" }}>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.primaryButton,
+                    background: "#7c2d12",
+                  }}
+                  disabled={isArchivingOrganization}
+                  onClick={handleArchiveOrganization}
+                >
+                  {isArchivingOrganization ? "Արխիվացվում է..." : "Դադարեցնել և արխիվացնել"}
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    ...styles.primaryButton,
+                    background: "#efe4d4",
+                    color: "#2b2118",
+                  }}
+                  disabled={isArchivingOrganization}
+                  onClick={closeArchiveOrganizationDialog}
+                >
+                  Չեղարկել
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <p style={styles.kicker}>Կազմակերպություններ · DEV Master DB</p>
+        <h2>Գործող սպասարկում</h2>
         <p>
-          Այստեղ երևում են DEV Master DB-ում գրանցված սպասարկվող կազմակերպությունները։
-          Card-ի վրայից կարող ենք բացել հաշվապահական տարածքը կամ ստուգել տվյալները։
+          Այստեղ երևում են միայն գործող/սպասարկվող կազմակերպությունները։ Արխիվացվածները
+          այս ցուցակում չեն երևում, բայց DB-ում մնում են պատմության համար։
         </p>
 
         <div
@@ -1216,7 +1514,7 @@ export default function Home() {
         >
           <div style={styles.previewBox}>
             <strong>{allowedOrganizations.length}</strong>
-            <p style={{ margin: "6px 0 0" }}>Ընդհանուր կազմակերպություններ</p>
+            <p style={{ margin: "6px 0 0" }}>Կազմակերպություններ</p>
           </div>
           <div style={styles.previewBox}>
             <strong>
@@ -1277,6 +1575,11 @@ export default function Home() {
                     {organization.status ?? "—"}
                   </small>
                   <small>
+                    <strong>Սպասարկում</strong>
+                    <br />
+                    {organization.serviceStatus === "archived" ? "Արխիվացված" : "Սպասարկվում է"}
+                  </small>
+                  <small>
                     <strong>Ստուգում</strong>
                     <br />
                     {getRegistryCheckLabel(organization.registryCheckStatus)}
@@ -1312,15 +1615,27 @@ export default function Home() {
                   >
                     Ստուգել տվյալները
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openArchiveOrganizationDialog(organization.id)}
+                    style={{
+                      ...styles.primaryButton,
+                      width: "fit-content",
+                      background: "#7c2d12",
+                    }}
+                  >
+                    Դադարեցնել սպասարկումը
+                  </button>
                 </div>
               </article>
             ))}
           </div>
         ) : (
           <div style={styles.previewBox}>
-            <strong>Կազմակերպություններ դեռ չկան</strong>
+            <strong>Կազմակերպություններ չկան</strong>
             <p style={{ marginBottom: 0 }}>
-              Օգտագործիր «Նոր գործընկեր գրանցել» ձևը, որ այստեղ հայտնվեն նոր գրանցումները։
+              Եթե կազմակերպություն արխիվացվել է, այն այս ցուցակում այլևս չի երևա։
             </p>
           </div>
         )}
@@ -1338,7 +1653,7 @@ export default function Home() {
 
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Գործողություններ</p>
+        <p style={styles.kicker}>Կազմակերպություններ · Գործողություններ</p>
         <h2>Նոր գործընկեր գրանցել</h2>
         <p>
           Գործընկերը կարող է լինել ՍՊԸ, ԱՁ կամ այլ իրավական սուբյեկտ։
@@ -1945,7 +2260,11 @@ export default function Home() {
       return renderRegistryCheckPage();
     }
 
-    if (activeDemoPage === "Բոլոր կազմակերպությունները") {
+    if (activeDemoPage === "Կազմակերպությունների արխիվ") {
+      return renderOrganizationsArchivePage();
+    }
+
+    if (activeDemoPage === "Գործող սպասարկում") {
       return renderAllOrganizationsPage();
     }
 

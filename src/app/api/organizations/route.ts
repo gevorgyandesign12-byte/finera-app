@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,12 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     legalAddress: organization.legalAddress,
     businessAddress: organization.businessAddress,
     tenantDatabaseName: organization.tenantDatabaseName,
+
+    serviceStatus: organization.serviceStatus,
+    serviceStoppedAt: organization.serviceStoppedAt?.toISOString() ?? null,
+    serviceStopReason: organization.serviceStopReason,
+    archivedAt: organization.archivedAt?.toISOString() ?? null,
+
     registryCheckStatus: organization.registryCheckStatus,
     registryCheckedAt: organization.registryCheckedAt?.toISOString() ?? null,
     registryCheckedBy: organization.registryCheckedBy,
@@ -44,8 +50,11 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const includeArchived = request.nextUrl.searchParams.get("includeArchived") === "1";
+
   const organizations = await prisma.organization.findMany({
+    where: includeArchived ? undefined : { serviceStatus: { not: "archived" } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -97,6 +106,7 @@ export async function POST(request: Request) {
         legalAddress: legalAddress || null,
         businessAddress: businessAddress || null,
         tenantDatabaseName: makeTenantDatabaseName(name, taxId),
+        serviceStatus: "servicing",
         registryCheckStatus: "not_checked",
       },
     });
