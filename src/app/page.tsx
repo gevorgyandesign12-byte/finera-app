@@ -6,6 +6,7 @@ import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 import { CalendarDateField } from "@/components/CalendarDateField";
+import { newPartnerRegistrationTabs } from "../lib/new-partner-registration";
 type ServiceContract = {
   id: string;
   organizationId: string;
@@ -131,7 +132,6 @@ type AppOrganization = {
 };
 
 import {
-import { newPartnerRegistrationTabs } from "../lib/new-partner-registration";
   demoDepartments,
   demoEmployees,
   getDepartmentName,
