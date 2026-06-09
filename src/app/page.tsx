@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
@@ -69,6 +69,8 @@ export default function Home() {
   const [organizations, setOrganizations] = useState<AppOrganization[]>(
     demoOrganizations as AppOrganization[]
   );
+  const [isSavingOrganization, setIsSavingOrganization] = useState(false);
+  const [organizationSaveStatus, setOrganizationSaveStatus] = useState<string | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
@@ -606,6 +608,176 @@ export default function Home() {
     });
   }
 
+
+  async function handleCreateOrganization(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const payload = {
+      name: String(formData.get("name") ?? "").trim(),
+      shortName: String(formData.get("shortName") ?? "").trim(),
+      legalType: String(formData.get("legalType") ?? "").trim(),
+      taxId: String(formData.get("taxId") ?? "").trim(),
+      status: String(formData.get("status") ?? "draft").trim(),
+      shortDescription: String(formData.get("shortDescription") ?? "").trim(),
+      legalAddress: String(formData.get("legalAddress") ?? "").trim(),
+      businessAddress: String(formData.get("businessAddress") ?? "").trim(),
+    };
+
+    setIsSavingOrganization(true);
+    setOrganizationSaveStatus("Պահպանում ենք DEV Master DB-ում...");
+
+    try {
+      const response = await fetch("/api/organizations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as {
+        organization?: AppOrganization;
+        error?: string;
+      };
+
+      if (!response.ok || !data.organization) {
+        setOrganizationSaveStatus(data.error ?? "Չհաջողվեց պահպանել կազմակերպությունը։");
+        return;
+      }
+
+      setOrganizations((current) => {
+        const withoutDuplicate = current.filter(
+          (organization) => organization.id !== data.organization?.id
+        );
+
+        return [...withoutDuplicate, data.organization as AppOrganization];
+      });
+
+      setSelectedOrganizationId(data.organization.id);
+      setOrganizationSaveStatus(`Պահպանվեց՝ ${data.organization.name}`);
+      form.reset();
+      setActiveDemoPage("Բոլոր կազմակերպությունները");
+    } catch {
+      setOrganizationSaveStatus("Չհաջողվեց կապ հաստատել DEV DB API-ի հետ։");
+    } finally {
+      setIsSavingOrganization(false);
+    }
+  }
+
+  function renderDbNewOrganizationForm() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · DEV Master DB</p>
+        <h2>Նոր գործընկեր գրանցել</h2>
+        <p>
+          Այս ձևը արդեն պահում է տվյալները DEV Master DB-ում։ Սա դեռ փորձնական գրանցում է՝
+          ոչ production, ոչ իրական հաշվապահական posting։
+        </p>
+
+        <form onSubmit={handleCreateOrganization} style={{ display: "grid", gap: "18px" }}>
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Կազմակերպության տեսակ
+              <select name="legalType" style={styles.select} defaultValue="" required>
+                <option value="" disabled>
+                  Ընտրել տեսակը
+                </option>
+                <option value="ՍՊԸ">ՍՊԸ</option>
+                <option value="ԱՁ">ԱՁ</option>
+                <option value="ՀԿ">ՀԿ</option>
+                <option value="Հիմնադրամ">Հիմնադրամ</option>
+                <option value="Այլ">Այլ</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Լրիվ անվանում
+              <input
+                name="name"
+                style={styles.input}
+                type="text"
+                placeholder="Օրինակ՝ Example ՍՊԸ"
+                required
+              />
+            </label>
+
+            <label style={styles.label}>
+              Կարճ անվանում
+              <input
+                name="shortName"
+                style={styles.input}
+                type="text"
+                placeholder="Օրինակ՝ Example"
+              />
+            </label>
+
+            <label style={styles.label}>
+              ՀՎՀՀ
+              <input
+                name="taxId"
+                style={styles.input}
+                type="text"
+                placeholder="Օրինակ՝ 01234567"
+                required
+              />
+            </label>
+
+            <label style={styles.label}>
+              Կարգավիճակ
+              <select name="status" style={styles.select} defaultValue="draft">
+                <option value="draft">Նախնական / draft</option>
+                <option value="active">Գործող</option>
+                <option value="inactive">Պասիվ</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Կարճ նկարագրություն
+              <input
+                name="shortDescription"
+                style={styles.input}
+                type="text"
+                placeholder="Օրինակ՝ արտադրություն, առևտուր, ծառայություններ"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Իրավաբանական հասցե
+              <input
+                name="legalAddress"
+                style={styles.input}
+                type="text"
+                placeholder="Իրավաբանական հասցե"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Գործունեության հասցե
+              <input
+                name="businessAddress"
+                style={styles.input}
+                type="text"
+                placeholder="Եթե տարբերվում է իրավաբանականից"
+              />
+            </label>
+          </div>
+
+          {organizationSaveStatus ? (
+            <div style={styles.previewBox}>
+              <strong>{organizationSaveStatus}</strong>
+            </div>
+          ) : null}
+
+          <button type="submit" style={styles.primaryButton} disabled={isSavingOrganization}>
+            {isSavingOrganization ? "Պահպանվում է..." : "Գրանցել DEV DB-ում"}
+          </button>
+        </form>
+      </section>
+    );
+  }
 
   function openAccountingWorkspaceForOrganization(organizationId: string) {
     const servicedOrganizationsMenu = menuItems.find(
@@ -1402,7 +1574,7 @@ export default function Home() {
     }
 
     if (activeDemoPage === "Նոր գործընկեր գրանցել") {
-      return renderNewPartnerForm();
+      return renderDbNewOrganizationForm();
     }
 
     if (activeDemoPage === "Նորություններ") {
