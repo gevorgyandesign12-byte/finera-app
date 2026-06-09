@@ -131,6 +131,7 @@ type AppOrganization = {
 };
 
 import {
+import { newPartnerRegistrationTabs } from "../lib/new-partner-registration";
   demoDepartments,
   demoEmployees,
   getDepartmentName,
