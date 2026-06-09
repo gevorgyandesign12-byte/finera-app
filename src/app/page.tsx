@@ -6,6 +6,35 @@ import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 import { CalendarDateField } from "@/components/CalendarDateField";
+type ServiceContract = {
+  id: string;
+  organizationId: string;
+  contractNumber: string;
+  signedAt?: string | null;
+  startsAt?: string | null;
+  endsAt?: string | null;
+
+  employeeCount?: number | null;
+  monthlyDocumentCount?: number | null;
+  taxRegime?: string | null;
+  bankAccountCount?: number | null;
+  hasVat?: boolean | null;
+  hasWarehouse?: boolean | null;
+  hasProduction?: boolean | null;
+  hasImportExport?: boolean | null;
+  suggestedFeeAmount?: string | null;
+  approvedFeeAmount?: string | null;
+
+  feeAmount?: string | null;
+  feeCurrency?: string | null;
+  status?: string | null;
+  responsiblePerson?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+
 type AppOrganization = {
   id: string;
   name: string;
@@ -95,6 +124,30 @@ export default function Home() {
   const [archivedOrganizations, setArchivedOrganizations] = useState<AppOrganization[]>([]);
   const [archiveListMessage, setArchiveListMessage] = useState<string | null>(null);
   const [organizationProfileTab, setOrganizationProfileTab] = useState("Ընդհանուր տվյալներ");
+  const [selectedContract, setSelectedContract] = useState<ServiceContract | null>(null);
+  const [contractMessage, setContractMessage] = useState<string | null>(null);
+  const [isSavingContract, setIsSavingContract] = useState(false);
+  const [contractForm, setContractForm] = useState({
+    contractNumber: "",
+    signedAt: getTodayInputDate(),
+    startsAt: getTodayInputDate(),
+    endsAt: "",
+
+    employeeCount: "",
+    monthlyDocumentCount: "",
+    taxRegime: "turnover_tax",
+    bankAccountCount: "1",
+    hasVat: false,
+    hasWarehouse: false,
+    hasProduction: false,
+    hasImportExport: false,
+    approvedFeeAmount: "",
+
+    feeCurrency: "AMD",
+    status: "draft",
+    responsiblePerson: "",
+    notes: "",
+  });
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
@@ -1287,6 +1340,584 @@ export default function Home() {
     );
   }
 
+  async function loadContractForOrganization(organizationId: string) {
+    setContractMessage("Բեռնում ենք պայմանագրի տվյալները...");
+
+    try {
+      const response = await fetch(
+        `/api/organizations/contracts?organizationId=${encodeURIComponent(organizationId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        setContractMessage("Չհաջողվեց բեռնել պայմանագիրը։");
+        return;
+      }
+
+      const data = (await response.json()) as { contract?: ServiceContract | null };
+      const contract = data.contract ?? null;
+
+      setSelectedContract(contract);
+      fillContractForm(contract, organizationId);
+      setContractMessage(contract ? "Պայմանագիրը բեռնվեց DEV DB-ից։" : "Պայմանագիր դեռ չկա․ լրացրու և պահպանիր։");
+    } catch {
+      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
+    }
+  }
+
+  async function handleSaveContract(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedOrganization) {
+      setContractMessage("Կազմակերպությունը ընտրված չէ։");
+      return;
+    }
+
+    if (!contractForm.contractNumber.trim()) {
+      setContractMessage("Պայմանագրի համարը պարտադիր է։");
+      return;
+    }
+
+    setIsSavingContract(true);
+    setContractMessage("Պահպանում ենք պայմանագիրը DEV DB-ում...");
+
+    try {
+      const response = await fetch("/api/organizations/contracts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: selectedOrganization.id,
+          ...contractForm,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        contract?: ServiceContract;
+        error?: string;
+      };
+
+      if (!response.ok || !data.contract) {
+        setContractMessage(data.error ?? "Չհաջողվեց պահպանել պայմանագիրը։");
+        return;
+      }
+
+      setSelectedContract(data.contract);
+      fillContractForm(data.contract, selectedOrganization.id);
+      setContractMessage("Պայմանագիրը պահպանվեց DEV DB-ում։");
+    } catch {
+      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
+    } finally {
+      setIsSavingContract(false);
+    }
+  }
+
+  function formatContractFee(value: number | string | null | undefined) {
+    const numericValue = typeof value === "number" ? value : Number(value ?? 0);
+
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      return "0 AMD";
+    }
+
+    return `${numericValue.toLocaleString("hy-AM")} AMD`;
+  }
+
+  function calculateSuggestedContractFee() {
+    const employeeCount = Number(contractForm.employeeCount || 0);
+    const monthlyDocumentCount = Number(contractForm.monthlyDocumentCount || 0);
+    const bankAccountCount = Number(contractForm.bankAccountCount || 0);
+
+    let fee = 50_000;
+
+    if (employeeCount > 50) {
+      fee += 120_000;
+    } else if (employeeCount > 20) {
+      fee += 70_000;
+    } else if (employeeCount > 5) {
+      fee += 30_000;
+    }
+
+    if (monthlyDocumentCount > 300) {
+      fee += 100_000;
+    } else if (monthlyDocumentCount > 100) {
+      fee += 60_000;
+    } else if (monthlyDocumentCount > 30) {
+      fee += 25_000;
+    }
+
+    if (contractForm.taxRegime === "vat") {
+      fee += 30_000;
+    }
+
+    if (contractForm.taxRegime === "profit_tax") {
+      fee += 20_000;
+    }
+
+    if (contractForm.taxRegime === "mixed") {
+      fee += 50_000;
+    }
+
+    if (bankAccountCount > 1) {
+      fee += (bankAccountCount - 1) * 10_000;
+    }
+
+    if (contractForm.hasVat && contractForm.taxRegime !== "vat") {
+      fee += 30_000;
+    }
+
+    if (contractForm.hasWarehouse) {
+      fee += 25_000;
+    }
+
+    if (contractForm.hasProduction) {
+      fee += 40_000;
+    }
+
+    if (contractForm.hasImportExport) {
+      fee += 35_000;
+    }
+
+    return fee;
+  }
+
+  function fillContractForm(contract: ServiceContract | null, organizationId?: string) {
+    if (!contract) {
+      setContractForm({
+        contractNumber: organizationId ? `FIN-${organizationId.slice(-6).toUpperCase()}` : "",
+        signedAt: getTodayInputDate(),
+        startsAt: getTodayInputDate(),
+        endsAt: "",
+
+        employeeCount: "",
+        monthlyDocumentCount: "",
+        taxRegime: "turnover_tax",
+        bankAccountCount: "1",
+        hasVat: false,
+        hasWarehouse: false,
+        hasProduction: false,
+        hasImportExport: false,
+        approvedFeeAmount: "",
+
+        feeCurrency: "AMD",
+        status: "draft",
+        responsiblePerson: "",
+        notes: "",
+      });
+      return;
+    }
+
+    setContractForm({
+      contractNumber: contract.contractNumber ?? "",
+      signedAt: contract.signedAt ?? getTodayInputDate(),
+      startsAt: contract.startsAt ?? getTodayInputDate(),
+      endsAt: contract.endsAt ?? "",
+
+      employeeCount: String(contract.employeeCount ?? ""),
+      monthlyDocumentCount: String(contract.monthlyDocumentCount ?? ""),
+      taxRegime: contract.taxRegime ?? "turnover_tax",
+      bankAccountCount: String(contract.bankAccountCount ?? "1"),
+      hasVat: Boolean(contract.hasVat),
+      hasWarehouse: Boolean(contract.hasWarehouse),
+      hasProduction: Boolean(contract.hasProduction),
+      hasImportExport: Boolean(contract.hasImportExport),
+      approvedFeeAmount: contract.approvedFeeAmount ?? contract.feeAmount ?? "",
+
+      feeCurrency: contract.feeCurrency ?? "AMD",
+      status: contract.status ?? "draft",
+      responsiblePerson: contract.responsiblePerson ?? "",
+      notes: contract.notes ?? "",
+    });
+  }
+
+  async function loadContractForOrganization(organizationId: string) {
+    setContractMessage("Բեռնում ենք պայմանագրի տվյալները...");
+
+    try {
+      const response = await fetch(
+        `/api/organizations/contracts?organizationId=${encodeURIComponent(organizationId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        setContractMessage("Չհաջողվեց բեռնել պայմանագիրը։");
+        return;
+      }
+
+      const data = (await response.json()) as { contract?: ServiceContract | null };
+      const contract = data.contract ?? null;
+
+      setSelectedContract(contract);
+      fillContractForm(contract, organizationId);
+      setContractMessage(
+        contract ? "Պայմանագիրը բեռնվեց DEV DB-ից։" : "Պայմանագիր դեռ չկա․ լրացրու և պահպանիր։"
+      );
+    } catch {
+      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
+    }
+  }
+
+  async function handleSaveContract(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedOrganization) {
+      setContractMessage("Կազմակերպությունը ընտրված չէ։");
+      return;
+    }
+
+    if (!contractForm.contractNumber.trim()) {
+      setContractMessage("Պայմանագրի համարը պարտադիր է։");
+      return;
+    }
+
+    const suggestedFeeAmount = calculateSuggestedContractFee();
+    const approvedFeeAmount = contractForm.approvedFeeAmount.trim() || String(suggestedFeeAmount);
+
+    setIsSavingContract(true);
+    setContractMessage("Պահպանում ենք պայմանագիրը DEV DB-ում...");
+
+    try {
+      const response = await fetch("/api/organizations/contracts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: selectedOrganization.id,
+          ...contractForm,
+          suggestedFeeAmount: String(suggestedFeeAmount),
+          approvedFeeAmount,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        contract?: ServiceContract;
+        error?: string;
+      };
+
+      if (!response.ok || !data.contract) {
+        setContractMessage(data.error ?? "Չհաջողվեց պահպանել պայմանագիրը։");
+        return;
+      }
+
+      setSelectedContract(data.contract);
+      fillContractForm(data.contract, selectedOrganization.id);
+      setContractMessage("Պայմանագիրը և սակագինը պահպանվեցին DEV DB-ում։");
+    } catch {
+      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
+    } finally {
+      setIsSavingContract(false);
+    }
+  }
+
+  function renderContractTabContent(organization: AppOrganization) {
+    const suggestedFeeAmount = calculateSuggestedContractFee();
+    const approvedFeeAmount = contractForm.approvedFeeAmount || String(suggestedFeeAmount);
+
+    return (
+      <div style={styles.tabPanel}>
+        <h3 style={styles.sectionTitle}>Պայմանագիր և սակագին</h3>
+
+        <div style={styles.previewBox}>
+          <strong>{selectedContract ? "Պայմանագիր կա DEV DB-ում" : "Պայմանագիր դեռ չկա"}</strong>
+          <p style={{ marginBottom: 0 }}>
+            Կազմակերպություն՝ {organization.name} · ՀՎՀՀ՝ {organization.taxId ?? "—"}
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "12px",
+            marginTop: "14px",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>{formatContractFee(suggestedFeeAmount)}</strong>
+            <p style={{ margin: "6px 0 0" }}>Համակարգի առաջարկած սակագին</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>{formatContractFee(approvedFeeAmount)}</strong>
+            <p style={{ margin: "6px 0 0" }}>Հաստատվող ամսական սակագին</p>
+          </div>
+        </div>
+
+        {contractMessage ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>{contractMessage}</strong>
+          </div>
+        ) : null}
+
+        <form noValidate onSubmit={handleSaveContract} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Պայմանագրի համար
+              <input
+                style={styles.input}
+                type="text"
+                value={contractForm.contractNumber}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    contractNumber: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ FIN-0001"
+              />
+            </label>
+
+            <CalendarDateField
+              label="Պայմանագրի ամսաթիվ"
+              value={contractForm.signedAt}
+              onChange={(value) =>
+                setContractForm((current) => ({
+                  ...current,
+                  signedAt: value,
+                }))
+              }
+            />
+
+            <CalendarDateField
+              label="Սպասարկման սկիզբ"
+              value={contractForm.startsAt}
+              onChange={(value) =>
+                setContractForm((current) => ({
+                  ...current,
+                  startsAt: value,
+                }))
+              }
+            />
+
+            <CalendarDateField
+              label="Սպասարկման ավարտ"
+              value={contractForm.endsAt}
+              onChange={(value) =>
+                setContractForm((current) => ({
+                  ...current,
+                  endsAt: value,
+                }))
+              }
+            />
+          </div>
+
+          <h3 style={styles.sectionTitle}>Սակագնի հաշվարկ</h3>
+
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Աշխատակիցների քանակ
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                value={contractForm.employeeCount}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                }}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    employeeCount: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ 50"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Ամսական փաստաթղթերի մոտավոր քանակ
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                value={contractForm.monthlyDocumentCount}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                }}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    monthlyDocumentCount: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ 120"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Հարկային ռեժիմ
+              <select
+                style={styles.select}
+                value={contractForm.taxRegime}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    taxRegime: event.target.value,
+                  }))
+                }
+              >
+                <option value="turnover_tax">Շրջանառության հարկ</option>
+                <option value="vat">ԱԱՀ</option>
+                <option value="profit_tax">Շահութահարկ</option>
+                <option value="mixed">Խառը / բարդ ռեժիմ</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Բանկային հաշիվների քանակ
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                value={contractForm.bankAccountCount}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                }}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    bankAccountCount: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ 2"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Հաստատվող ամսական սակագին
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                value={contractForm.approvedFeeAmount}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                }}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    approvedFeeAmount: event.target.value,
+                  }))
+                }
+                placeholder={`Առաջարկ՝ ${suggestedFeeAmount}`}
+              />
+            </label>
+
+            <label style={styles.label}>
+              Արժույթ
+              <select
+                style={styles.select}
+                value={contractForm.feeCurrency}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    feeCurrency: event.target.value,
+                  }))
+                }
+              >
+                <option value="AMD">AMD</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </label>
+          </div>
+
+          <div style={{ display: "grid", gap: "10px" }}>
+            {[
+              ["hasVat", "ԱԱՀ վճարող է"],
+              ["hasWarehouse", "Պահեստային հաշվառում ունի"],
+              ["hasProduction", "Արտադրություն ունի"],
+              ["hasImportExport", "Ներմուծում / արտահանում ունի"],
+            ].map(([key, label]) => (
+              <label key={key} style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(contractForm[key as keyof typeof contractForm])}
+                  onChange={(event) =>
+                    setContractForm((current) => ({
+                      ...current,
+                      [key]: event.target.checked,
+                    }))
+                  }
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+
+          <div style={styles.previewBox}>
+            <strong>Հաշվարկի demo կանոններ</strong>
+            <p style={{ marginBottom: 0 }}>
+              Բազային՝ 50,000 AMD · 6-20 աշխատակից՝ +30,000 · 21-50՝ +70,000 ·
+              51+՝ +120,000 · ԱԱՀ/պահեստ/արտադրություն/ներմուծում՝ առանձին հավելումներով։
+              Վերջնական սակագինը հաստատում է մարդը։
+            </p>
+          </div>
+
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Կարգավիճակ
+              <select
+                style={styles.select}
+                value={contractForm.status}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    status: event.target.value,
+                  }))
+                }
+              >
+                <option value="draft">Նախնական</option>
+                <option value="active">Գործող</option>
+                <option value="expired">Ժամկետանց</option>
+                <option value="terminated">Դադարեցված</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Պատասխանատու անձ
+              <input
+                style={styles.input}
+                type="text"
+                value={contractForm.responsiblePerson}
+                onChange={(event) =>
+                  setContractForm((current) => ({
+                    ...current,
+                    responsiblePerson: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Տիգրան Գևորգյան"
+              />
+            </label>
+          </div>
+
+          <label style={styles.label}>
+            Նշումներ
+            <textarea
+              style={{
+                ...styles.input,
+                minHeight: "90px",
+                resize: "vertical",
+              }}
+              value={contractForm.notes}
+              onChange={(event) =>
+                setContractForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              placeholder="Պայմանագրի պայմաններ, հատուկ նշումներ, վճարման պայմաններ"
+            />
+          </label>
+
+          <button type="submit" style={styles.primaryButton} disabled={isSavingContract}>
+            {isSavingContract ? "Պահպանվում է..." : "Պահպանել պայմանագիրը և սակագինը DEV DB-ում"}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
   function renderOrganizationProfilePage() {
     const organization = selectedOrganization;
     const profileTabs = [
@@ -1354,7 +1985,13 @@ export default function Home() {
                 ...styles.tabButton,
                 ...(organizationProfileTab === tab ? styles.tabButtonActive : {}),
               }}
-              onClick={() => setOrganizationProfileTab(tab)}
+              onClick={() => {
+                setOrganizationProfileTab(tab);
+
+                if (tab === "Պայմանագիր") {
+                  void loadContractForOrganization(organization.id);
+                }
+              }}
             >
               {tab}
             </button>
@@ -1460,18 +2097,7 @@ export default function Home() {
           </div>
         ) : null}
 
-        {organizationProfileTab === "Պայմանագիր" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Պայմանագիր</h3>
-            <div style={styles.previewBox}>
-              <strong>Պայմանագրի demo բաժին</strong>
-              <p style={{ marginBottom: 0 }}>
-                Հաջորդ փուլում այստեղ կավելացնենք պայմանագրի տվյալները՝ համար, ամսաթիվ,
-                սկիզբ, վերջ, սակագին, պատասխանատու անձ և կցված փաստաթղթեր։
-              </p>
-            </div>
-          </div>
-        ) : null}
+        {organizationProfileTab === "Պայմանագիր" ? renderContractTabContent(organization) : null}
 
         <button
           type="button"
