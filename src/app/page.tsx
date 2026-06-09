@@ -35,6 +35,74 @@ type ServiceContract = {
 };
 
 
+type OrganizationEmployee = {
+  id: string;
+  organizationId: string;
+  fullName: string;
+  taxId?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  positionTitle?: string | null;
+  departmentName?: string | null;
+  employmentType?: string | null;
+  employmentStatus?: string | null;
+  hireDate?: string | null;
+  salaryAmount?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type AppDepartment = {
+  id: string;
+  name: string;
+  scope: string;
+  organizationId?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type AppPosition = {
+  id: string;
+  title: string;
+  scope: string;
+  organizationId?: string | null;
+  departmentName?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type AppEmployee = {
+  id: string;
+  fullName: string;
+  email?: string | null;
+  phone?: string | null;
+  roleGroup?: string | null;
+  positionTitle?: string | null;
+  departmentName?: string | null;
+  employmentType?: string | null;
+  employmentStatus?: string | null;
+  hireDate?: string | null;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type AppOrganizationActivity = {
+  id: string;
+  organizationId: string;
+  title: string;
+  code?: string | null;
+  isPrimary: boolean;
+  notes?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
 type AppOrganization = {
   id: string;
   name: string;
@@ -44,6 +112,7 @@ type AppOrganization = {
   status?: string | null;
   shortDescription?: string | null;
   legalAddress?: string | null;
+  postalCode?: string | null;
   businessAddress?: string | null;
   tenantDatabaseName?: string | null;
   serviceStatus?: string | null;
@@ -148,6 +217,76 @@ export default function Home() {
     responsiblePerson: "",
     notes: "",
   });
+  const [fineraEmployees, setFineraEmployees] = useState<AppEmployee[]>([]);
+  const [employeeSaveMessage, setEmployeeSaveMessage] = useState<string | null>(null);
+  const [isSavingEmployee, setIsSavingEmployee] = useState(false);
+  const [hireEmployeeForm, setHireEmployeeForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    roleGroup: "bookkeeper",
+    positionTitle: "",
+    departmentName: "Հաշվապահություն",
+    employmentType: "full_time",
+    hireDate: getTodayInputDate(),
+    notes: "",
+  });
+  const [organizationEmployees, setOrganizationEmployees] = useState<OrganizationEmployee[]>([]);
+  const [organizationEmployeeMessage, setOrganizationEmployeeMessage] = useState<string | null>(null);
+  const [isSavingOrganizationEmployee, setIsSavingOrganizationEmployee] = useState(false);
+  const [organizationEmployeeForm, setOrganizationEmployeeForm] = useState({
+    fullName: "",
+    taxId: "",
+    phone: "",
+    email: "",
+    positionTitle: "",
+    departmentName: "",
+    employmentType: "full_time",
+    hireDate: getTodayInputDate(),
+    salaryAmount: "",
+    notes: "",
+  });
+  const [appPositions, setAppPositions] = useState<AppPosition[]>([]);
+  const [positionMessage, setPositionMessage] = useState<string | null>(null);
+  const [isSavingPosition, setIsSavingPosition] = useState(false);
+  const [positionForm, setPositionForm] = useState({
+    title: "",
+    scope: "finera",
+    departmentName: "Հաշվապահություն",
+    notes: "",
+  });
+  const [appDepartments, setAppDepartments] = useState<AppDepartment[]>([]);
+  const [departmentInlineName, setDepartmentInlineName] = useState("");
+  const [departmentInlineMessage, setDepartmentInlineMessage] = useState<string | null>(null);
+  const [isSavingDepartment, setIsSavingDepartment] = useState(false);
+  const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Հիմնական տեղեկություններ");
+  const [newPartnerDraft, setNewPartnerDraft] = useState<AppOrganization | null>(null);
+  const [newPartnerMessage, setNewPartnerMessage] = useState<string | null>(null);
+  const [isSavingNewPartner, setIsSavingNewPartner] = useState(false);
+  const [newPartnerMainForm, setNewPartnerMainForm] = useState({
+    name: "",
+    legalType: "llc",
+    taxId: "",
+    registryNumber: "",
+    legalAddress: "",
+    postalCode: "",
+    businessAddress: "",
+    phone: "",
+    email: "",
+    directorName: "",
+  });
+  const [newPartnerActivities, setNewPartnerActivities] = useState<AppOrganizationActivity[]>([]);
+  const [newPartnerActivityForm, setNewPartnerActivityForm] = useState({
+    title: "",
+    code: "",
+    isPrimary: true,
+    notes: "",
+  });
+  const [newPartnerDepartments, setNewPartnerDepartments] = useState<AppDepartment[]>([]);
+  const [newPartnerDepartmentForm, setNewPartnerDepartmentForm] = useState({
+    name: "",
+    notes: "",
+  });
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
@@ -166,6 +305,90 @@ export default function Home() {
       ? activeMenuPath[activeMenuPath.length - 1]?.children ?? []
       : menuItems;
   const todayInputDate = getTodayInputDate();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDepartmentsFromDb() {
+      try {
+        const response = await fetch("/api/departments", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { departments?: AppDepartment[] };
+
+        if (isMounted && Array.isArray(data.departments)) {
+          setAppDepartments(data.departments);
+        }
+      } catch {
+        // DEV fallback
+      }
+    }
+
+    loadDepartmentsFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPositionsFromDb() {
+      try {
+        const response = await fetch("/api/positions", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { positions?: AppPosition[] };
+
+        if (isMounted && Array.isArray(data.positions)) {
+          setAppPositions(data.positions);
+        }
+      } catch {
+        // DEV fallback
+      }
+    }
+
+    loadPositionsFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFineraEmployeesFromDb() {
+      try {
+        const response = await fetch("/api/employees", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { employees?: AppEmployee[] };
+
+        if (isMounted && Array.isArray(data.employees)) {
+          setFineraEmployees(data.employees);
+        }
+      } catch {
+        // Demo fallback: employees API-ն կարող է դեռ պատրաստ չլինել։
+      }
+    }
+
+    loadFineraEmployeesFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -766,6 +989,655 @@ export default function Home() {
     }
   }
 
+  function suggestActivityCode(title: string) {
+    const value = title.toLocaleLowerCase("hy-AM");
+
+    if (value.includes("շին")) {
+      return "F";
+    }
+
+    if (value.includes("սննդ") || value.includes("մթեր")) {
+      return "C10";
+    }
+
+    if (value.includes("արտադր")) {
+      return "C";
+    }
+
+    if (value.includes("առևտուր") || value.includes("առեւտուր") || value.includes("խանութ")) {
+      return "G47";
+    }
+
+    if (value.includes("ռեստորան") || value.includes("սրճարան")) {
+      return "I56";
+    }
+
+    if (value.includes("տրանսպորտ") || value.includes("փոխադրում")) {
+      return "H49";
+    }
+
+    if (value.includes("ծառայ")) {
+      return "S";
+    }
+
+    return "";
+  }
+
+  async function loadWizardActivities(organizationId: string) {
+    try {
+      const response = await fetch(
+        `/api/organizations/activities?organizationId=${encodeURIComponent(organizationId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as { activities?: AppOrganizationActivity[] };
+      setNewPartnerActivities(data.activities ?? []);
+    } catch {
+      setNewPartnerMessage("Չհաջողվեց բեռնել գործունեության տեսակները։");
+    }
+  }
+
+  async function handleCreateWizardActivity(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!newPartnerDraft) {
+      setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
+      setNewPartnerRegistrationTab("Հիմնական տեղեկություններ");
+      return;
+    }
+
+    if (!newPartnerActivityForm.title.trim()) {
+      setNewPartnerMessage("Գործունեության տեսակը պարտադիր է։");
+      return;
+    }
+
+    const suggestedCode = suggestActivityCode(newPartnerActivityForm.title);
+    const code = newPartnerActivityForm.code.trim() || suggestedCode;
+
+    try {
+      const response = await fetch("/api/organizations/activities", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: newPartnerDraft.id,
+          ...newPartnerActivityForm,
+          code,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        activity?: AppOrganizationActivity;
+        error?: string;
+      };
+
+      if (!response.ok || !data.activity) {
+        setNewPartnerMessage(data.error ?? "Չհաջողվեց ավելացնել գործունեության տեսակը։");
+        return;
+      }
+
+      setNewPartnerActivities((current) => {
+        const next = newPartnerActivityForm.isPrimary
+          ? current.map((item) => ({ ...item, isPrimary: false }))
+          : current;
+
+        return [...next, data.activity as AppOrganizationActivity];
+      });
+
+      setNewPartnerActivityForm({
+        title: "",
+        code: "",
+        isPrimary: false,
+        notes: "",
+      });
+      setNewPartnerMessage(`Գործունեության տեսակը ավելացվեց՝ ${data.activity.title}`);
+    } catch {
+      setNewPartnerMessage("Չհաջողվեց կապ հաստատել activities API-ի հետ։");
+    }
+  }
+
+  async function loadWizardDepartments(organizationId: string) {
+    try {
+      const response = await fetch(
+        `/api/departments?scope=organization&organizationId=${encodeURIComponent(organizationId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as { departments?: AppDepartment[] };
+      setNewPartnerDepartments(data.departments ?? []);
+    } catch {
+      setNewPartnerMessage("Չհաջողվեց բեռնել ստորաբաժանումները։");
+    }
+  }
+
+  async function handleCreateWizardDepartment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!newPartnerDraft) {
+      setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
+      setNewPartnerRegistrationTab("Հիմնական տեղեկություններ");
+      return;
+    }
+
+    if (!newPartnerDepartmentForm.name.trim()) {
+      setNewPartnerMessage("Ստորաբաժանման անվանումը պարտադիր է։");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/departments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newPartnerDepartmentForm.name,
+          notes: newPartnerDepartmentForm.notes,
+          scope: "organization",
+          organizationId: newPartnerDraft.id,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        department?: AppDepartment;
+        error?: string;
+      };
+
+      if (!response.ok || !data.department) {
+        setNewPartnerMessage(data.error ?? "Չհաջողվեց ավելացնել ստորաբաժանումը։");
+        return;
+      }
+
+      setNewPartnerDepartments((current) =>
+        [...current, data.department as AppDepartment].sort((a, b) => a.name.localeCompare(b.name))
+      );
+      setNewPartnerDepartmentForm({ name: "", notes: "" });
+      setNewPartnerMessage(`Ստորաբաժանումը ավելացվեց՝ ${data.department.name}`);
+    } catch {
+      setNewPartnerMessage("Չհաջողվեց կապ հաստատել departments API-ի հետ։");
+    }
+  }
+
+  async function handleCreateWizardOrganization(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!newPartnerMainForm.name.trim()) {
+      setNewPartnerMessage("Կազմակերպության անվանումը պարտադիր է։");
+      return;
+    }
+
+    if (!/^\d{8}$/.test(newPartnerMainForm.taxId.trim())) {
+      setNewPartnerMessage("ՀՎՀՀ-ն պետք է լինի 8 թվանշան։");
+      return;
+    }
+
+    setIsSavingNewPartner(true);
+    setNewPartnerMessage("Պահպանում ենք հիմնական տեղեկությունները DEV DB-ում...");
+
+    try {
+      const response = await fetch("/api/organizations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newPartnerMainForm),
+      });
+
+      const data = (await response.json()) as {
+        organization?: AppOrganization;
+        error?: string;
+      };
+
+      if (!response.ok || !data.organization) {
+        setNewPartnerMessage(data.error ?? "Չհաջողվեց գրանցել կազմակերպությունը։");
+        return;
+      }
+
+      setNewPartnerDraft(data.organization);
+      setSelectedOrganizationId(data.organization.id);
+      setOrganizations((current) => [data.organization as AppOrganization, ...current]);
+      setNewPartnerMessage("Հիմնական տեղեկությունները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
+      setNewPartnerRegistrationTab("Գործունեության տեսակներ");
+      void loadWizardActivities(data.organization.id);
+      void loadWizardDepartments(data.organization.id);
+    } catch {
+      setNewPartnerMessage("Չհաջողվեց կապ հաստատել organizations API-ի հետ։");
+    } finally {
+      setIsSavingNewPartner(false);
+    }
+  }
+
+  function renderNewPartnerRegistrationWizard() {
+    const tabs = [
+      "Հիմնական տեղեկություններ",
+      "Գործունեության տեսակներ",
+      "Ստորաբաժանումներ",
+    ];
+
+    const suggestedActivityCode = suggestActivityCode(newPartnerActivityForm.title);
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գրանցում</p>
+        <h2>Նոր գործընկեր գրանցել</h2>
+        <p>
+          Գրանցումը բաժանում ենք փուլերի՝ հիմնական տվյալներ, գործունեության տեսակներ,
+          հետո տվյալ կազմակերպության կառուցվածքային ստորաբաժանումներ։
+        </p>
+
+        <div style={styles.tabBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(newPartnerRegistrationTab === tab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setNewPartnerRegistrationTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {newPartnerMessage ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>{newPartnerMessage}</strong>
+          </div>
+        ) : null}
+
+        {newPartnerDraft ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>Գրանցվող կազմակերպություն՝ {newPartnerDraft.name}</strong>
+            <p style={{ marginBottom: 0 }}>
+              ՀՎՀՀ՝ {newPartnerDraft.taxId} · կարող ես լրացնել հաջորդ թաբերը։
+            </p>
+          </div>
+        ) : null}
+
+        {newPartnerRegistrationTab === "Հիմնական տեղեկություններ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Հիմնական տեղեկություններ</h3>
+
+            <form noValidate onSubmit={handleCreateWizardOrganization} style={{ display: "grid", gap: "18px" }}>
+              <div style={styles.formGrid}>
+                <label style={styles.label}>
+                  Կազմակերպության անվանում
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.name}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ Լուկաս ՍՊԸ"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Իրավակազմակերպական տեսակ
+                  <select
+                    style={styles.select}
+                    value={newPartnerMainForm.legalType}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        legalType: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="llc">ՍՊԸ</option>
+                    <option value="ie">ԱՁ</option>
+                    <option value="cjsc">ՓԲԸ</option>
+                    <option value="ojsc">ԲԲԸ</option>
+                    <option value="ngo">ՀԿ</option>
+                    <option value="other">Այլ</option>
+                  </select>
+                </label>
+
+                <label style={styles.label}>
+                  ՀՎՀՀ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={newPartnerMainForm.taxId}
+                    onInput={(event) => {
+                      event.currentTarget.value = event.currentTarget.value
+                        .replace(/\D/g, "")
+                        .slice(0, 8);
+                    }}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        taxId: event.target.value,
+                      }))
+                    }
+                    placeholder="8 թվանշան"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Պետ․ գրանցման համար
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.registryNumber}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registryNumber: event.target.value,
+                      }))
+                    }
+                    placeholder="Գրանցման համար"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Իրավաբանական հասցե
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.legalAddress}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        legalAddress: event.target.value,
+                      }))
+                    }
+                    placeholder="Իրավաբանական հասցե"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Փոստային կոդ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.postalCode}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        postalCode: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ 0010"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Գործունեության հասցե
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.businessAddress}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        businessAddress: event.target.value,
+                      }))
+                    }
+                    placeholder="Գործունեության հասցե"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Հեռախոս
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.phone}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        phone: event.target.value,
+                      }))
+                    }
+                    placeholder="+374..."
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Email
+                  <input
+                    style={styles.input}
+                    type="email"
+                    value={newPartnerMainForm.email}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    placeholder="company@example.am"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Տնօրեն / պատասխանատու անձ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.directorName}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        directorName: event.target.value,
+                      }))
+                    }
+                    placeholder="Անուն ազգանուն"
+                  />
+                </label>
+              </div>
+
+              <button type="submit" style={styles.primaryButton} disabled={isSavingNewPartner}>
+                {isSavingNewPartner ? "Պահպանվում է..." : "Պահպանել և անցնել հաջորդ քայլին"}
+              </button>
+            </form>
+          </div>
+        ) : null}
+
+        {newPartnerRegistrationTab === "Գործունեության տեսակներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Գործունեության տեսակներ</h3>
+
+            <div style={styles.previewBox}>
+              <strong>Կրկնվող ցուցակ</strong>
+              <p style={{ marginBottom: 0 }}>
+                Մեկ կազմակերպությունը կարող է ունենալ շատ գործունեության տեսակներ։ Կոդը հիմա demo
+                առաջարկ է, վերջնականը հաստատում է մարդը։
+              </p>
+            </div>
+
+            <form noValidate onSubmit={handleCreateWizardActivity} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+              <div style={styles.formGrid}>
+                <label style={styles.label}>
+                  Գործունեության տեսակ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerActivityForm.title}
+                    onChange={(event) => {
+                      const title = event.target.value;
+                      const suggestedCode = suggestActivityCode(title);
+
+                      setNewPartnerActivityForm((current) => ({
+                        ...current,
+                        title,
+                        code: current.code || suggestedCode,
+                      }));
+                    }}
+                    placeholder="Օրինակ՝ Շինարարություն, սննդի արտադրություն"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Գործունեության կոդ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerActivityForm.code}
+                    onChange={(event) =>
+                      setNewPartnerActivityForm((current) => ({
+                        ...current,
+                        code: event.target.value,
+                      }))
+                    }
+                    placeholder={suggestedActivityCode || "Կոդ"}
+                  />
+                </label>
+
+                <label style={{ ...styles.label, display: "flex", gap: "10px", alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={newPartnerActivityForm.isPrimary}
+                    onChange={(event) =>
+                      setNewPartnerActivityForm((current) => ({
+                        ...current,
+                        isPrimary: event.target.checked,
+                      }))
+                    }
+                  />
+                  Հիմնական գործունեության տեսակ
+                </label>
+              </div>
+
+              <label style={styles.label}>
+                Նշումներ
+                <textarea
+                  style={{
+                    ...styles.input,
+                    minHeight: "80px",
+                    resize: "vertical",
+                  }}
+                  value={newPartnerActivityForm.notes}
+                  onChange={(event) =>
+                    setNewPartnerActivityForm((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
+                  placeholder="Լրացուցիչ նկարագրություն"
+                />
+              </label>
+
+              <button type="submit" style={styles.primaryButton}>
+                + Ավելացնել գործունեության տեսակ
+              </button>
+            </form>
+
+            <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+              {newPartnerActivities.length > 0 ? (
+                newPartnerActivities.map((activity) => (
+                  <article key={activity.id} style={styles.previewBox}>
+                    <strong>
+                      {activity.title} {activity.isPrimary ? "· հիմնական" : ""}
+                    </strong>
+                    <p style={{ margin: "6px 0 0" }}>
+                      Կոդ՝ {activity.code || "—"} {activity.notes ? `· ${activity.notes}` : ""}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <div style={styles.previewBox}>
+                  <strong>Գործունեության տեսակ դեռ չկա</strong>
+                  <p style={{ marginBottom: 0 }}>Ավելացրու առաջին գործունեության տեսակը։</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {newPartnerRegistrationTab === "Ստորաբաժանումներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Կառուցվածքային ստորաբաժանումներ</h3>
+
+            <div style={styles.previewBox}>
+              <strong>Այս բաժինները պատկանում են հենց գրանցվող կազմակերպությանը</strong>
+              <p style={{ marginBottom: 0 }}>
+                Օրինակ՝ վարչակազմ, արտադրամաս, պահեստ, վաճառքի բաժին, առաքում։
+              </p>
+            </div>
+
+            <form noValidate onSubmit={handleCreateWizardDepartment} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+              <div style={styles.formGrid}>
+                <label style={styles.label}>
+                  Ստորաբաժանման անվանում
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerDepartmentForm.name}
+                    onChange={(event) =>
+                      setNewPartnerDepartmentForm((current) => ({
+                        ...current,
+                        name: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ Պահեստ"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Նշումներ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerDepartmentForm.notes}
+                    onChange={(event) =>
+                      setNewPartnerDepartmentForm((current) => ({
+                        ...current,
+                        notes: event.target.value,
+                      }))
+                    }
+                    placeholder="Կարճ նկարագրություն"
+                  />
+                </label>
+              </div>
+
+              <button type="submit" style={styles.primaryButton}>
+                + Ավելացնել ստորաբաժանում
+              </button>
+            </form>
+
+            <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+              {newPartnerDepartments.length > 0 ? (
+                newPartnerDepartments.map((department) => (
+                  <article key={department.id} style={styles.previewBox}>
+                    <strong>{department.name}</strong>
+                    <p style={{ margin: "6px 0 0" }}>
+                      {department.notes || "Նշումներ չկան"}
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <div style={styles.previewBox}>
+                  <strong>Ստորաբաժանում դեռ չկա</strong>
+                  <p style={{ marginBottom: 0 }}>
+                    Ավելացրու կազմակերպության առաջին կառուցվածքային ստորաբաժանումը։
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
   function renderDbNewOrganizationForm() {
     return (
       <section style={styles.accountingArea}>
@@ -1340,79 +2212,6 @@ export default function Home() {
     );
   }
 
-  async function loadContractForOrganization(organizationId: string) {
-    setContractMessage("Բեռնում ենք պայմանագրի տվյալները...");
-
-    try {
-      const response = await fetch(
-        `/api/organizations/contracts?organizationId=${encodeURIComponent(organizationId)}`,
-        { cache: "no-store" }
-      );
-
-      if (!response.ok) {
-        setContractMessage("Չհաջողվեց բեռնել պայմանագիրը։");
-        return;
-      }
-
-      const data = (await response.json()) as { contract?: ServiceContract | null };
-      const contract = data.contract ?? null;
-
-      setSelectedContract(contract);
-      fillContractForm(contract, organizationId);
-      setContractMessage(contract ? "Պայմանագիրը բեռնվեց DEV DB-ից։" : "Պայմանագիր դեռ չկա․ լրացրու և պահպանիր։");
-    } catch {
-      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
-    }
-  }
-
-  async function handleSaveContract(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedOrganization) {
-      setContractMessage("Կազմակերպությունը ընտրված չէ։");
-      return;
-    }
-
-    if (!contractForm.contractNumber.trim()) {
-      setContractMessage("Պայմանագրի համարը պարտադիր է։");
-      return;
-    }
-
-    setIsSavingContract(true);
-    setContractMessage("Պահպանում ենք պայմանագիրը DEV DB-ում...");
-
-    try {
-      const response = await fetch("/api/organizations/contracts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          organizationId: selectedOrganization.id,
-          ...contractForm,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        contract?: ServiceContract;
-        error?: string;
-      };
-
-      if (!response.ok || !data.contract) {
-        setContractMessage(data.error ?? "Չհաջողվեց պահպանել պայմանագիրը։");
-        return;
-      }
-
-      setSelectedContract(data.contract);
-      fillContractForm(data.contract, selectedOrganization.id);
-      setContractMessage("Պայմանագիրը պահպանվեց DEV DB-ում։");
-    } catch {
-      setContractMessage("Չհաջողվեց կապ հաստատել contract API-ի հետ։");
-    } finally {
-      setIsSavingContract(false);
-    }
-  }
-
   function formatContractFee(value: number | string | null | undefined) {
     const numericValue = typeof value === "number" ? value : Number(value ?? 0);
 
@@ -1918,10 +2717,1084 @@ export default function Home() {
     );
   }
 
+  async function reloadFineraEmployees() {
+    try {
+      const response = await fetch("/api/employees", { cache: "no-store" });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as { employees?: AppEmployee[] };
+      setFineraEmployees(data.employees ?? []);
+    } catch {
+      setEmployeeSaveMessage("Չհաջողվեց բեռնել աշխատակիցների ցուցակը։");
+    }
+  }
+
+  async function handleHireEmployee(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!hireEmployeeForm.fullName.trim()) {
+      setEmployeeSaveMessage("Անուն ազգանունը պարտադիր է։");
+      return;
+    }
+
+    if (!hireEmployeeForm.positionTitle.trim()) {
+      setEmployeeSaveMessage("Պաշտոնը պարտադիր է։");
+      return;
+    }
+
+    if (!hireEmployeeForm.departmentName.trim()) {
+      setEmployeeSaveMessage("Ստորաբաժանումը պարտադիր է։");
+      return;
+    }
+
+    setIsSavingEmployee(true);
+    setEmployeeSaveMessage("Պահպանում ենք աշխատակցին DEV Master DB-ում...");
+
+    try {
+      const response = await fetch("/api/employees", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(hireEmployeeForm),
+      });
+
+      const data = (await response.json()) as {
+        employee?: AppEmployee;
+        error?: string;
+      };
+
+      if (!response.ok || !data.employee) {
+        setEmployeeSaveMessage(data.error ?? "Չհաջողվեց գրանցել աշխատակցին։");
+        return;
+      }
+
+      setFineraEmployees((current) => [data.employee as AppEmployee, ...current]);
+      setEmployeeSaveMessage(`Աշխատակիցը ընդունվեց աշխատանքի՝ ${data.employee.fullName}`);
+      setHireEmployeeForm({
+        fullName: "",
+        email: "",
+        phone: "",
+        roleGroup: "bookkeeper",
+        positionTitle: "",
+        departmentName: "Հաշվապահություն",
+        employmentType: "full_time",
+        hireDate: getTodayInputDate(),
+        notes: "",
+      });
+      setActiveDemoPage("Աշխատակիցների ցանկ");
+    } catch {
+      setEmployeeSaveMessage("Չհաջողվեց կապ հաստատել employees API-ի հետ։");
+    } finally {
+      setIsSavingEmployee(false);
+    }
+  }
+
+  async function reloadPositions() {
+    setPositionMessage("Բեռնում ենք պաշտոնների ցանկը...");
+
+    try {
+      const response = await fetch("/api/positions", { cache: "no-store" });
+
+      if (!response.ok) {
+        setPositionMessage("Չհաջողվեց բեռնել պաշտոնների ցանկը։");
+        return;
+      }
+
+      const data = (await response.json()) as { positions?: AppPosition[] };
+      setAppPositions(data.positions ?? []);
+      setPositionMessage(`Բեռնվեց պաշտոնների քանակ՝ ${(data.positions ?? []).length}`);
+    } catch {
+      setPositionMessage("Չհաջողվեց կապ հաստատել positions API-ի հետ։");
+    }
+  }
+
+  async function handleCreatePosition(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!positionForm.title.trim()) {
+      setPositionMessage("Պաշտոնի անվանումը պարտադիր է։");
+      return;
+    }
+
+    if (positionForm.departmentName === "__add_department__") {
+      setPositionMessage("Նախ ավելացրու նոր ստորաբաժանումը, հետո պահպանիր պաշտոնը։");
+      return;
+    }
+
+    setIsSavingPosition(true);
+    setPositionMessage("Պահպանում ենք պաշտոնը DEV DB-ում...");
+
+    try {
+      const response = await fetch("/api/positions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(positionForm),
+      });
+
+      const data = (await response.json()) as {
+        position?: AppPosition;
+        error?: string;
+      };
+
+      if (!response.ok || !data.position) {
+        setPositionMessage(data.error ?? "Չհաջողվեց պահպանել պաշտոնը։");
+        return;
+      }
+
+      setAppPositions((current) => [...current, data.position as AppPosition].sort((a, b) => a.title.localeCompare(b.title)));
+      setPositionMessage(`Պաշտոնը ավելացվեց՝ ${data.position.title}`);
+      setPositionForm({
+        title: "",
+        scope: "finera",
+        departmentName: "Հաշվապահություն",
+        notes: "",
+      });
+    } catch {
+      setPositionMessage("Չհաջողվեց կապ հաստատել positions API-ի հետ։");
+    } finally {
+      setIsSavingPosition(false);
+    }
+  }
+
+  function getFineraDepartments() {
+    return appDepartments.filter(
+      (department) => department.scope === "finera" && department.status !== "inactive"
+    );
+  }
+
+  async function reloadDepartments() {
+    setDepartmentInlineMessage("Բեռնում ենք ստորաբաժանումների ցանկը...");
+
+    try {
+      const response = await fetch("/api/departments", { cache: "no-store" });
+
+      if (!response.ok) {
+        setDepartmentInlineMessage("Չհաջողվեց բեռնել ստորաբաժանումների ցանկը։");
+        return;
+      }
+
+      const data = (await response.json()) as { departments?: AppDepartment[] };
+      setAppDepartments(data.departments ?? []);
+      setDepartmentInlineMessage(`Բեռնվեց ստորաբաժանումների քանակ՝ ${(data.departments ?? []).length}`);
+    } catch {
+      setDepartmentInlineMessage("Չհաջողվեց կապ հաստատել departments API-ի հետ։");
+    }
+  }
+
+  async function handleCreateDepartmentFromPositionForm() {
+    const name = departmentInlineName.trim();
+
+    if (!name) {
+      setDepartmentInlineMessage("Նոր ստորաբաժանման անվանումը գրիր։");
+      return;
+    }
+
+    setIsSavingDepartment(true);
+    setDepartmentInlineMessage("Պահպանում ենք նոր ստորաբաժանումը DEV DB-ում...");
+
+    try {
+      const response = await fetch("/api/departments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          scope: "finera",
+        }),
+      });
+
+      const data = (await response.json()) as {
+        department?: AppDepartment;
+        error?: string;
+      };
+
+      if (!response.ok || !data.department) {
+        setDepartmentInlineMessage(data.error ?? "Չհաջողվեց ավելացնել ստորաբաժանումը։");
+        return;
+      }
+
+      setAppDepartments((current) =>
+        [...current, data.department as AppDepartment].sort((a, b) =>
+          a.name.localeCompare(b.name)
+        )
+      );
+      setPositionForm((current) => ({
+        ...current,
+        departmentName: data.department?.name ?? name,
+      }));
+      setDepartmentInlineName("");
+      setDepartmentInlineMessage(`Ստորաբաժանումը ավելացվեց՝ ${data.department.name}`);
+    } catch {
+      setDepartmentInlineMessage("Չհաջողվեց կապ հաստատել departments API-ի հետ։");
+    } finally {
+      setIsSavingDepartment(false);
+    }
+  }
+
+  function renderPositionsPage() {
+    const fineraPositions = appPositions.filter((position) => position.scope === "finera");
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Աշխատակիցներ · Պաշտոններ</p>
+        <h2>Պաշտոններ</h2>
+        <p>
+          Այստեղ պահում ենք մեր կազմակերպության պաշտոնների միասնական ցուցակը։
+          Աշխատանքի ընդունման form-ում պաշտոնը ընտրվում է այս ցուցակից։
+        </p>
+
+        {positionMessage ? (
+          <div style={styles.previewBox}>
+            <strong>{positionMessage}</strong>
+          </div>
+        ) : null}
+
+        {departmentInlineMessage ? (
+          <div style={styles.previewBox}>
+            <strong>{departmentInlineMessage}</strong>
+          </div>
+        ) : null}
+
+        <form noValidate onSubmit={handleCreatePosition} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Պաշտոնի անվանում
+              <input
+                style={styles.input}
+                type="text"
+                value={positionForm.title}
+                onChange={(event) =>
+                  setPositionForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Հաշվետար"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Որտեղ է կիրառվում
+              <select
+                style={styles.select}
+                value={positionForm.scope}
+                onChange={(event) =>
+                  setPositionForm((current) => ({
+                    ...current,
+                    scope: event.target.value,
+                  }))
+                }
+              >
+                <option value="finera">Մեր կազմակերպություն</option>
+                <option value="organization">Սպասարկվող կազմակերպություններ</option>
+              </select>
+            </label>
+
+            <div style={styles.label}>
+              Ստորաբաժանում
+              <select
+                style={styles.select}
+                value={positionForm.departmentName}
+                onChange={(event) =>
+                  setPositionForm((current) => ({
+                    ...current,
+                    departmentName: event.target.value,
+                  }))
+                }
+              >
+                {getFineraDepartments().map((department) => (
+                  <option key={department.id} value={department.name}>
+                    {department.name}
+                  </option>
+                ))}
+                <option value="__add_department__">+ Ավելացնել նոր ստորաբաժանում</option>
+              </select>
+
+              {positionForm.departmentName === "__add_department__" ? (
+                <div style={{ display: "grid", gap: "8px", marginTop: "8px" }}>
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={departmentInlineName}
+                    onChange={(event) => setDepartmentInlineName(event.target.value)}
+                    placeholder="Օրինակ՝ Ներքին աուդիտ"
+                  />
+                  <button
+                    type="button"
+                    style={{
+                      ...styles.primaryButton,
+                      background: "#efe4d4",
+                      color: "#2b2118",
+                    }}
+                    disabled={isSavingDepartment}
+                    onClick={() => void handleCreateDepartmentFromPositionForm()}
+                  >
+                    {isSavingDepartment ? "Պահպանվում է..." : "Պահպանել նոր ստորաբաժանումը"}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <label style={styles.label}>
+            Նշումներ
+            <textarea
+              style={{
+                ...styles.input,
+                minHeight: "80px",
+                resize: "vertical",
+              }}
+              value={positionForm.notes}
+              onChange={(event) =>
+                setPositionForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              placeholder="Պարտականությունների կամ կիրառման կարճ նկարագրություն"
+            />
+          </label>
+
+          <button type="submit" style={styles.primaryButton} disabled={isSavingPosition}>
+            {isSavingPosition ? "Պահպանվում է..." : "Ավելացնել պաշտոն"}
+          </button>
+        </form>
+
+        <button
+          type="button"
+          style={{ ...styles.primaryButton, marginTop: "18px", background: "#efe4d4", color: "#2b2118" }}
+          onClick={() => void reloadPositions()}
+        >
+          Թարմացնել պաշտոնների ցանկը
+        </button>
+
+        <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+          {fineraPositions.length > 0 ? (
+            fineraPositions.map((position) => (
+              <article key={position.id} style={{ ...styles.previewBox, display: "grid", gap: "8px" }}>
+                <strong>{position.title}</strong>
+                <small>
+                  Ստորաբաժանում՝ {position.departmentName ?? "—"} · կարգավիճակ՝{" "}
+                  {position.status === "active" ? "Գործող" : position.status ?? "—"}
+                </small>
+                {position.notes ? <p style={{ marginBottom: 0 }}>{position.notes}</p> : null}
+              </article>
+            ))
+          ) : (
+            <div style={styles.previewBox}>
+              <strong>Պաշտոններ դեռ չկան</strong>
+              <p style={{ marginBottom: 0 }}>Ավելացրու առաջին պաշտոնը, հետո այն կհայտնվի աշխատանքի ընդունման form-ում։</p>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  function renderEmployeesListPage() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Աշխատակիցներ · DEV Master DB</p>
+        <h2>Աշխատակիցների ցանկ</h2>
+        <p>
+          Այստեղ երևում են Finera/Sose-ի ներքին աշխատակիցները։ Հետո հենց այս ցուցակից
+          կնշանակենք աշխատակիցներին սպասարկվող կազմակերպությունների վրա։
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            margin: "18px 0",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>{fineraEmployees.length}</strong>
+            <p style={{ margin: "6px 0 0" }}>Ընդհանուր աշխատակիցներ</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>
+              {fineraEmployees.filter((employee) => employee.employmentStatus === "active").length}
+            </strong>
+            <p style={{ margin: "6px 0 0" }}>Գործող</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>
+              {fineraEmployees.filter((employee) => employee.roleGroup === "bookkeeper").length}
+            </strong>
+            <p style={{ margin: "6px 0 0" }}>Հաշվետարներ</p>
+          </div>
+        </div>
+
+        <button type="button" style={styles.primaryButton} onClick={() => void reloadFineraEmployees()}>
+          Թարմացնել ցուցակը
+        </button>
+
+        {employeeSaveMessage ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>{employeeSaveMessage}</strong>
+          </div>
+        ) : null}
+
+        {fineraEmployees.length > 0 ? (
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {fineraEmployees.map((employee) => (
+              <article key={employee.id} style={{ ...styles.previewBox, display: "grid", gap: "10px" }}>
+                <div>
+                  <strong style={{ fontSize: "18px" }}>{employee.fullName}</strong>
+                  <p style={{ margin: "8px 0" }}>
+                    {employee.positionTitle ?? "Պաշտոն նշված չէ"} · {employee.departmentName ?? "Ստորաբաժանում չկա"}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  <small>
+                    <strong>Դերի խումբ</strong>
+                    <br />
+                    {employee.roleGroup ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Աշխատանքի սկիզբ</strong>
+                    <br />
+                    {employee.hireDate ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Կարգավիճակ</strong>
+                    <br />
+                    {employee.employmentStatus === "active" ? "Գործող" : employee.employmentStatus ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Կոնտակտ</strong>
+                    <br />
+                    {employee.email || employee.phone || "—"}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...styles.previewBox, marginTop: "18px" }}>
+            <strong>Աշխատակիցներ դեռ չկան</strong>
+            <p style={{ marginBottom: 0 }}>
+              Սեղմիր «Աշխատանքի ընդունում» և գրանցիր առաջին ներքին աշխատակցին։
+            </p>
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  function renderHireEmployeePage() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Աշխատակիցներ · Աշխատանքի ընդունում</p>
+        <h2>Աշխատանքի ընդունում</h2>
+        <p>
+          Այս ձևը գրանցում է Finera/Sose-ի ներքին աշխատակցին DEV Master DB-ում։
+          Սա սպասարկվող կազմակերպության աշխատակից չէ։
+        </p>
+
+        {employeeSaveMessage ? (
+          <div style={styles.previewBox}>
+            <strong>{employeeSaveMessage}</strong>
+          </div>
+        ) : null}
+
+        <form noValidate onSubmit={handleHireEmployee} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Անուն ազգանուն
+              <input
+                style={styles.input}
+                type="text"
+                value={hireEmployeeForm.fullName}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    fullName: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Աննա Մկրտչյան"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Դերի խումբ
+              <select
+                style={styles.select}
+                value={hireEmployeeForm.roleGroup}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    roleGroup: event.target.value,
+                  }))
+                }
+              >
+                <option value="chief_accountant">Գլխավոր հաշվապահ</option>
+                <option value="bookkeeper">Հաշվետար / հաշվապահական օգնական</option>
+                <option value="hr_legal">HR / իրավական</option>
+                <option value="manager">Ղեկավար / վերահսկող</option>
+                <option value="support">Support</option>
+              </select>
+            </label>
+
+            <div style={styles.label}>
+              Պաշտոն
+              <select
+                style={styles.select}
+                value={hireEmployeeForm.positionTitle}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    positionTitle: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Ընտրել պաշտոն</option>
+                {appPositions
+                  .filter((position) => position.scope === "finera" && position.status !== "inactive")
+                  .map((position) => (
+                    <option key={position.id} value={position.title}>
+                      {position.title}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                style={{
+                  ...styles.primaryButton,
+                  marginTop: "8px",
+                  background: "#efe4d4",
+                  color: "#2b2118",
+                }}
+                onClick={() => setActiveDemoPage("Պաշտոններ")}
+              >
+                + Ավելացնել պաշտոն
+              </button>
+            </div>
+
+            <label style={styles.label}>
+              Ստորաբաժանում
+              <select
+                style={styles.select}
+                value={hireEmployeeForm.departmentName}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    departmentName: event.target.value,
+                  }))
+                }
+              >
+                <option value="Հաշվապահություն">Հաշվապահություն</option>
+                <option value="Աշխատավարձ և կադրեր">Աշխատավարձ և կադրեր</option>
+                <option value="Իրավաբանական">Իրավաբանական</option>
+                <option value="Կառավարում">Կառավարում</option>
+                <option value="Տեխնիկական աջակցություն">Տեխնիկական աջակցություն</option>
+              </select>
+            </label>
+
+            <CalendarDateField
+              label="Աշխատանքի ընդունման ամսաթիվ"
+              value={hireEmployeeForm.hireDate}
+              onChange={(value) =>
+                setHireEmployeeForm((current) => ({
+                  ...current,
+                  hireDate: value,
+                }))
+              }
+            />
+
+            <label style={styles.label}>
+              Աշխատանքի տեսակ
+              <select
+                style={styles.select}
+                value={hireEmployeeForm.employmentType}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    employmentType: event.target.value,
+                  }))
+                }
+              >
+                <option value="full_time">Լրիվ դրույք</option>
+                <option value="part_time">Կես դրույք</option>
+                <option value="contract">Քաղ․ իրավական / պայմանագրային</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Email
+              <input
+                style={styles.input}
+                type="email"
+                value={hireEmployeeForm.email}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                placeholder="example@finera.am"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Հեռախոս
+              <input
+                style={styles.input}
+                type="text"
+                value={hireEmployeeForm.phone}
+                onChange={(event) =>
+                  setHireEmployeeForm((current) => ({
+                    ...current,
+                    phone: event.target.value,
+                  }))
+                }
+                placeholder="+374..."
+              />
+            </label>
+          </div>
+
+          <label style={styles.label}>
+            Նշումներ
+            <textarea
+              style={{
+                ...styles.input,
+                minHeight: "90px",
+                resize: "vertical",
+              }}
+              value={hireEmployeeForm.notes}
+              onChange={(event) =>
+                setHireEmployeeForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              placeholder="Փորձաշրջան, պարտականություններ, ներքին նշումներ"
+            />
+          </label>
+
+          <button type="submit" style={styles.primaryButton} disabled={isSavingEmployee}>
+            {isSavingEmployee ? "Պահպանվում է..." : "Ընդունել աշխատանքի DEV DB-ում"}
+          </button>
+        </form>
+      </section>
+    );
+  }
+
+  function resetOrganizationEmployeeForm() {
+    setOrganizationEmployeeForm({
+      fullName: "",
+      taxId: "",
+      phone: "",
+      email: "",
+      positionTitle: "",
+      departmentName: "",
+      employmentType: "full_time",
+      hireDate: getTodayInputDate(),
+      salaryAmount: "",
+      notes: "",
+    });
+  }
+
+  async function loadOrganizationEmployees(organizationId: string) {
+    setOrganizationEmployeeMessage("Բեռնում ենք կազմակերպության աշխատակիցներին...");
+
+    try {
+      const response = await fetch(
+        `/api/organizations/employees?organizationId=${encodeURIComponent(organizationId)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) {
+        setOrganizationEmployeeMessage("Չհաջողվեց բեռնել կազմակերպության աշխատակիցների ցուցակը։");
+        return;
+      }
+
+      const data = (await response.json()) as { employees?: OrganizationEmployee[] };
+      setOrganizationEmployees(data.employees ?? []);
+      setOrganizationEmployeeMessage(
+        (data.employees ?? []).length > 0
+          ? `Բեռնվեց աշխատակիցների քանակ՝ ${(data.employees ?? []).length}`
+          : "Այս կազմակերպության աշխատակիցներ դեռ գրանցված չեն։"
+      );
+    } catch {
+      setOrganizationEmployeeMessage("Չհաջողվեց կապ հաստատել organization employees API-ի հետ։");
+    }
+  }
+
+  async function handleCreateOrganizationEmployee(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedOrganization) {
+      setOrganizationEmployeeMessage("Կազմակերպությունը ընտրված չէ։");
+      return;
+    }
+
+    if (!organizationEmployeeForm.fullName.trim()) {
+      setOrganizationEmployeeMessage("Աշխատակցի անուն ազգանունը պարտադիր է։");
+      return;
+    }
+
+    if (!organizationEmployeeForm.positionTitle.trim()) {
+      setOrganizationEmployeeMessage("Պաշտոնը պարտադիր է։");
+      return;
+    }
+
+    if (
+      organizationEmployeeForm.taxId.trim() &&
+      !/^\d{8}$/.test(organizationEmployeeForm.taxId.trim())
+    ) {
+      setOrganizationEmployeeMessage("Աշխատակցի ՀՎՀՀ-ն պետք է լինի 8 թվանշան կամ դատարկ թողնվի։");
+      return;
+    }
+
+    setIsSavingOrganizationEmployee(true);
+    setOrganizationEmployeeMessage("Պահպանում ենք աշխատակցին կազմակերպության DEV տվյալներում...");
+
+    try {
+      const response = await fetch("/api/organizations/employees", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          organizationId: selectedOrganization.id,
+          ...organizationEmployeeForm,
+        }),
+      });
+
+      const data = (await response.json()) as {
+        employee?: OrganizationEmployee;
+        error?: string;
+      };
+
+      if (!response.ok || !data.employee) {
+        setOrganizationEmployeeMessage(data.error ?? "Չհաջողվեց գրանցել աշխատակցին։");
+        return;
+      }
+
+      setOrganizationEmployees((current) => [data.employee as OrganizationEmployee, ...current]);
+      setOrganizationEmployeeMessage(`Գրանցվեց աշխատակից՝ ${data.employee.fullName}`);
+      resetOrganizationEmployeeForm();
+    } catch {
+      setOrganizationEmployeeMessage("Չհաջողվեց կապ հաստատել organization employees API-ի հետ։");
+    } finally {
+      setIsSavingOrganizationEmployee(false);
+    }
+  }
+
+  function renderOrganizationEmployeesTab(organization: AppOrganization) {
+    return (
+      <div style={styles.tabPanel}>
+        <h3 style={styles.sectionTitle}>Կազմակերպության աշխատակիցներ</h3>
+
+        <div style={styles.previewBox}>
+          <strong>{organization.name}</strong>
+          <p style={{ marginBottom: 0 }}>
+            Սա սպասարկվող կազմակերպության աշխատակիցների ցուցակն է։ Չի խառնվում Finera/Sose-ի
+            ներքին աշխատակիցների հետ։
+          </p>
+        </div>
+
+        {organizationEmployeeMessage ? (
+          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+            <strong>{organizationEmployeeMessage}</strong>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          style={{ ...styles.primaryButton, marginTop: "14px" }}
+          onClick={() => void loadOrganizationEmployees(organization.id)}
+        >
+          Թարմացնել աշխատակիցների ցուցակը
+        </button>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "12px",
+            margin: "18px 0",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>{organizationEmployees.length}</strong>
+            <p style={{ margin: "6px 0 0" }}>Գրանցված աշխատակիցներ</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>
+              {
+                organizationEmployees.filter(
+                  (employee) => employee.employmentStatus === "active"
+                ).length
+              }
+            </strong>
+            <p style={{ margin: "6px 0 0" }}>Գործող</p>
+          </div>
+        </div>
+
+        <form
+          noValidate
+          onSubmit={handleCreateOrganizationEmployee}
+          style={{ display: "grid", gap: "18px", marginTop: "18px" }}
+        >
+          <h3 style={styles.sectionTitle}>Աշխատանքի ընդունում այս կազմակերպությունում</h3>
+
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Անուն ազգանուն
+              <input
+                style={styles.input}
+                type="text"
+                value={organizationEmployeeForm.fullName}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    fullName: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Կարեն Սարգսյան"
+              />
+            </label>
+
+            <label style={styles.label}>
+              ՀՎՀՀ
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={organizationEmployeeForm.taxId}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value
+                    .replace(/\D/g, "")
+                    .slice(0, 8);
+                }}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    taxId: event.target.value,
+                  }))
+                }
+                placeholder="Եթե պետք է՝ 8 թվանշան"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Պաշտոն
+              <input
+                style={styles.input}
+                type="text"
+                value={organizationEmployeeForm.positionTitle}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    positionTitle: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Վաճառող, պահեստապետ, տնօրեն"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Ստորաբաժանում
+              <input
+                style={styles.input}
+                type="text"
+                value={organizationEmployeeForm.departmentName}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    departmentName: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ Վաճառք, պահեստ, վարչակազմ"
+              />
+            </label>
+
+            <CalendarDateField
+              label="Աշխատանքի ընդունման ամսաթիվ"
+              value={organizationEmployeeForm.hireDate}
+              onChange={(value) =>
+                setOrganizationEmployeeForm((current) => ({
+                  ...current,
+                  hireDate: value,
+                }))
+              }
+            />
+
+            <label style={styles.label}>
+              Աշխատանքի տեսակ
+              <select
+                style={styles.select}
+                value={organizationEmployeeForm.employmentType}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    employmentType: event.target.value,
+                  }))
+                }
+              >
+                <option value="full_time">Լրիվ դրույք</option>
+                <option value="part_time">Կես դրույք</option>
+                <option value="civil_contract">Քաղ․ իրավական</option>
+                <option value="temporary">Ժամանակավոր</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Աշխատավարձ
+              <input
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                value={organizationEmployeeForm.salaryAmount}
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
+                }}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    salaryAmount: event.target.value,
+                  }))
+                }
+                placeholder="Օրինակ՝ 180000"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Հեռախոս
+              <input
+                style={styles.input}
+                type="text"
+                value={organizationEmployeeForm.phone}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    phone: event.target.value,
+                  }))
+                }
+                placeholder="+374..."
+              />
+            </label>
+
+            <label style={styles.label}>
+              Email
+              <input
+                style={styles.input}
+                type="email"
+                value={organizationEmployeeForm.email}
+                onChange={(event) =>
+                  setOrganizationEmployeeForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                placeholder="employee@example.am"
+              />
+            </label>
+          </div>
+
+          <label style={styles.label}>
+            Նշումներ
+            <textarea
+              style={{
+                ...styles.input,
+                minHeight: "90px",
+                resize: "vertical",
+              }}
+              value={organizationEmployeeForm.notes}
+              onChange={(event) =>
+                setOrganizationEmployeeForm((current) => ({
+                  ...current,
+                  notes: event.target.value,
+                }))
+              }
+              placeholder="Փորձաշրջան, պայմաններ, ներքին նշումներ"
+            />
+          </label>
+
+          <button
+            type="submit"
+            style={styles.primaryButton}
+            disabled={isSavingOrganizationEmployee}
+          >
+            {isSavingOrganizationEmployee
+              ? "Պահպանվում է..."
+              : "Ընդունել աշխատանքի այս կազմակերպությունում"}
+          </button>
+        </form>
+
+        {organizationEmployees.length > 0 ? (
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {organizationEmployees.map((employee) => (
+              <article key={employee.id} style={{ ...styles.previewBox, display: "grid", gap: "10px" }}>
+                <div>
+                  <strong style={{ fontSize: "18px" }}>{employee.fullName}</strong>
+                  <p style={{ margin: "8px 0" }}>
+                    {employee.positionTitle ?? "Պաշտոն նշված չէ"} · {employee.departmentName ?? "Ստորաբաժանում չկա"}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  <small>
+                    <strong>ՀՎՀՀ</strong>
+                    <br />
+                    {employee.taxId ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Աշխատանքի սկիզբ</strong>
+                    <br />
+                    {employee.hireDate ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Աշխատավարձ</strong>
+                    <br />
+                    {employee.salaryAmount
+                      ? `${Number(employee.salaryAmount).toLocaleString("hy-AM")} AMD`
+                      : "—"}
+                  </small>
+                  <small>
+                    <strong>Կարգավիճակ</strong>
+                    <br />
+                    {employee.employmentStatus === "active" ? "Գործող" : employee.employmentStatus ?? "—"}
+                  </small>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   function renderOrganizationProfilePage() {
     const organization = selectedOrganization;
     const profileTabs = [
       "Ընդհանուր տվյալներ",
+      "Աշխատակիցներ",
       "Ստուգում",
       "Սպասարկում",
       "Հաշվապահական տարածք",
@@ -2029,6 +3902,10 @@ export default function Home() {
             </div>
           </div>
         ) : null}
+
+        {organizationProfileTab === "Աշխատակիցներ"
+          ? renderOrganizationEmployeesTab(organization)
+          : null}
 
         {organizationProfileTab === "Ստուգում" ? (
           <div style={styles.tabPanel}>
@@ -3107,6 +4984,18 @@ export default function Home() {
       return renderRegistryCheckPage();
     }
 
+    if (activeDemoPage === "Պաշտոններ") {
+      return renderPositionsPage();
+    }
+
+    if (activeDemoPage === "Աշխատանքի ընդունում") {
+      return renderHireEmployeePage();
+    }
+
+    if (activeDemoPage === "Աշխատակիցների ցանկ" || activeDemoPage === "Finera-ի աշխատակիցներ") {
+      return renderEmployeesListPage();
+    }
+
     if (activeDemoPage === "Կազմակերպության պրոֆիլ") {
       return renderOrganizationProfilePage();
     }
@@ -3124,7 +5013,7 @@ export default function Home() {
     }
 
     if (activeDemoPage === "Նոր գործընկեր գրանցել") {
-      return renderDbNewOrganizationForm();
+      return renderNewPartnerRegistrationWizard();
     }
 
     if (activeDemoPage === "Նորություններ") {

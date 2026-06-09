@@ -30,6 +30,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     status: organization.status,
     shortDescription: organization.shortDescription,
     legalAddress: organization.legalAddress,
+    postalCode: organization.postalCode,
     businessAddress: organization.businessAddress,
     tenantDatabaseName: organization.tenantDatabaseName,
 
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
     const taxId = readString(body.taxId);
     const shortDescription = readString(body.shortDescription);
     const legalAddress = readString(body.legalAddress);
+    const postalCode = readString(body.postalCode);
     const businessAddress = readString(body.businessAddress);
     const status = readString(body.status) || "draft";
 
@@ -104,6 +106,7 @@ export async function POST(request: Request) {
         status,
         shortDescription: shortDescription || null,
         legalAddress: legalAddress || null,
+        postalCode: postalCode || null,
         businessAddress: businessAddress || null,
         tenantDatabaseName: makeTenantDatabaseName(name, taxId),
         serviceStatus: "servicing",
