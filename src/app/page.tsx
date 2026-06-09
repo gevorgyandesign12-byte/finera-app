@@ -17,6 +17,15 @@ type AppOrganization = {
   legalAddress?: string | null;
   businessAddress?: string | null;
   tenantDatabaseName?: string | null;
+  registryCheckStatus?: string | null;
+  registryCheckedAt?: string | null;
+  registryCheckedBy?: string | null;
+  registryName?: string | null;
+  registryTaxId?: string | null;
+  registryLegalAddress?: string | null;
+  registryStatus?: string | null;
+  registrySource?: string | null;
+  registryNotes?: string | null;
 };
 
 import {
@@ -72,6 +81,9 @@ export default function Home() {
   const [isSavingOrganization, setIsSavingOrganization] = useState(false);
   const [organizationSaveStatus, setOrganizationSaveStatus] = useState<string | null>(null);
   const [taxIdWarningMessage, setTaxIdWarningMessage] = useState<string | null>(null);
+  const [isSavingRegistryCheck, setIsSavingRegistryCheck] = useState(false);
+  const [registryCheckMessage, setRegistryCheckMessage] = useState<string | null>(null);
+  const [registryDifferences, setRegistryDifferences] = useState<string[]>([]);
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
@@ -859,6 +871,267 @@ export default function Home() {
     );
   }
 
+  function getRegistryCheckLabel(status?: string | null) {
+    if (status === "verified") {
+      return "Ստուգված";
+    }
+
+    if (status === "mismatch") {
+      return "Կան տարբերություններ";
+    }
+
+    if (status === "needs_review") {
+      return "Պետք է վերանայել";
+    }
+
+    if (status === "failed") {
+      return "Ստուգումը ձախողվել է";
+    }
+
+    return "Չստուգված";
+  }
+
+  function openRegistryCheckPage(organizationId: string) {
+    setSelectedOrganizationId(organizationId);
+    setRegistryCheckMessage(null);
+    setRegistryDifferences([]);
+    setActiveDemoPage("Կազմակերպության տվյալների ստուգում");
+  }
+
+  async function handleRegistryCheck(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedOrganization) {
+      setRegistryCheckMessage("Կազմակերպությունը ընտրված չէ։");
+      return;
+    }
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const payload = {
+      organizationId: selectedOrganization.id,
+      registryName: String(formData.get("registryName") ?? "").trim(),
+      registryTaxId: String(formData.get("registryTaxId") ?? "").trim(),
+      registryLegalAddress: String(formData.get("registryLegalAddress") ?? "").trim(),
+      registryStatus: String(formData.get("registryStatus") ?? "").trim(),
+      registrySource: String(formData.get("registrySource") ?? "").trim(),
+      registryNotes: String(formData.get("registryNotes") ?? "").trim(),
+    };
+
+    if (!payload.registryName) {
+      setRegistryCheckMessage("Պետռեգիստրի անվանումը պարտադիր է։");
+      return;
+    }
+
+    if (!/^\d{8}$/.test(payload.registryTaxId)) {
+      setRegistryCheckMessage("Պետռեգիստրի ՀՎՀՀ-ն պետք է լինի 8 թվանշան։");
+      return;
+    }
+
+    setIsSavingRegistryCheck(true);
+    setRegistryCheckMessage("Համեմատում և պահպանում ենք DEV Master DB-ում...");
+    setRegistryDifferences([]);
+
+    try {
+      const response = await fetch("/api/organizations/registry-check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as {
+        organization?: AppOrganization;
+        differences?: string[];
+        registryCheckStatus?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !data.organization) {
+        setRegistryCheckMessage(data.error ?? "Չհաջողվեց կատարել համադրումը։");
+        return;
+      }
+
+      setOrganizations((current) =>
+        current.map((organization) =>
+          organization.id === data.organization?.id ? (data.organization as AppOrganization) : organization
+        )
+      );
+
+      setRegistryDifferences(data.differences ?? []);
+
+      if ((data.differences ?? []).length === 0) {
+        setRegistryCheckMessage("Տվյալները համընկնում են․ կազմակերպությունը նշվեց որպես ստուգված։");
+      } else {
+        setRegistryCheckMessage("Համադրումը ավարտվեց․ կան տարբերություններ, պետք է վերանայել։");
+      }
+    } catch {
+      setRegistryCheckMessage("Չհաջողվեց կապ հաստատել registry check API-ի հետ։");
+    } finally {
+      setIsSavingRegistryCheck(false);
+    }
+  }
+
+  function renderRegistryCheckPage() {
+    const organization = selectedOrganization;
+
+    if (!organization) {
+      return (
+        <section style={styles.accountingArea}>
+          <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Ստուգում</p>
+          <h2>Կազմակերպությունը ընտրված չէ</h2>
+          <p>Վերադարձիր «Բոլոր կազմակերպությունները» էջ և ընտրիր կազմակերպությունը։</p>
+        </section>
+      );
+    }
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Տվյալների ստուգում</p>
+        <h2>Ստուգել ներմուծված տվյալները</h2>
+        <p>
+          Այս էջում համադրում ենք մեր DEV Master DB-ում գրանցված տվյալները պետռեգիստրից
+          ձեռքով վերցված տվյալների հետ։ Արտաքին պետական API դեռ միացված չէ։
+        </p>
+
+        <div style={styles.previewBox}>
+          <strong>{organization.name}</strong>
+          <p style={{ margin: "8px 0" }}>
+            Ստուգման կարգավիճակ՝ {getRegistryCheckLabel(organization.registryCheckStatus)}
+          </p>
+          <small>
+            ՀՎՀՀ՝ {organization.taxId ?? "—"} · tenant DB demo՝{" "}
+            {organization.tenantDatabaseName ?? "—"}
+          </small>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "14px",
+            margin: "18px 0",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>Մեր ներմուծված տվյալները</strong>
+            <p>Անվանում՝ {organization.name}</p>
+            <p>ՀՎՀՀ՝ {organization.taxId ?? "—"}</p>
+            <p>Իրավաբանական հասցե՝ {organization.legalAddress ?? "—"}</p>
+            <p style={{ marginBottom: 0 }}>Կարգավիճակ՝ {organization.status ?? "—"}</p>
+          </div>
+
+          <div style={styles.previewBox}>
+            <strong>Վերջին պետռեգիստրի տվյալները</strong>
+            <p>Անվանում՝ {organization.registryName ?? "Դեռ լրացված չէ"}</p>
+            <p>ՀՎՀՀ՝ {organization.registryTaxId ?? "Դեռ լրացված չէ"}</p>
+            <p>Իրավաբանական հասցե՝ {organization.registryLegalAddress ?? "Դեռ լրացված չէ"}</p>
+            <p style={{ marginBottom: 0 }}>
+              Կարգավիճակ՝ {organization.registryStatus ?? "Դեռ լրացված չէ"}
+            </p>
+          </div>
+        </div>
+
+        <form noValidate onSubmit={handleRegistryCheck} style={{ display: "grid", gap: "18px" }}>
+          <div style={styles.formGrid}>
+            <label style={styles.label}>
+              Պետռեգիստրի անվանում
+              <input
+                name="registryName"
+                style={styles.input}
+                type="text"
+                defaultValue={organization.registryName ?? ""}
+                placeholder="Օրինակ՝ ԼՈՒԿԱՍ ՍՊԸ"
+                required
+              />
+            </label>
+
+            <label style={styles.label}>
+              Պետռեգիստրի ՀՎՀՀ
+              <input
+                name="registryTaxId"
+                style={styles.input}
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                defaultValue={organization.registryTaxId ?? organization.taxId ?? ""}
+                placeholder="Օրինակ՝ 01234567"
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value
+                    .replace(/\D/g, "")
+                    .slice(0, 8);
+                  setRegistryCheckMessage(null);
+                }}
+                required
+              />
+            </label>
+
+            <label style={styles.label}>
+              Պետռեգիստրի իրավաբանական հասցե
+              <input
+                name="registryLegalAddress"
+                style={styles.input}
+                type="text"
+                defaultValue={organization.registryLegalAddress ?? ""}
+                placeholder="Պետռեգիստրում նշված իրավաբանական հասցե"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Պետռեգիստրի կարգավիճակ
+              <select name="registryStatus" style={styles.select} defaultValue={organization.registryStatus ?? "active"}>
+                <option value="active">Գործող</option>
+                <option value="inactive">Պասիվ / դադարեցված</option>
+                <option value="unknown">Անհայտ / լրացուցիչ ստուգում</option>
+              </select>
+            </label>
+
+            <label style={styles.label}>
+              Աղբյուր
+              <input
+                name="registrySource"
+                style={styles.input}
+                type="text"
+                defaultValue={organization.registrySource ?? "manual_demo"}
+                placeholder="Օրինակ՝ e-register manual check"
+              />
+            </label>
+
+            <label style={styles.label}>
+              Նշումներ
+              <input
+                name="registryNotes"
+                style={styles.input}
+                type="text"
+                defaultValue={organization.registryNotes ?? ""}
+                placeholder="Օրինակ՝ ստուգվել է ՀՎՀՀ-ով"
+              />
+            </label>
+          </div>
+
+          {registryCheckMessage ? (
+            <div style={styles.previewBox}>
+              <strong>{registryCheckMessage}</strong>
+              {registryDifferences.length > 0 ? (
+                <ul style={{ marginBottom: 0 }}>
+                  {registryDifferences.map((difference) => (
+                    <li key={difference}>{difference}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          <button type="submit" style={styles.primaryButton} disabled={isSavingRegistryCheck}>
+            {isSavingRegistryCheck ? "Ստուգվում է..." : "Համեմատել և պահել ստուգումը"}
+          </button>
+        </form>
+      </section>
+    );
+  }
+
   function openAccountingWorkspaceForOrganization(organizationId: string) {
     const servicedOrganizationsMenu = menuItems.find(
       (item) => item.label === "Սպասարկվող կազմակերպություններ"
@@ -930,7 +1203,7 @@ export default function Home() {
         <h2>Բոլոր կազմակերպությունները</h2>
         <p>
           Այստեղ երևում են DEV Master DB-ում գրանցված սպասարկվող կազմակերպությունները։
-          Այս փուլում սա դեռ փորձնական ցուցակ է, բայց արդեն բեռնվում է database-ից։
+          Card-ի վրայից կարող ենք բացել հաշվապահական տարածքը կամ ստուգել տվյալները։
         </p>
 
         <div
@@ -953,9 +1226,13 @@ export default function Home() {
           </div>
           <div style={styles.previewBox}>
             <strong>
-              {allowedOrganizations.filter((organization) => organization.status === "draft").length}
+              {
+                allowedOrganizations.filter(
+                  (organization) => organization.registryCheckStatus === "verified"
+                ).length
+              }
             </strong>
-            <p style={{ margin: "6px 0 0" }}>Նախնական / draft</p>
+            <p style={{ margin: "6px 0 0" }}>Ստուգված</p>
           </div>
         </div>
 
@@ -1000,23 +1277,42 @@ export default function Home() {
                     {organization.status ?? "—"}
                   </small>
                   <small>
+                    <strong>Ստուգում</strong>
+                    <br />
+                    {getRegistryCheckLabel(organization.registryCheckStatus)}
+                  </small>
+                  <small>
                     <strong>Tenant DB demo</strong>
                     <br />
                     {organization.tenantDatabaseName ?? "—"}
                   </small>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
-                  style={{
-                    ...styles.primaryButton,
-                    width: "fit-content",
-                    marginTop: "6px",
-                  }}
-                >
-                  Բացել հաշվապահական տարածքը
-                </button>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                    style={{
+                      ...styles.primaryButton,
+                      width: "fit-content",
+                    }}
+                  >
+                    Բացել հաշվապահական տարածքը
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openRegistryCheckPage(organization.id)}
+                    style={{
+                      ...styles.primaryButton,
+                      width: "fit-content",
+                      background: "#efe4d4",
+                      color: "#2b2118",
+                    }}
+                  >
+                    Ստուգել տվյալները
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -1024,7 +1320,7 @@ export default function Home() {
           <div style={styles.previewBox}>
             <strong>Կազմակերպություններ դեռ չկան</strong>
             <p style={{ marginBottom: 0 }}>
-              Հաջորդ քայլով «Նոր գործընկեր գրանցել» ձևը կկապենք DB-ին, որ այստեղ հայտնվեն նոր գրանցումները։
+              Օգտագործիր «Նոր գործընկեր գրանցել» ձևը, որ այստեղ հայտնվեն նոր գրանցումները։
             </p>
           </div>
         )}
@@ -1643,6 +1939,10 @@ export default function Home() {
 
     if (activeDemoPage === "Ընտրել կազմակերպություն") {
       return renderOrganizationPickerForAccounting();
+    }
+
+    if (activeDemoPage === "Կազմակերպության տվյալների ստուգում") {
+      return renderRegistryCheckPage();
     }
 
     if (activeDemoPage === "Բոլոր կազմակերպությունները") {

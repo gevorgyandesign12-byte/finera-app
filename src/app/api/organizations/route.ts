@@ -16,24 +16,41 @@ function makeTenantDatabaseName(name: string, taxId: string) {
     .replace(/^_+|_+$/g, "")}_demo`;
 }
 
+function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organization.findFirst>>) {
+  if (!organization) {
+    return null;
+  }
+
+  return {
+    id: organization.id,
+    name: organization.name,
+    shortName: organization.shortName,
+    legalType: organization.legalType,
+    taxId: organization.taxId,
+    status: organization.status,
+    shortDescription: organization.shortDescription,
+    legalAddress: organization.legalAddress,
+    businessAddress: organization.businessAddress,
+    tenantDatabaseName: organization.tenantDatabaseName,
+    registryCheckStatus: organization.registryCheckStatus,
+    registryCheckedAt: organization.registryCheckedAt?.toISOString() ?? null,
+    registryCheckedBy: organization.registryCheckedBy,
+    registryName: organization.registryName,
+    registryTaxId: organization.registryTaxId,
+    registryLegalAddress: organization.registryLegalAddress,
+    registryStatus: organization.registryStatus,
+    registrySource: organization.registrySource,
+    registryNotes: organization.registryNotes,
+  };
+}
+
 export async function GET() {
   const organizations = await prisma.organization.findMany({
     orderBy: { createdAt: "asc" },
   });
 
   return NextResponse.json({
-    organizations: organizations.map((organization) => ({
-      id: organization.id,
-      name: organization.name,
-      shortName: organization.shortName,
-      legalType: organization.legalType,
-      taxId: organization.taxId,
-      status: organization.status,
-      shortDescription: organization.shortDescription,
-      legalAddress: organization.legalAddress,
-      businessAddress: organization.businessAddress,
-      tenantDatabaseName: organization.tenantDatabaseName,
-    })),
+    organizations: organizations.map((organization) => toApiOrganization(organization)),
   });
 }
 
@@ -80,26 +97,11 @@ export async function POST(request: Request) {
         legalAddress: legalAddress || null,
         businessAddress: businessAddress || null,
         tenantDatabaseName: makeTenantDatabaseName(name, taxId),
+        registryCheckStatus: "not_checked",
       },
     });
 
-    return NextResponse.json(
-      {
-        organization: {
-          id: organization.id,
-          name: organization.name,
-          shortName: organization.shortName,
-          legalType: organization.legalType,
-          taxId: organization.taxId,
-          status: organization.status,
-          shortDescription: organization.shortDescription,
-          legalAddress: organization.legalAddress,
-          businessAddress: organization.businessAddress,
-          tenantDatabaseName: organization.tenantDatabaseName,
-        },
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ organization: toApiOrganization(organization) }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
 

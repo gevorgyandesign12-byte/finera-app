@@ -18,6 +18,17 @@ model Organization {
   legalAddress       String?
   businessAddress    String?
   tenantDatabaseName String?
+
+  registryCheckStatus String    @default("not_checked")
+  registryCheckedAt    DateTime?
+  registryCheckedBy    String?
+  registryName         String?
+  registryTaxId        String?
+  registryLegalAddress String?
+  registryStatus       String?
+  registrySource       String?
+  registryNotes        String?
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
