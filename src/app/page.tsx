@@ -259,7 +259,7 @@ export default function Home() {
   const [departmentInlineName, setDepartmentInlineName] = useState("");
   const [departmentInlineMessage, setDepartmentInlineMessage] = useState<string | null>(null);
   const [isSavingDepartment, setIsSavingDepartment] = useState(false);
-  const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Հիմնական տեղեկություններ");
+  const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Ռեկվիզիտներ");
   const [newPartnerDraft, setNewPartnerDraft] = useState<AppOrganization | null>(null);
   const [newPartnerMessage, setNewPartnerMessage] = useState<string | null>(null);
   const [isSavingNewPartner, setIsSavingNewPartner] = useState(false);
@@ -1046,7 +1046,7 @@ export default function Home() {
 
     if (!newPartnerDraft) {
       setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
-      setNewPartnerRegistrationTab("Հիմնական տեղեկություններ");
+      setNewPartnerRegistrationTab("Ռեկվիզիտներ");
       return;
     }
 
@@ -1124,7 +1124,7 @@ export default function Home() {
 
     if (!newPartnerDraft) {
       setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
-      setNewPartnerRegistrationTab("Հիմնական տեղեկություններ");
+      setNewPartnerRegistrationTab("Ռեկվիզիտներ");
       return;
     }
 
@@ -1205,8 +1205,8 @@ export default function Home() {
       setNewPartnerDraft(data.organization);
       setSelectedOrganizationId(data.organization.id);
       setOrganizations((current) => [data.organization as AppOrganization, ...current]);
-      setNewPartnerMessage("Հիմնական տեղեկությունները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
-      setNewPartnerRegistrationTab("Գործունեության տեսակներ");
+      setNewPartnerMessage("Ռեկվիզիտները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
+      setNewPartnerRegistrationTab("Իրավաբանական");
       void loadWizardActivities(data.organization.id);
       void loadWizardDepartments(data.organization.id);
     } catch {
@@ -1218,8 +1218,8 @@ export default function Home() {
 
   function renderNewPartnerRegistrationWizard() {
     const tabs = [
-      "Հիմնական տեղեկություններ",
-      "Գործունեության տեսակներ",
+      "Ռեկվիզիտներ",
+      "Գործունեություն",
       "Ստորաբաժանումներ",
     ];
 
@@ -1265,9 +1265,9 @@ export default function Home() {
           </div>
         ) : null}
 
-        {newPartnerRegistrationTab === "Հիմնական տեղեկություններ" ? (
+        {newPartnerRegistrationTab === "Ռեկվիզիտներ" ? (
           <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Հիմնական տեղեկություններ</h3>
+            <h3 style={styles.sectionTitle}>Ռեկվիզիտներ</h3>
 
             <form noValidate onSubmit={handleCreateWizardOrganization} style={{ display: "grid", gap: "18px" }}>
               <div style={styles.formGrid}>
@@ -1451,9 +1451,9 @@ export default function Home() {
           </div>
         ) : null}
 
-        {newPartnerRegistrationTab === "Գործունեության տեսակներ" ? (
+        {newPartnerRegistrationTab === "Գործունեություն" ? (
           <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Գործունեության տեսակներ</h3>
+            <h3 style={styles.sectionTitle}>Գործունեություն</h3>
 
             <div style={styles.previewBox}>
               <strong>Կրկնվող ցուցակ</strong>
@@ -4533,9 +4533,9 @@ export default function Home() {
           </div>
         ) : null}
 
-        {activeTab === "Նշանակել սպասարկում" ? (
+        {activeTab === "Սպասարկման նշանակում" ? (
           <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Նշանակել սպասարկում</h3>
+            <h3 style={styles.sectionTitle}>Սպասարկման նշանակում</h3>
             <p>
               Այստեղ ընտրում ենք Finera-ի աշխատակիցներին և սահմանում ենք,
               թե ով ինչ պատասխանատվության շրջանակ ունի տվյալ սպասարկվող գործընկերոջ համար։
@@ -4767,7 +4767,7 @@ export default function Home() {
     }
 
     if (pageLabel === "Նոր գործընկեր գրանցել") {
-      return ["Ընդհանուր տվյալներ", "Կառուցվածքային ստորաբաժանումներ", "Նշանակել սպասարկում", "Պայմանագիր"];
+      return ["Ընդհանուր տվյալներ", "Կառուցվածքային ստորաբաժանումներ", "Սպասարկման նշանակում", "Պայմանագիր"];
     }
 
     if (pageLabel === "Մեր կազմակերպությունը") {
