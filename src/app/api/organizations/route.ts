@@ -62,6 +62,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "ՀՎՀՀ-ն պարտադիր է demo գրանցման համար։" }, { status: 400 });
     }
 
+    if (!/^\d{8}$/.test(taxId)) {
+      return NextResponse.json(
+        { error: "ՀՎՀՀ-ն պետք է լինի միայն 8 թվանշան՝ առանց տառերի կամ նշանների։" },
+        { status: 400 }
+      );
+    }
+
     const organization = await prisma.organization.create({
       data: {
         name,

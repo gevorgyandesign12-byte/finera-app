@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
@@ -71,6 +71,8 @@ export default function Home() {
   );
   const [isSavingOrganization, setIsSavingOrganization] = useState(false);
   const [organizationSaveStatus, setOrganizationSaveStatus] = useState<string | null>(null);
+  const [taxIdWarningMessage, setTaxIdWarningMessage] = useState<string | null>(null);
+  const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
@@ -626,6 +628,24 @@ export default function Home() {
       businessAddress: String(formData.get("businessAddress") ?? "").trim(),
     };
 
+    if (!payload.name) {
+      window.alert("Լրիվ անվանումը պարտադիր է։");
+      return;
+    }
+
+    if (!payload.legalType) {
+      window.alert("Կազմակերպության տեսակը պարտադիր է։");
+      return;
+    }
+
+    if (!/^\d{8}$/.test(payload.taxId)) {
+      setTaxIdWarningMessage(
+        "ՀՎՀՀ-ն պետք է լինի միայն 8 թվանշան՝ առանց տառերի կամ նշանների։ Օրինակ՝ 01234567"
+      );
+      setOrganizationSaveStatus(null);
+      return;
+    }
+
     setIsSavingOrganization(true);
     setOrganizationSaveStatus("Պահպանում ենք DEV Master DB-ում...");
 
@@ -677,7 +697,55 @@ export default function Home() {
           ոչ production, ոչ իրական հաշվապահական posting։
         </p>
 
-        <form onSubmit={handleCreateOrganization} style={{ display: "grid", gap: "18px" }}>
+        {taxIdWarningMessage ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="ՀՎՀՀ զգուշացում"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 1000,
+              display: "grid",
+              placeItems: "center",
+              background: "rgba(0, 0, 0, 0.45)",
+              padding: "20px",
+            }}
+          >
+            <div
+              style={{
+                width: "min(420px, 100%)",
+                borderRadius: "18px",
+                border: "1px solid #d8c7ad",
+                background: "#fffaf2",
+                padding: "22px",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.25)",
+              }}
+            >
+              <strong style={{ display: "block", fontSize: "18px", marginBottom: "10px" }}>
+                Սխալ ՀՎՀՀ
+              </strong>
+              <p style={{ marginTop: 0 }}>{taxIdWarningMessage}</p>
+              <button
+                type="button"
+                style={styles.primaryButton}
+                onClick={() => {
+                  setTaxIdWarningMessage(null);
+                  setOrganizationSaveStatus(null);
+
+                  if (taxIdInputRef.current) {
+                    taxIdInputRef.current.value = "";
+                    taxIdInputRef.current.focus();
+                  }
+                }}
+              >
+                Լավ
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        <form noValidate onSubmit={handleCreateOrganization} style={{ display: "grid", gap: "18px" }}>
           <div style={styles.formGrid}>
             <label style={styles.label}>
               Կազմակերպության տեսակ
@@ -717,10 +785,22 @@ export default function Home() {
             <label style={styles.label}>
               ՀՎՀՀ
               <input
+                ref={taxIdInputRef}
                 name="taxId"
                 style={styles.input}
                 type="text"
+                inputMode="numeric"
+                pattern="\d{8}"
+                maxLength={8}
                 placeholder="Օրինակ՝ 01234567"
+                title="ՀՎՀՀ-ն պետք է լինի միայն 8 թվանշան"
+                onInput={(event) => {
+                  event.currentTarget.value = event.currentTarget.value
+                    .replace(/\D/g, "")
+                    .slice(0, 8);
+                  setTaxIdWarningMessage(null);
+                  setOrganizationSaveStatus(null);
+                }}
                 required
               />
             </label>
