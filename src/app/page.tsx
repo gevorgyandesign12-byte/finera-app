@@ -1,10 +1,24 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
+import { CalendarDateField } from "@/components/CalendarDateField";
+type AppOrganization = {
+  id: string;
+  name: string;
+  shortName?: string | null;
+  legalType?: string | null;
+  taxId?: string | null;
+  status?: string | null;
+  shortDescription?: string | null;
+  legalAddress?: string | null;
+  businessAddress?: string | null;
+  tenantDatabaseName?: string | null;
+};
+
 import {
   demoDepartments,
   demoEmployees,
@@ -13,112 +27,130 @@ import {
   masterDbDemoNote,
 } from "@/lib/demo-master-db";
 
-function getAllowedDemoOrganizations(user: DemoUser) {
+const bookkeeperResponsibilityScopes = [
+  "Դրամարկղ / Բանկ",
+  "Փաստաթղթերի մուտքագրում",
+  "Գործընկերներ և փոխադարձ հաշվարկներ",
+  "Պահեստ / ապրանքներ / նյութեր",
+  "Աշխատավարձ և կադրեր",
+  "Հիմնական միջոցներ",
+  "Հարկային հաշվետվությունների նախապատրաստում",
+  "Ֆինանսական հաշվետվություններ դիտել",
+] as const;
+
+function getTodayInputDate() {
+  const today = new Date();
+  const timezoneOffset = today.getTimezoneOffset() * 60000;
+  return new Date(today.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
+function getAllowedDemoOrganizations(user: DemoUser, organizations: AppOrganization[]) {
   if (user.organizations.includes("System / Infrastructure")) {
     return [];
   }
 
-  return demoOrganizations.filter((organization) =>
-    user.organizations.includes(organization.name)
-  );
+  if (user.id === "manager") {
+    return organizations;
+  }
+
+  return organizations.filter((organization) => user.organizations.includes(organization.name));
 }
 
 export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
-  const [openMenuLabels, setOpenMenuLabels] = useState<Record<string, boolean>>({});
-  const [activeMenuItem, setActiveMenuItem] = useState<DemoMenuItem | null>(null);
+  const [activeMenuPath, setActiveMenuPath] = useState<DemoMenuItem[]>([]);
   const [activeDemoPage, setActiveDemoPage] = useState<string | null>(null);
   const [activeTabByPage, setActiveTabByPage] = useState<Record<string, string>>({});
+  const [selectedBookkeeperIds, setSelectedBookkeeperIds] = useState<string[]>([]);
+  const [activeBookkeeperId, setActiveBookkeeperId] = useState<string | null>(null);
+  const [bookkeeperScopesById, setBookkeeperScopesById] = useState<Record<string, string[]>>({});
+  const [organizations, setOrganizations] = useState<AppOrganization[]>(
+    demoOrganizations as AppOrganization[]
+  );
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
-  const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser) : [];
+  const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser, organizations) : [];
   const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
-  const selectedOrganization =
-    allowedOrganizations.find((organization) => organization.id === selectedOrganizationId) ??
-    allowedOrganizations[0];
+  const selectedOrganization = allowedOrganizations.find(
+    (organization) => organization.id === selectedOrganizationId
+  );
+  const activeMenuTitle = activeMenuPath[activeMenuPath.length - 1]?.label;
+  const visibleMenuItems =
+    activeMenuPath.length > 0
+      ? activeMenuPath[activeMenuPath.length - 1]?.children ?? []
+      : menuItems;
+  const todayInputDate = getTodayInputDate();
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadOrganizationsFromDb() {
+      try {
+        const response = await fetch("/api/organizations", { cache: "no-store" });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as { organizations?: AppOrganization[] };
+
+        if (isMounted && Array.isArray(data.organizations) && data.organizations.length > 0) {
+          setOrganizations(data.organizations);
+        }
+      } catch {
+        // Demo fallback: եթե DEV DB-ն հասանելի չէ, պահում ենք ֆայլային demo ցուցակը։
+      }
+    }
+
+    loadOrganizationsFromDb();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function handleDemoLogin() {
-    const allowed = getAllowedDemoOrganizations(selectedUser);
     setLoggedInUserId(selectedUser.id);
-    setSelectedOrganizationId(allowed[0]?.id ?? "");
-    setOpenMenuLabels({});
-    setActiveMenuItem(null);
+    setSelectedOrganizationId("");
+    setActiveMenuPath([]);
     setActiveDemoPage(null);
   }
 
-  function toggleMenu(label: string) {
-    setOpenMenuLabels((current) => ({
-      ...current,
-      [label]: !current[label],
-    }));
-  }
-
-  function renderMenuItems(items: DemoMenuItem[], level = 0, allowDrillDown = false) {
+  function renderMenuItems(items: DemoMenuItem[]) {
     return items.map((item) => {
-      const isOpen = Boolean(openMenuLabels[item.label]);
       const hasChildren = Boolean(item.children?.length);
 
       return (
         <div key={item.label}>
           <button
-            style={level === 0 ? styles.menuItem : styles.submenuItem}
+            style={styles.menuItem}
             title={item.note}
             onClick={() => {
-              if (!hasChildren) {
-                setActiveDemoPage(item.label);
-                setActiveTabByPage((current) => ({
-                  ...current,
-                  [item.label]: current[item.label] ?? getTabsForDemoPage(item.label)[0] ?? "",
-                }));
-                return;
-              }
-
-              if (allowDrillDown && level === 0) {
-                setActiveMenuItem(item);
+              if (hasChildren) {
+                setActiveMenuPath((current) => [...current, item]);
                 setActiveDemoPage(null);
-                setOpenMenuLabels({});
                 return;
               }
 
-              toggleMenu(item.label);
+              setActiveDemoPage(item.label);
+              setActiveTabByPage((current) => ({
+                ...current,
+                [item.label]: current[item.label] ?? getTabsForDemoPage(item.label)[0] ?? "",
+              }));
             }}
           >
             <span style={{ display: "flex", justifyContent: "space-between", gap: "10px", fontWeight: 700 }}>
               <span>{item.label}</span>
-              {hasChildren ? <span>{isOpen ? "▾" : "▸"}</span> : null}
+              {hasChildren ? <span>›</span> : null}
             </span>
-            {level === 0 ? (
-              <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
-                {item.note}
-              </small>
-            ) : null}
-          </button>
 
-          {hasChildren ? (
-            <div
-              style={{
-                display: "grid",
-                gap: "7px",
-                margin: isOpen ? "10px 0 6px 14px" : "0 0 0 14px",
-                padding: isOpen ? "10px" : "0 10px",
-                maxHeight: isOpen ? "900px" : "0px",
-                opacity: isOpen ? 1 : 0,
-                transform: isOpen ? "translateY(0)" : "translateY(-6px)",
-                overflow: "hidden",
-                borderRadius: "16px",
-                border: isOpen ? "1px solid rgba(255,255,255,0.10)" : "1px solid transparent",
-                background: level === 0 ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.035)",
-                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-                transition: "max-height 260ms ease, opacity 190ms ease, transform 190ms ease, margin 190ms ease, padding 190ms ease, border-color 190ms ease",
-                pointerEvents: isOpen ? "auto" : "none",
-              }}
-            >
-              {renderMenuItems(item.children ?? [], level + 1)}
-            </div>
-          ) : null}
+            <small style={{ display: "block", marginTop: "4px", color: "#d9c7aa", lineHeight: 1.4 }}>
+              {item.note}
+            </small>
+          </button>
         </div>
       );
     });
@@ -315,6 +347,9 @@ export default function Home() {
     const pageLabel = "Մեր կազմակերպությունը";
     const tabs = getTabsForDemoPage(pageLabel);
     const activeTab = getActiveTab(pageLabel);
+    const activeBookkeeper = activeBookkeeperId
+      ? demoEmployees.find((employee) => employee.id === activeBookkeeperId)
+      : undefined;
 
     return (
       <section style={styles.accountingArea}>
@@ -519,14 +554,134 @@ export default function Home() {
 
 
 
+  function getEmployeesByRole(roleGroup: string) {
+    return demoEmployees.filter(
+      (employee) => employee.roleGroup === roleGroup && employee.status === "active"
+    );
+  }
+
+  function renderEmployeeOptions(roleGroup: string) {
+    return getEmployeesByRole(roleGroup).map((employee) => (
+      <option key={employee.id} value={employee.id}>
+        {employee.fullName} — {getPositionName(employee.positionId)}
+      </option>
+    ));
+  }
+
+  function toggleBookkeeper(employeeId: string) {
+    const isAlreadySelected = selectedBookkeeperIds.includes(employeeId);
+
+    if (isAlreadySelected) {
+      const nextSelectedIds = selectedBookkeeperIds.filter((id) => id !== employeeId);
+      setSelectedBookkeeperIds(nextSelectedIds);
+
+      setBookkeeperScopesById((current) => {
+        const next = { ...current };
+        delete next[employeeId];
+        return next;
+      });
+
+      if (activeBookkeeperId === employeeId) {
+        setActiveBookkeeperId(nextSelectedIds[0] ?? null);
+      }
+
+      return;
+    }
+
+    setSelectedBookkeeperIds([...selectedBookkeeperIds, employeeId]);
+    setActiveBookkeeperId(employeeId);
+  }
+
+  function toggleBookkeeperScope(employeeId: string, scope: string) {
+    setBookkeeperScopesById((current) => {
+      const currentScopes = current[employeeId] ?? [];
+      const nextScopes = currentScopes.includes(scope)
+        ? currentScopes.filter((item) => item !== scope)
+        : [...currentScopes, scope];
+
+      return {
+        ...current,
+        [employeeId]: nextScopes,
+      };
+    });
+  }
+
+
+  function openAccountingWorkspaceForOrganization(organizationId: string) {
+    const servicedOrganizationsMenu = menuItems.find(
+      (item) => item.label === "Սպասարկվող կազմակերպություններ"
+    );
+    const accountingWorkspaceMenu = servicedOrganizationsMenu?.children?.find(
+      (item) => item.label === "Կազմակերպության հաշվապահական տարածք"
+    );
+
+    setSelectedOrganizationId(organizationId);
+
+    if (servicedOrganizationsMenu && accountingWorkspaceMenu) {
+      setActiveMenuPath([servicedOrganizationsMenu, accountingWorkspaceMenu]);
+      setActiveDemoPage(null);
+      return;
+    }
+
+    setActiveMenuPath([]);
+    setActiveDemoPage(null);
+  }
+
+  function renderOrganizationPickerForAccounting() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Հաշվապահական տարածք</p>
+        <h2>Ընտրել կազմակերպություն</h2>
+        <p>
+          Հաշվապահական տարածքը բացվում է միայն կոնկրետ սպասարկվող կազմակերպության համար։
+          Նախ ընտրիր կազմակերպությունը, հետո կբացվեն այդ կազմակերպության հաշվապահական բաժինները։
+        </p>
+
+        {allowedOrganizations.length > 0 ? (
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {allowedOrganizations.map((organization) => (
+              <button
+                key={organization.id}
+                type="button"
+                onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                style={{
+                  ...styles.previewBox,
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ display: "block", fontWeight: 700 }}>{organization.name}</span>
+                <span style={{ display: "block", marginTop: "8px" }}>
+                  {organization.shortDescription}
+                </span>
+                <small>
+                  ՀՎՀՀ demo: {organization.taxId} · tenant DB demo:{" "}
+                  {organization.tenantDatabaseName}
+                </small>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p>
+            Այս դերի համար հասանելի սպասարկվող կազմակերպություն չկա։
+          </p>
+        )}
+      </section>
+    );
+  }
+
   function renderNewPartnerForm() {
     const pageLabel = "Նոր գործընկեր գրանցել";
     const tabs = getTabsForDemoPage(pageLabel);
     const activeTab = getActiveTab(pageLabel);
+    const activeBookkeeper = activeBookkeeperId
+      ? demoEmployees.find((employee) => employee.id === activeBookkeeperId)
+      : undefined;
 
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գործողություններ</p>
+        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · Գործողություններ</p>
         <h2>Նոր գործընկեր գրանցել</h2>
         <p>
           Գործընկերը կարող է լինել ՍՊԸ, ԱՁ կամ այլ իրավական սուբյեկտ։
@@ -686,13 +841,15 @@ export default function Home() {
           <div style={styles.tabPanel}>
             <h3 style={styles.sectionTitle}>Նշանակել սպասարկում</h3>
             <p>
-              Այստեղ որոշում ենք՝ Finera-ի ներսում ով է սպասարկելու տվյալ գործընկերոջը և ինչ շրջանակով։
+              Այստեղ ընտրում ենք Finera-ի աշխատակիցներին և սահմանում ենք,
+              թե ով ինչ պատասխանատվության շրջանակ ունի տվյալ սպասարկվող գործընկերոջ համար։
+              Սա ապագայում պետք է պահպանվի Master DB-ում։
             </p>
 
             <div style={styles.formGrid}>
               <label style={styles.label}>
                 Սպասարկման սկիզբ
-                <input style={styles.input} type="date" />
+                <CalendarDateField defaultValue={todayInputDate} />
               </label>
 
               <label style={styles.label}>
@@ -709,37 +866,122 @@ export default function Home() {
 
               <label style={styles.label}>
                 Պատասխանատու գլխավոր հաշվապահ
-                <input style={styles.input} type="text" placeholder="Գլխավոր հաշվապահի անունը" />
-              </label>
-
-              <label style={styles.label}>
-                Պատասխանատու հաշվետար
-                <input style={styles.input} type="text" placeholder="Հաշվետարի անունը" />
-              </label>
-
-              <label style={styles.label}>
-                HR / իրավական պատասխանատու
-                <input style={styles.input} type="text" placeholder="Եթե անհրաժեշտ է" />
-              </label>
-
-              <label style={styles.label}>
-                Սպասարկման կարգավիճակ
-                <select style={styles.select} defaultValue="active">
-                  <option value="active">Գործող</option>
-                  <option value="pending">Սպասման մեջ</option>
-                  <option value="paused">Ժամանակավոր դադարեցված</option>
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել գլխավոր հաշվապահին</option>
+                  {renderEmployeeOptions("chief-accountant")}
                 </select>
               </label>
 
               <label style={styles.label}>
-                Հասանելի մոդուլներ
-                <input style={styles.input} type="text" placeholder="Օրինակ՝ Ֆինանսներ, Պահեստ, Աշխատավարձ" />
+                HR / իրավական պատասխանատու
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել HR/legal պատասխանատուին</option>
+                  {renderEmployeeOptions("hr-legal")}
+                </select>
               </label>
 
               <label style={styles.label}>
-                Ներքին նշում
-                <input style={styles.input} type="text" placeholder="Ինչ պետք է իմանա Finera թիմը" />
+                Support պատասխանատու
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել support պատասխանատուին</option>
+                  {renderEmployeeOptions("support")}
+                </select>
               </label>
+
+              <label style={styles.label}>
+                Ներքին վերահսկող
+                <select style={styles.select} defaultValue="">
+                  <option value="" disabled>Ընտրել վերահսկողին</option>
+                  {renderEmployeeOptions("controller")}
+                </select>
+              </label>
+            </div>
+
+            <div style={styles.assignmentLayout}>
+              <div style={styles.assignmentColumn}>
+                <div style={styles.assignmentHeader}>
+                  <strong>Հաշվետարների ցանկ</strong>
+                  <span>ընտրիր մեկ կամ մի քանի հոգի</span>
+                </div>
+
+                <div style={styles.checkboxGrid}>
+                  {getEmployeesByRole("bookkeeper").map((employee) => {
+                    const isSelected = selectedBookkeeperIds.includes(employee.id);
+
+                    return (
+                      <label
+                        key={employee.id}
+                        style={{
+                          ...styles.checkboxCard,
+                          ...(isSelected ? styles.checkboxCardActive : {}),
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleBookkeeper(employee.id)}
+                        />
+                        <span>
+                          <strong>{employee.fullName}</strong>
+                          <small>
+                            {getPositionName(employee.positionId)} · {employee.employeeNumber}
+                          </small>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={styles.assignmentColumn}>
+                <div style={styles.assignmentHeader}>
+                  <strong>Պատասխանատվության շրջանակ</strong>
+                  <span>
+                    {activeBookkeeper ? activeBookkeeper.fullName : "հաշվետար ընտրված չէ"}
+                  </span>
+                </div>
+
+                {activeBookkeeper ? (
+                  <div style={styles.scopeGrid}>
+                    {bookkeeperResponsibilityScopes.map((scope) => {
+                      const selectedScopes = bookkeeperScopesById[activeBookkeeper.id] ?? [];
+                      const isChecked = selectedScopes.includes(scope);
+
+                      return (
+                        <label
+                          key={scope}
+                          style={{
+                            ...styles.scopeCard,
+                            ...(isChecked ? styles.checkboxCardActive : {}),
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleBookkeeperScope(activeBookkeeper.id, scope)}
+                          />
+                          <span>{scope}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={styles.emptyState}>
+                    Սկզբում ձախ կողմից ընտրիր հաշվետարին, հետո այստեղ կնշես նրա պատասխանատվության շրջանակը։
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.previewBox}>
+              <strong>Master DB demo տրամաբանություն</strong>
+              <p>
+                Պահպանելիս ապագայում Master DB-ում կգրանցվի՝ որ սպասարկվող գործընկերոջ համար
+                որ աշխատակիցներն են նշանակված և յուրաքանչյուրն ինչ աշխատանքների համար է պատասխանատու։
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                Այս տվյալները հետո կարող են օգտագործվել աշխատողների ծանրաբեռնվածությունը և արդյունավետությունը գնահատելու համար։
+              </p>
             </div>
           </div>
         ) : null}
@@ -760,17 +1002,17 @@ export default function Home() {
 
               <label style={styles.label}>
                 Պայմանագրի ամսաթիվ
-                <input style={styles.input} type="date" />
+                <CalendarDateField defaultValue={todayInputDate} />
               </label>
 
               <label style={styles.label}>
                 Սկիզբ
-                <input style={styles.input} type="date" />
+                <CalendarDateField defaultValue={todayInputDate} />
               </label>
 
               <label style={styles.label}>
                 Ավարտ / վերանայման ժամկետ
-                <input style={styles.input} type="date" />
+                <CalendarDateField defaultValue={todayInputDate} />
               </label>
 
               <label style={styles.label}>
@@ -820,6 +1062,10 @@ export default function Home() {
 
 
   function getTabsForDemoPage(pageLabel: string) {
+    if (pageLabel === "Նորություններ") {
+      return ["Օրվա ամփոփում", "Ոլորտներ", "Պաշտոնական աղբյուրներ", "AI հսկողություն"];
+    }
+
     if (pageLabel === "Գործընկերներ") {
       return ["Ընդհանուր", "Ցանկ", "Գործողություններ", "Հաշվետվություններ"];
     }
@@ -838,6 +1084,8 @@ export default function Home() {
 
     return ["Ընդհանուր", "Տվյալներ", "Գործողություններ", "Հաշվետվություններ"];
   }
+
+
 
   function getActiveTab(pageLabel: string) {
     const tabs = getTabsForDemoPage(pageLabel);
@@ -882,6 +1130,142 @@ export default function Home() {
     );
   }
 
+  function renderLegalNewsPage() {
+    const pageLabel = "Նորություններ";
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Գլխավոր մենյու</p>
+        <h2>Նորություններ</h2>
+        <p>
+          Այս բաժինը demo է․ ապագայում AI-ն օրական կստուգի պաշտոնական օրենսդրական և ոլորտային նորությունները
+          և կցույց տա միայն այն ազդակները, որոնք կարող են ազդել սպասարկվող գործընկերների հաշվապահության վրա։
+        </p>
+
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "Օրվա ամփոփում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Օրվա ամփոփում</h3>
+            <div style={styles.cardsGrid}>
+              <div style={styles.smallCard}>
+                <strong>Գյուղմթերքներ</strong>
+                <p>
+                  AI-ն ապագայում կստուգի գյուղատնտեսական մթերքների գնման, վաճառքի,
+                  փաստաթղթավորման և հարկային ռեժիմների նորությունները։
+                </p>
+              </div>
+
+              <div style={styles.smallCard}>
+                <strong>Գինու արտադրություն</strong>
+                <p>
+                  AI-ն կհետևի արտադրության, ակցիզային, մակնշման, թույլտվությունների և հարկային ազդակներին։
+                </p>
+              </div>
+
+              <div style={styles.smallCard}>
+                <strong>Հիվանդանոց / բժշկական ծառայություններ</strong>
+                <p>
+                  AI-ն կհետևի բժշկական ծառայությունների, պայմանագրերի, աշխատավարձի և հաշվետվությունների փոփոխություններին։
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Ոլորտներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Ոլորտներ</h3>
+            <div style={styles.checkboxGrid}>
+              {["Գյուղմթերքներ", "Գինու արտադրություն", "Հիվանդանոց / բժշկական ծառայություններ", "Արտադրություն", "Առևտուր", "Շինարարություն", "Ծառայություններ"].map((sector) => (
+                <label key={sector} style={styles.checkboxCard}>
+                  <input type="checkbox" />
+                  <span>
+                    <strong>{sector}</strong>
+                    <small>ոլորտային demo ֆիլտր</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Պաշտոնական աղբյուրներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Պաշտոնական աղբյուրներ</h3>
+            <div style={styles.cardsGrid}>
+              {[
+                "Պաշտոնական օրենսդրական հրապարակումներ",
+                "Պետական մարմինների հայտարարություններ",
+                "Հարկային և մաքսային ոլորտի պաշտոնական նորություններ",
+                "Կառավարության որոշումներ և նախագծեր",
+                "Ոլորտային կարգավորող մարմինների հրապարակումներ",
+              ].map((source) => (
+                <div key={source} style={styles.smallCard}>
+                  <strong>{source}</strong>
+                  <p>Production փուլում այստեղ կլինի աղբյուրի հասցեն, ստուգման հաճախականությունը և վերջին ստուգման ամսաթիվը։</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "AI հսկողություն" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>AI հսկողություն</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Ստուգման հաճախականություն
+                <select style={styles.select} defaultValue="daily">
+                  <option value="daily">Ամեն օր</option>
+                  <option value="weekly">Շաբաթական</option>
+                  <option value="manual">Միայն ձեռքով</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Մարդու հաստատում
+                <select style={styles.select} defaultValue="required">
+                  <option value="required">Պարտադիր է</option>
+                  <option value="optional">Ըստ անհրաժեշտության</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={styles.previewBox}>
+              <strong>Անվտանգության կանոն</strong>
+              <p style={{ marginBottom: 0 }}>
+                AI-ն միայն կարդում, դասակարգում և ամփոփում է նորությունները։
+                Իրավական կամ հարկային գործողություն ինքնուրույն չի կատարում։
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    );
+  }
+
   function renderMainContent() {
     if (!loggedInUser) {
       return null;
@@ -896,8 +1280,24 @@ export default function Home() {
       return renderOurCompanyForm();
     }
 
+    if (activeDemoPage === "Ընտրել կազմակերպություն") {
+      return renderOrganizationPickerForAccounting();
+    }
+
+    if (activeDemoPage === "Բոլոր կազմակերպությունները") {
+      return renderAllOrganizationsPage();
+    }
+
+    if (activeDemoPage === "Ընտրել կազմակերպություն") {
+      return renderOrganizationPickerForAccounting();
+    }
+
     if (activeDemoPage === "Նոր գործընկեր գրանցել") {
       return renderNewPartnerForm();
+    }
+
+    if (activeDemoPage === "Նորություններ") {
+      return renderLegalNewsPage();
     }
 
     if (activeDemoPage) {
@@ -962,6 +1362,7 @@ export default function Home() {
                 onChange={(event) => setSelectedOrganizationId(event.target.value)}
                 style={styles.select}
               >
+                <option value="">Ընտրել կազմակերպություն</option>
                 {allowedOrganizations.map((organization) => (
                   <option key={organization.id} value={organization.id}>
                     {organization.name}
@@ -992,7 +1393,7 @@ export default function Home() {
           <p>{masterDatabaseNote}</p>
 
           <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
-            {demoOrganizations.map((organization) => (
+            {organizations.map((organization) => (
               <div
                 key={organization.id}
                 style={{
@@ -1034,27 +1435,40 @@ export default function Home() {
         <p style={styles.sidebarSmall}>Accounting app</p>
 
           <nav style={styles.menu}>
-            {activeMenuItem ? (
+            {activeMenuTitle ? (
               <>
                 <div style={styles.menuSectionTitle}>
-                  {activeMenuItem.label}
+                  {activeMenuPath.map((item) => item.label).join(" / ")}
                 </div>
 
-                {renderMenuItems(activeMenuItem.children ?? [])}
+                {renderMenuItems(visibleMenuItems)}
 
-                <button
-                  style={styles.backMenuButton}
-                  onClick={() => {
-                    setActiveMenuItem(null);
-                    setActiveDemoPage(null);
-                    setOpenMenuLabels({});
-                  }}
-                >
-                  ← Գլխավոր մենյու
-                </button>
+                <div style={styles.menuBackActions}>
+                  {activeMenuPath.length > 1 ? (
+                    <button
+                      style={styles.backMenuButton}
+                      onClick={() => {
+                        setActiveMenuPath((current) => current.slice(0, -1));
+                        setActiveDemoPage(null);
+                      }}
+                    >
+                      ← Նախորդ մենյու
+                    </button>
+                  ) : null}
+
+                  <button
+                    style={styles.backMenuButton}
+                    onClick={() => {
+                      setActiveMenuPath([]);
+                      setActiveDemoPage(null);
+                    }}
+                  >
+                    ← Գլխավոր մենյու
+                  </button>
+                </div>
               </>
             ) : (
-              renderMenuItems(menuItems, 0, true)
+              renderMenuItems(visibleMenuItems)
             )}
           </nav>
       </aside>
@@ -1070,10 +1484,9 @@ export default function Home() {
             style={styles.secondaryButton}
             onClick={() => {
               setLoggedInUserId(null);
-              setActiveMenuItem(null);
+              setActiveMenuPath([]);
               setActiveDemoPage(null);
-              setOpenMenuLabels({});
-            }}
+                      }}
           >
             Դուրս գալ
           </button>
@@ -1303,8 +1716,9 @@ const styles: Record<string, CSSProperties> = {
   tabButton: {
     minWidth: "170px",
     padding: "12px 20px",
-    border: "1px solid #d8cbb8",
-    borderBottom: "0",
+    borderWidth: "1px 1px 0 1px",
+    borderStyle: "solid",
+    borderColor: "#d8cbb8",
     borderRadius: "14px 14px 0 0",
     background: "#f7f3ea",
     color: "#172033",
@@ -1396,6 +1810,90 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid #e3d8c7",
     background: "#f7f3ea",
     lineHeight: 1.5,
+  },
+
+  fullWidthField: {
+    gridColumn: "1 / -1",
+  },
+
+  assignmentHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "12px",
+    alignItems: "center",
+    marginBottom: "10px",
+    color: "#172033",
+  },
+
+  checkboxGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gap: "12px",
+  },
+  checkboxCard: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "flex-start",
+    padding: "12px",
+    borderRadius: "14px",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#e3d8c7",
+    background: "#f7f3ea",
+    cursor: "pointer",
+    lineHeight: 1.4,
+  },
+
+  assignmentLayout: {
+    display: "grid",
+    gridTemplateColumns: "minmax(280px, 0.9fr) minmax(320px, 1.1fr)",
+    gap: "18px",
+    marginTop: "22px",
+  },
+  assignmentColumn: {
+    padding: "16px",
+    borderRadius: "16px",
+    border: "1px solid #e3d8c7",
+    background: "#fffaf2",
+  },
+
+  checkboxCardActive: {
+    borderColor: "#b89b68",
+    background: "#fff3d8",
+    boxShadow: "0 6px 18px rgba(97, 71, 35, 0.10)",
+  },
+
+  scopeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "10px",
+  },
+  scopeCard: {
+    display: "flex",
+    gap: "10px",
+    alignItems: "center",
+    padding: "12px",
+    borderRadius: "14px",
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#e3d8c7",
+    background: "#f7f3ea",
+    cursor: "pointer",
+  },
+
+  emptyState: {
+    padding: "18px",
+    borderRadius: "14px",
+    border: "1px dashed #d5c7b5",
+    background: "#f7f3ea",
+    color: "#7a6a55",
+    lineHeight: 1.6,
+  },
+
+  menuBackActions: {
+    display: "grid",
+    gap: "10px",
+    marginTop: "14px",
   },
 
 };
