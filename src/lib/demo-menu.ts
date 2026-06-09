@@ -166,7 +166,7 @@ export const demoMenuByRole: Record<string, DemoMenuItem[]> = {
       label: "Աշխատակիցներ",
       note: "Finera/Sose ներքին աշխատակիցներ, դերեր և աշխատանքային բաշխում",
       children: [
-        { label: "Finera-ի աշխատակիցներ", note: "Մեր ներքին աշխատակիցների ցուցակ" },
+        { label: "Աշխատակիցների ցանկ", note: "Finera/Sose-ի ներքին աշխատակիցների ցուցակ" },
         { label: "Պաշտոններ", note: "Պաշտոնների և պարտականությունների ցանկ" },
         { label: "Ստորաբաժանումներ", note: "Բաժիններ և ներքին կառուցվածք" },
         { label: "Դերեր և իրավունքներ", note: "Role-based access demo կարգավորումներ" },

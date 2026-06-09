@@ -35,7 +35,10 @@ model Organization {
   registryNotes        String?
 
   contracts ServiceContract[]
+  organizationEmployees OrganizationEmployee[]
 
+  postalCode        String?
+  activities        OrganizationActivity[]
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -69,6 +72,98 @@ model ServiceContract {
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+
+model FineraEmployee {
+  id               String   @id @default(cuid())
+  fullName         String
+  email            String?  @unique
+  phone            String?
+  roleGroup        String
+  positionTitle    String
+  departmentName   String
+  employmentType   String   @default("full_time")
+  employmentStatus String   @default("active")
+  hireDate         String
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+
+model OrganizationEmployee {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+
+  fullName         String
+  taxId            String?
+  phone            String?
+  email            String?
+  positionTitle    String
+  departmentName   String?
+  employmentType   String       @default("full_time")
+  employmentStatus String       @default("active")
+  hireDate         String
+  salaryAmount     String?
+  notes            String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+
+model Position {
+  id             String   @id @default(cuid())
+  title          String
+  scope          String   @default("finera")
+  organizationId String?
+  departmentName String?
+  status         String   @default("active")
+  notes          String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([scope])
+  @@index([organizationId])
+}
+
+
+model Department {
+  id             String   @id @default(cuid())
+  name           String
+  scope          String   @default("finera")
+  organizationId String?
+  status         String   @default("active")
+  notes          String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([scope])
+  @@index([organizationId])
+}
+
+
+model OrganizationActivity {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  title          String
+  code           String?
+  isPrimary      Boolean      @default(false)
+  notes          String?
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@index([organizationId])
 }
