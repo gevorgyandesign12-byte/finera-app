@@ -94,6 +94,7 @@ export default function Home() {
   const [archiveMessage, setArchiveMessage] = useState<string | null>(null);
   const [archivedOrganizations, setArchivedOrganizations] = useState<AppOrganization[]>([]);
   const [archiveListMessage, setArchiveListMessage] = useState<string | null>(null);
+  const [organizationProfileTab, setOrganizationProfileTab] = useState("Ընդհանուր տվյալներ");
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
@@ -884,6 +885,12 @@ export default function Home() {
     );
   }
 
+  function openOrganizationProfile(organizationId: string) {
+    setSelectedOrganizationId(organizationId);
+    setOrganizationProfileTab("Ընդհանուր տվյալներ");
+    setActiveDemoPage("Կազմակերպության պրոֆիլ");
+  }
+
   function openArchiveOrganizationDialog(organizationId: string) {
     setArchiveTargetOrganizationId(organizationId);
     setArchiveReason("");
@@ -1280,6 +1287,208 @@ export default function Home() {
     );
   }
 
+  function renderOrganizationProfilePage() {
+    const organization = selectedOrganization;
+    const profileTabs = [
+      "Ընդհանուր տվյալներ",
+      "Ստուգում",
+      "Սպասարկում",
+      "Հաշվապահական տարածք",
+      "Պայմանագիր",
+    ];
+
+    if (!organization) {
+      return (
+        <section style={styles.accountingArea}>
+          <p style={styles.kicker}>Կազմակերպություններ · Պրոֆիլ</p>
+          <h2>Կազմակերպությունը ընտրված չէ</h2>
+          <p>Վերադարձիր «Գործող սպասարկում» բաժին և ընտրիր կազմակերպություն։</p>
+          <button
+            type="button"
+            style={styles.primaryButton}
+            onClick={() => setActiveDemoPage("Գործող սպասարկում")}
+          >
+            Վերադառնալ գործող սպասարկում
+          </button>
+        </section>
+      );
+    }
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Կազմակերպություններ · Պրոֆիլ</p>
+        <h2>{organization.name}</h2>
+        <p>
+          Սա կազմակերպության կենտրոնական էջն է։ Այստեղից պետք է կառավարվի տվյալ կազմակերպության
+          ընդհանուր տվյալները, ստուգումը, սպասարկման վիճակը, պայմանագիրը և հաշվապահական տարածքը։
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            margin: "18px 0",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>{organization.taxId ?? "—"}</strong>
+            <p style={{ margin: "6px 0 0" }}>ՀՎՀՀ</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>{organization.serviceStatus === "archived" ? "Արխիվացված" : "Սպասարկվում է"}</strong>
+            <p style={{ margin: "6px 0 0" }}>Սպասարկման վիճակ</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>{getRegistryCheckLabel(organization.registryCheckStatus)}</strong>
+            <p style={{ margin: "6px 0 0" }}>Տվյալների ստուգում</p>
+          </div>
+        </div>
+
+        <div style={styles.tabsBar}>
+          {profileTabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(organizationProfileTab === tab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => setOrganizationProfileTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {organizationProfileTab === "Ընդհանուր տվյալներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Ընդհանուր տվյալներ</h3>
+            <div style={styles.formGrid}>
+              <div style={styles.previewBox}>
+                <strong>Լրիվ անվանում</strong>
+                <p style={{ marginBottom: 0 }}>{organization.name}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Կարճ անվանում</strong>
+                <p style={{ marginBottom: 0 }}>{organization.shortName ?? "—"}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Տեսակ</strong>
+                <p style={{ marginBottom: 0 }}>{organization.legalType ?? "—"}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>ՀՎՀՀ</strong>
+                <p style={{ marginBottom: 0 }}>{organization.taxId ?? "—"}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Իրավաբանական հասցե</strong>
+                <p style={{ marginBottom: 0 }}>{organization.legalAddress ?? "—"}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Գործունեության հասցե</strong>
+                <p style={{ marginBottom: 0 }}>{organization.businessAddress ?? "—"}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {organizationProfileTab === "Ստուգում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Տվյալների ստուգում</h3>
+            <div style={styles.previewBox}>
+              <strong>Կարգավիճակ՝ {getRegistryCheckLabel(organization.registryCheckStatus)}</strong>
+              <p>Պետռեգիստրի անվանում՝ {organization.registryName ?? "Դեռ լրացված չէ"}</p>
+              <p>Պետռեգիստրի ՀՎՀՀ՝ {organization.registryTaxId ?? "Դեռ լրացված չէ"}</p>
+              <p style={{ marginBottom: 0 }}>
+                Պետռեգիստրի հասցե՝ {organization.registryLegalAddress ?? "Դեռ լրացված չէ"}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              style={styles.primaryButton}
+              onClick={() => openRegistryCheckPage(organization.id)}
+            >
+              Բացել ստուգման էջը
+            </button>
+          </div>
+        ) : null}
+
+        {organizationProfileTab === "Սպասարկում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Սպասարկման վիճակ</h3>
+            <div style={styles.previewBox}>
+              <strong>
+                {organization.serviceStatus === "archived" ? "Արխիվացված" : "Գործող սպասարկում"}
+              </strong>
+              <p>Դադարեցման ամսաթիվ՝ {organization.serviceStoppedAt ? new Date(organization.serviceStoppedAt).toLocaleDateString("hy-AM") : "—"}</p>
+              <p style={{ marginBottom: 0 }}>
+                Դադարեցման պատճառ՝ {organization.serviceStopReason ?? "—"}
+              </p>
+            </div>
+
+            {organization.serviceStatus === "archived" ? null : (
+              <button
+                type="button"
+                style={{ ...styles.primaryButton, background: "#7c2d12" }}
+                onClick={() => openArchiveOrganizationDialog(organization.id)}
+              >
+                Դադարեցնել սպասարկումը և արխիվացնել
+              </button>
+            )}
+          </div>
+        ) : null}
+
+        {organizationProfileTab === "Հաշվապահական տարածք" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Հաշվապահական տարածք</h3>
+            <div style={styles.previewBox}>
+              <strong>Tenant DB demo</strong>
+              <p style={{ marginBottom: 0 }}>{organization.tenantDatabaseName ?? "—"}</p>
+            </div>
+            <p>
+              Այս բաժնից բացվելու է հենց այս կազմակերպության հաշվապահական աշխատանքային տարածքը։
+            </p>
+            <button
+              type="button"
+              style={styles.primaryButton}
+              onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+            >
+              Բացել հաշվապահական տարածքը
+            </button>
+          </div>
+        ) : null}
+
+        {organizationProfileTab === "Պայմանագիր" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Պայմանագիր</h3>
+            <div style={styles.previewBox}>
+              <strong>Պայմանագրի demo բաժին</strong>
+              <p style={{ marginBottom: 0 }}>
+                Հաջորդ փուլում այստեղ կավելացնենք պայմանագրի տվյալները՝ համար, ամսաթիվ,
+                սկիզբ, վերջ, սակագին, պատասխանատու անձ և կցված փաստաթղթեր։
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          style={{
+            ...styles.primaryButton,
+            marginTop: "18px",
+            background: "#efe4d4",
+            color: "#2b2118",
+          }}
+          onClick={() => setActiveDemoPage("Գործող սպասարկում")}
+        >
+          ← Վերադառնալ գործող սպասարկում
+        </button>
+      </section>
+    );
+  }
+
   async function loadArchivedOrganizations() {
     setArchiveListMessage("Բեռնում ենք արխիվացված կազմակերպությունները...");
 
@@ -1434,7 +1643,7 @@ export default function Home() {
 
               <p>
                 Կազմակերպությունը չի ջնջվելու DB-ից։ Այն միայն կարխիվացվի և այլևս չի երևա
-                սպասարկվող կազմակերպությունների հիմնական ցուցակում։
+                գործող սպասարկման հիմնական ցուցակում։
               </p>
 
               <div style={styles.previewBox}>
@@ -1500,8 +1709,8 @@ export default function Home() {
         <p style={styles.kicker}>Կազմակերպություններ · DEV Master DB</p>
         <h2>Գործող սպասարկում</h2>
         <p>
-          Այստեղ երևում են միայն գործող/սպասարկվող կազմակերպությունները։ Արխիվացվածները
-          այս ցուցակում չեն երևում, բայց DB-ում մնում են պատմության համար։
+          Այստեղ երևում են միայն գործող սպասարկման կազմակերպությունները։ Յուրաքանչյուր կազմակերպություն
+          ունի կենտրոնական profile էջ։
         </p>
 
         <div
@@ -1514,13 +1723,13 @@ export default function Home() {
         >
           <div style={styles.previewBox}>
             <strong>{allowedOrganizations.length}</strong>
-            <p style={{ margin: "6px 0 0" }}>Կազմակերպություններ</p>
+            <p style={{ margin: "6px 0 0" }}>Գործող սպասարկում</p>
           </div>
           <div style={styles.previewBox}>
             <strong>
               {allowedOrganizations.filter((organization) => organization.status === "active").length}
             </strong>
-            <p style={{ margin: "6px 0 0" }}>Գործող</p>
+            <p style={{ margin: "6px 0 0" }}>Գործող կարգավիճակով</p>
           </div>
           <div style={styles.previewBox}>
             <strong>
@@ -1594,13 +1803,25 @@ export default function Home() {
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                    onClick={() => openOrganizationProfile(organization.id)}
                     style={{
                       ...styles.primaryButton,
                       width: "fit-content",
                     }}
                   >
-                    Բացել հաշվապահական տարածքը
+                    Բացել պրոֆիլը
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                    style={{
+                      ...styles.primaryButton,
+                      width: "fit-content",
+                      background: "#2b2118",
+                    }}
+                  >
+                    Հաշվապահական տարածք
                   </button>
 
                   <button
@@ -1633,7 +1854,7 @@ export default function Home() {
           </div>
         ) : (
           <div style={styles.previewBox}>
-            <strong>Կազմակերպություններ չկան</strong>
+            <strong>Գործող սպասարկման կազմակերպություններ չկան</strong>
             <p style={{ marginBottom: 0 }}>
               Եթե կազմակերպություն արխիվացվել է, այն այս ցուցակում այլևս չի երևա։
             </p>
@@ -2258,6 +2479,10 @@ export default function Home() {
 
     if (activeDemoPage === "Կազմակերպության տվյալների ստուգում") {
       return renderRegistryCheckPage();
+    }
+
+    if (activeDemoPage === "Կազմակերպության պրոֆիլ") {
+      return renderOrganizationProfilePage();
     }
 
     if (activeDemoPage === "Կազմակերպությունների արխիվ") {
