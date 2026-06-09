@@ -671,6 +671,115 @@ export default function Home() {
     );
   }
 
+  function renderAllOrganizationsPage() {
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Սպասարկվող կազմակերպություններ · DEV Master DB</p>
+        <h2>Բոլոր կազմակերպությունները</h2>
+        <p>
+          Այստեղ երևում են DEV Master DB-ում գրանցված սպասարկվող կազմակերպությունները։
+          Այս փուլում սա դեռ փորձնական ցուցակ է, բայց արդեն բեռնվում է database-ից։
+        </p>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            margin: "18px 0",
+          }}
+        >
+          <div style={styles.previewBox}>
+            <strong>{allowedOrganizations.length}</strong>
+            <p style={{ margin: "6px 0 0" }}>Ընդհանուր կազմակերպություններ</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>
+              {allowedOrganizations.filter((organization) => organization.status === "active").length}
+            </strong>
+            <p style={{ margin: "6px 0 0" }}>Գործող</p>
+          </div>
+          <div style={styles.previewBox}>
+            <strong>
+              {allowedOrganizations.filter((organization) => organization.status === "draft").length}
+            </strong>
+            <p style={{ margin: "6px 0 0" }}>Նախնական / draft</p>
+          </div>
+        </div>
+
+        {allowedOrganizations.length > 0 ? (
+          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            {allowedOrganizations.map((organization) => (
+              <article
+                key={organization.id}
+                style={{
+                  ...styles.previewBox,
+                  display: "grid",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <strong style={{ fontSize: "18px" }}>{organization.name}</strong>
+                  <p style={{ margin: "8px 0" }}>
+                    {organization.shortDescription ?? "Նկարագրություն չկա"}
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                    gap: "10px",
+                  }}
+                >
+                  <small>
+                    <strong>Տեսակ</strong>
+                    <br />
+                    {organization.legalType ?? "—"}
+                  </small>
+                  <small>
+                    <strong>ՀՎՀՀ</strong>
+                    <br />
+                    {organization.taxId ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Կարգավիճակ</strong>
+                    <br />
+                    {organization.status ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Tenant DB demo</strong>
+                    <br />
+                    {organization.tenantDatabaseName ?? "—"}
+                  </small>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                  style={{
+                    ...styles.primaryButton,
+                    width: "fit-content",
+                    marginTop: "6px",
+                  }}
+                >
+                  Բացել հաշվապահական տարածքը
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div style={styles.previewBox}>
+            <strong>Կազմակերպություններ դեռ չկան</strong>
+            <p style={{ marginBottom: 0 }}>
+              Հաջորդ քայլով «Նոր գործընկեր գրանցել» ձևը կկապենք DB-ին, որ այստեղ հայտնվեն նոր գրանցումները։
+            </p>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   function renderNewPartnerForm() {
     const pageLabel = "Նոր գործընկեր գրանցել";
     const tabs = getTabsForDemoPage(pageLabel);
