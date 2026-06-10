@@ -4970,7 +4970,7 @@ export default function Home() {
 
     const activeMenuLabels = activeMenuPath.map((item) => item.label);
     const activeLeafLabel =
-      activeMenuLabels[activeMenuLabels.length - 1] ?? activeDemoPage;
+      activeDemoPage ?? activeMenuLabels[activeMenuLabels.length - 1];
 
     if (
       activeLeafLabel === "Հաշվային պլան" &&
