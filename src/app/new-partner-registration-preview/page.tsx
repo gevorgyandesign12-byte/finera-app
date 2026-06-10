@@ -1,4 +1,5 @@
 import { NewPartnerRegistrationWizardFields } from "../../components/NewPartnerRegistrationWizardFields";
+import { AIAssistantPanel } from "../../components/AIAssistantPanel";
 
 export default function NewPartnerRegistrationPreviewPage() {
   return (
@@ -18,6 +19,7 @@ export default function NewPartnerRegistrationPreviewPage() {
         </div>
 
         <NewPartnerRegistrationWizardFields />
+        <AIAssistantPanel />
       </div>
     </main>
   );
