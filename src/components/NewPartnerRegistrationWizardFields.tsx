@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import {
   countryOptions,
   createEmptyNewPartnerRegistrationDraft,
@@ -22,15 +22,71 @@ type FieldProps = {
   onChange: (value: string) => void;
 };
 
+const cardStyle: CSSProperties = {
+  border: "1px solid rgba(214, 202, 182, 0.9)",
+  borderRadius: 22,
+  background: "#fffaf2",
+  padding: 22,
+  boxShadow: "0 16px 45px rgba(45, 35, 20, 0.08)",
+};
+
+const gridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+  gap: 16,
+};
+
+const labelStyle: CSSProperties = {
+  display: "grid",
+  gap: 7,
+  color: "#172033",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const inputStyle: CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: "1px solid rgba(148, 134, 112, 0.42)",
+  borderRadius: 13,
+  background: "#ffffff",
+  padding: "11px 12px",
+  color: "#111827",
+  fontSize: 14,
+  outline: "none",
+};
+
+const smallButtonStyle: CSSProperties = {
+  border: "1px solid rgba(148, 134, 112, 0.35)",
+  borderRadius: 14,
+  background: "#ffffff",
+  padding: "10px 14px",
+  color: "#172033",
+  fontSize: 13,
+  fontWeight: 850,
+  cursor: "pointer",
+};
+
+const primaryButtonStyle: CSSProperties = {
+  border: 0,
+  borderRadius: 15,
+  background: "#142033",
+  padding: "12px 16px",
+  color: "#ffffff",
+  fontSize: 14,
+  fontWeight: 900,
+  cursor: "pointer",
+};
+
 function Field({ label, value, placeholder, onChange }: FieldProps) {
   return (
-    <label className="grid gap-2 text-sm font-semibold text-slate-700">
+    <label style={labelStyle}>
       <span>{label}</span>
       <input
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-500"
+        style={inputStyle}
       />
     </label>
   );
@@ -47,13 +103,18 @@ function SelectField({
   disabled?: boolean;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-semibold text-slate-700">
+    <label style={labelStyle}>
       <span>{label}</span>
       <select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-slate-500 disabled:bg-slate-100 disabled:text-slate-500"
+        style={{
+          ...inputStyle,
+          cursor: disabled ? "not-allowed" : "pointer",
+          background: disabled ? "#f1f5f9" : "#ffffff",
+          color: disabled ? "#64748b" : "#111827",
+        }}
       >
         <option value="">Ընտրել</option>
         {options.map((option) => (
@@ -76,13 +137,43 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5">
-        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-        <p className="mt-1 text-sm text-slate-600">{description}</p>
+    <section style={cardStyle}>
+      <div style={{ marginBottom: 18 }}>
+        <h2
+          style={{
+            margin: 0,
+            color: "#102033",
+            fontSize: 23,
+            lineHeight: 1.2,
+            fontWeight: 950,
+          }}
+        >
+          {title}
+        </h2>
+        <p style={{ margin: "7px 0 0", color: "#475569", fontSize: 14, lineHeight: 1.65 }}>
+          {description}
+        </p>
       </div>
       {children}
     </section>
+  );
+}
+
+function InlineNote({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        border: "1px solid rgba(180, 143, 79, 0.25)",
+        borderRadius: 16,
+        background: "#fff7ed",
+        padding: "12px 14px",
+        color: "#7c4a03",
+        fontSize: 13,
+        lineHeight: 1.6,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -99,10 +190,7 @@ export function NewPartnerRegistrationWizardFields() {
   ) {
     setDraft((current) => ({
       ...current,
-      requisites: {
-        ...current.requisites,
-        [key]: value,
-      },
+      requisites: { ...current.requisites, [key]: value },
     }));
   }
 
@@ -112,9 +200,18 @@ export function NewPartnerRegistrationWizardFields() {
   ) {
     setDraft((current) => ({
       ...current,
-      legal: {
-        ...current.legal,
-        [key]: value,
+      legal: { ...current.legal, [key]: value },
+    }));
+  }
+
+  function updateActivityItem(index: number, patch: Partial<{ activityType: string; activityCode: string; isMain: boolean }>) {
+    setDraft((current) => ({
+      ...current,
+      activities: {
+        ...current.activities,
+        items: current.activities.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, ...patch } : item,
+        ),
       },
     }));
   }
@@ -123,9 +220,9 @@ export function NewPartnerRegistrationWizardFields() {
     return (
       <SectionCard
         title="Ռեկվիզիտներ"
-        description="Այստեղ պահում ենք գործընկերոջ հիմնական գրանցման տվյալները։ ՀՎՀՀ-ն կազմակերպության կամ ԱՁ-ի տվյալ է։"
+        description="Գրանցման առաջին քայլը՝ կազմակերպության կամ ԱՁ-ի նույնականացնող տվյալները։"
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div style={gridStyle}>
           <Field
             label="Կազմակերպության / ԱՁ անվանում"
             value={draft.requisites.name}
@@ -141,7 +238,7 @@ export function NewPartnerRegistrationWizardFields() {
           <Field
             label="Պետ․ ռեգիստրի համար"
             value={draft.requisites.stateRegistryNumber}
-            placeholder="թույլատրված են թվեր և կետեր, max 20 նիշ"
+            placeholder="թվեր և կետեր, max 20 նիշ"
             onChange={(value) =>
               updateRequisites("stateRegistryNumber", normalizeStateRegistryNumber(value))
             }
@@ -153,6 +250,16 @@ export function NewPartnerRegistrationWizardFields() {
             onChange={(value) => updateRequisites("postalIndex", value)}
           />
         </div>
+
+        <div style={{ marginTop: 18 }}>
+          <button
+            type="button"
+            style={primaryButtonStyle}
+            onClick={() => setActiveTab("Իրավաբանական")}
+          >
+            Պահպանել և անցնել իրավաբանական բաժին
+          </button>
+        </div>
       </SectionCard>
     );
   }
@@ -163,9 +270,9 @@ export function NewPartnerRegistrationWizardFields() {
     return (
       <SectionCard
         title="Իրավաբանական"
-        description="Այստեղ նշում ենք իրավակազմակերպական տեսակը, ռեզիդենտությունը և իրավաբանական հասցեն։"
+        description="Իրավակազմակերպական տեսակը, ռեզիդենտությունը և իրավաբանական հասցեն։"
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div style={gridStyle}>
           <SelectField
             label="Իրավակազմակերպական տեսակ"
             value={draft.legal.legalForm}
@@ -233,108 +340,97 @@ export function NewPartnerRegistrationWizardFields() {
     return (
       <SectionCard
         title="Գործունեություն"
-        description="Գործընկերը կարող է ունենալ մի քանի գործունեության տեսակ, որոնցից մեկը նշվում է որպես հիմնական։"
+        description="Գործունեության հասցե, տեսակներ և կոդեր։ Մեկ գործունեություն նշվում է որպես հիմնական։"
       >
-        <div className="grid gap-4">
+        <div style={{ display: "grid", gap: 16 }}>
           <Field
             label="Գործունեության հասցե"
             value={draft.activities.activityAddress}
-            placeholder="նշել գործունեության իրական հասցեն"
+            placeholder="նշել իրական գործունեության հասցեն"
             onChange={(value) =>
               setDraft((current) => ({
                 ...current,
-                activities: {
-                  ...current.activities,
-                  activityAddress: value,
-                },
+                activities: { ...current.activities, activityAddress: value },
               }))
             }
           />
 
-          <div className="grid gap-3">
-            {draft.activities.items.map((item, index) => (
-              <div
-                key={index}
-                className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_160px_140px_auto]"
+          {draft.activities.items.map((item, index) => (
+            <div
+              key={index}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(220px, 1fr) 150px 120px auto",
+                gap: 12,
+                alignItems: "end",
+                border: "1px solid rgba(214, 202, 182, 0.7)",
+                borderRadius: 18,
+                background: "#fffdfa",
+                padding: 14,
+              }}
+            >
+              <SelectField
+                label="Գործունեության տեսակ"
+                value={item.activityType}
+                options={defaultActivityTypeOptions}
+                onChange={(value) => updateActivityItem(index, { activityType: value })}
+              />
+              <Field
+                label="Կոդ"
+                value={item.activityCode}
+                placeholder="օր․ 41.20"
+                onChange={(value) => updateActivityItem(index, { activityCode: value })}
+              />
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  height: 41,
+                  color: "#172033",
+                  fontSize: 13,
+                  fontWeight: 850,
+                }}
               >
-                <SelectField
-                  label="Գործունեության տեսակ"
-                  value={item.activityType}
-                  options={defaultActivityTypeOptions}
-                  onChange={(value) =>
+                <input
+                  type="checkbox"
+                  checked={item.isMain}
+                  onChange={() =>
                     setDraft((current) => ({
                       ...current,
                       activities: {
                         ...current.activities,
-                        items: current.activities.items.map((activity, activityIndex) =>
-                          activityIndex === index
-                            ? { ...activity, activityType: value }
-                            : activity,
-                        ),
+                        items: current.activities.items.map((activity, activityIndex) => ({
+                          ...activity,
+                          isMain: activityIndex === index,
+                        })),
                       },
                     }))
                   }
                 />
-                <Field
-                  label="Կոդ"
-                  value={item.activityCode}
-                  placeholder="օր․ 41.20"
-                  onChange={(value) =>
-                    setDraft((current) => ({
-                      ...current,
-                      activities: {
-                        ...current.activities,
-                        items: current.activities.items.map((activity, activityIndex) =>
-                          activityIndex === index
-                            ? { ...activity, activityCode: value }
-                            : activity,
-                        ),
-                      },
-                    }))
-                  }
-                />
-                <label className="flex items-center gap-2 pt-7 text-sm font-semibold text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={item.isMain}
-                    onChange={() =>
-                      setDraft((current) => ({
-                        ...current,
-                        activities: {
-                          ...current.activities,
-                          items: current.activities.items.map((activity, activityIndex) => ({
-                            ...activity,
-                            isMain: activityIndex === index,
-                          })),
-                        },
-                      }))
-                    }
-                  />
-                  Հիմնական
-                </label>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraft((current) => ({
-                      ...current,
-                      activities: {
-                        ...current.activities,
-                        items: current.activities.items.filter(
-                          (_, activityIndex) => activityIndex !== index,
-                        ),
-                      },
-                    }))
-                  }
-                  className="mt-6 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                >
-                  Ջնջել
-                </button>
-              </div>
-            ))}
-          </div>
+                Հիմնական
+              </label>
+              <button
+                type="button"
+                style={{ ...smallButtonStyle, color: "#b91c1c" }}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    activities: {
+                      ...current.activities,
+                      items: current.activities.items.filter((_, itemIndex) => itemIndex !== index),
+                    },
+                  }))
+                }
+              >
+                Ջնջել
+              </button>
+            </div>
+          ))}
 
           <button
             type="button"
+            style={{ ...smallButtonStyle, width: "fit-content" }}
             onClick={() =>
               setDraft((current) => ({
                 ...current,
@@ -351,7 +447,6 @@ export function NewPartnerRegistrationWizardFields() {
                 },
               }))
             }
-            className="w-fit rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
           >
             + Ավելացնել գործունեության տեսակ
           </button>
@@ -364,106 +459,110 @@ export function NewPartnerRegistrationWizardFields() {
     return (
       <SectionCard
         title="Հիմնադիրներ"
-        description="Հիմնադիրը կարող է լինել ֆիզիկական կամ իրավաբանական անձ։ Ֆիզ․ անձի համար օգտագործում ենք ՀԾՀ և անձնագրային / ID տվյալներ, ոչ թե ՀՎՀՀ։"
+        description="Հիմնադիրը կարող է լինել ֆիզիկական կամ իրավաբանական անձ։"
       >
-        <div className="grid gap-3">
+        <div style={{ display: "grid", gap: 14 }}>
           {draft.founders.map((founder, index) => {
             const isIndividual = founder.founderType === "Ֆիզիկական անձ";
 
             return (
               <div
                 key={index}
-                className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-2"
+                style={{
+                  border: "1px solid rgba(214, 202, 182, 0.7)",
+                  borderRadius: 18,
+                  background: "#fffdfa",
+                  padding: 14,
+                }}
               >
-                <SelectField
-                  label="Հիմնադրի տեսակ"
-                  value={founder.founderType}
-                  options={founderTypeOptions}
-                  onChange={(value) =>
-                    setDraft((current) => ({
-                      ...current,
-                      founders: current.founders.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, founderType: value } : item,
-                      ),
-                    }))
-                  }
-                />
-                <Field
-                  label="Անուն / անվանում"
-                  value={founder.name}
-                  onChange={(value) =>
-                    setDraft((current) => ({
-                      ...current,
-                      founders: current.founders.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, name: value } : item,
-                      ),
-                    }))
-                  }
-                />
-                {isIndividual ? (
-                  <>
-                    <Field
-                      label="ՀԾՀ"
-                      value={founder.socialCardNumber}
-                      onChange={(value) =>
-                        setDraft((current) => ({
-                          ...current,
-                          founders: current.founders.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, socialCardNumber: value }
-                              : item,
-                          ),
-                        }))
-                      }
-                    />
-                    <Field
-                      label="Անձնագիր / ID համար"
-                      value={founder.passportOrIdNumber}
-                      onChange={(value) =>
-                        setDraft((current) => ({
-                          ...current,
-                          founders: current.founders.map((item, itemIndex) =>
-                            itemIndex === index
-                              ? { ...item, passportOrIdNumber: value }
-                              : item,
-                          ),
-                        }))
-                      }
-                    />
-                  </>
-                ) : (
-                  <Field
-                    label="ՀՎՀՀ"
-                    value={founder.taxNumber}
+                <div style={gridStyle}>
+                  <SelectField
+                    label="Հիմնադրի տեսակ"
+                    value={founder.founderType}
+                    options={founderTypeOptions}
                     onChange={(value) =>
                       setDraft((current) => ({
                         ...current,
                         founders: current.founders.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, taxNumber: value } : item,
+                          itemIndex === index ? { ...item, founderType: value } : item,
                         ),
                       }))
                     }
                   />
-                )}
-                <Field
-                  label="Բաժնեմաս %"
-                  value={founder.sharePercent}
-                  placeholder="օր․ 100"
-                  onChange={(value) =>
-                    setDraft((current) => ({
-                      ...current,
-                      founders: current.founders.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, sharePercent: value } : item,
-                      ),
-                    }))
-                  }
-                />
+                  <Field
+                    label="Անուն / անվանում"
+                    value={founder.name}
+                    onChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        founders: current.founders.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, name: value } : item,
+                        ),
+                      }))
+                    }
+                  />
+                  {isIndividual ? (
+                    <>
+                      <Field
+                        label="ՀԾՀ"
+                        value={founder.socialCardNumber}
+                        onChange={(value) =>
+                          setDraft((current) => ({
+                            ...current,
+                            founders: current.founders.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, socialCardNumber: value } : item,
+                            ),
+                          }))
+                        }
+                      />
+                      <Field
+                        label="Անձնագիր / ID համար"
+                        value={founder.passportOrIdNumber}
+                        onChange={(value) =>
+                          setDraft((current) => ({
+                            ...current,
+                            founders: current.founders.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, passportOrIdNumber: value } : item,
+                            ),
+                          }))
+                        }
+                      />
+                    </>
+                  ) : (
+                    <Field
+                      label="ՀՎՀՀ"
+                      value={founder.taxNumber}
+                      onChange={(value) =>
+                        setDraft((current) => ({
+                          ...current,
+                          founders: current.founders.map((item, itemIndex) =>
+                            itemIndex === index ? { ...item, taxNumber: value } : item,
+                          ),
+                        }))
+                      }
+                    />
+                  )}
+                  <Field
+                    label="Բաժնեմաս %"
+                    value={founder.sharePercent}
+                    placeholder="օր․ 100"
+                    onChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        founders: current.founders.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, sharePercent: value } : item,
+                        ),
+                      }))
+                    }
+                  />
+                </div>
               </div>
             );
           })}
 
           <button
             type="button"
+            style={{ ...smallButtonStyle, width: "fit-content" }}
             onClick={() =>
               setDraft((current) => ({
                 ...current,
@@ -480,7 +579,6 @@ export function NewPartnerRegistrationWizardFields() {
                 ],
               }))
             }
-            className="w-fit rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
           >
             + Ավելացնել հիմնադիր
           </button>
@@ -493,13 +591,22 @@ export function NewPartnerRegistrationWizardFields() {
     return (
       <SectionCard
         title="Կառուցվածքային ստորաբաժանումներ"
-        description="Ստորաբաժանումները կազմակերպության կառուցվածքի մաս են, ոչ թե աշխատակցի պարզ text field։"
+        description="Ստորաբաժանումները կազմակերպության կառուցվածքի մաս են։"
       >
-        <div className="grid gap-3">
+        <div style={{ display: "grid", gap: 14 }}>
           {draft.departments.map((department, index) => (
             <div
               key={index}
-              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_160px_auto]"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(220px, 1fr) 140px auto",
+                gap: 12,
+                alignItems: "end",
+                border: "1px solid rgba(214, 202, 182, 0.7)",
+                borderRadius: 18,
+                background: "#fffdfa",
+                padding: 14,
+              }}
             >
               <Field
                 label="Ստորաբաժանում"
@@ -527,15 +634,13 @@ export function NewPartnerRegistrationWizardFields() {
               />
               <button
                 type="button"
+                style={{ ...smallButtonStyle, color: "#b91c1c" }}
                 onClick={() =>
                   setDraft((current) => ({
                     ...current,
-                    departments: current.departments.filter(
-                      (_, departmentIndex) => departmentIndex !== index,
-                    ),
+                    departments: current.departments.filter((_, itemIndex) => itemIndex !== index),
                   }))
                 }
-                className="mt-6 rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
               >
                 Ջնջել
               </button>
@@ -544,19 +649,13 @@ export function NewPartnerRegistrationWizardFields() {
 
           <button
             type="button"
+            style={{ ...smallButtonStyle, width: "fit-content" }}
             onClick={() =>
               setDraft((current) => ({
                 ...current,
-                departments: [
-                  ...current.departments,
-                  {
-                    name: "",
-                    code: "",
-                  },
-                ],
+                departments: [...current.departments, { name: "", code: "" }],
               }))
             }
-            className="w-fit rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"
           >
             + Ավելացնել նոր ստորաբաժանում
           </button>
@@ -568,9 +667,7 @@ export function NewPartnerRegistrationWizardFields() {
   function renderPlaceholderTab(title: string, description: string) {
     return (
       <SectionCard title={title} description={description}>
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-sm text-slate-600">
-          Այս թաբի դաշտերը կմիացնենք հաջորդ փոքր քայլերով։
-        </div>
+        <InlineNote>Այս բաժնի դաշտերը կմիացնենք հաջորդ փոքր քայլերով։</InlineNote>
       </SectionCard>
     );
   }
@@ -581,41 +678,54 @@ export function NewPartnerRegistrationWizardFields() {
     if (activeTab === "Գործունեություն") return renderActivityTab();
     if (activeTab === "Հիմնադիրներ") return renderFoundersTab();
     if (activeTab === "Կառուցվածքային ստորաբաժանումներ") return renderDepartmentsTab();
-
     if (activeTab === "Սպասարկման նշանակում") {
       return renderPlaceholderTab(
         "Սպասարկման նշանակում",
-        "Այստեղ հետո կնշանակենք պատասխանատու հաշվապահներին, բաժինները և սպասարկման scope-երը։",
+        "Այստեղ կնշանակենք պատասխանատու հաշվապահներին և սպասարկման scope-երը։",
       );
     }
 
-    return renderPlaceholderTab(
-      "Պայմանագիր",
-      "Այստեղ հետո կմիացնենք պայմանագրի և սակագնի դաշտերը։",
-    );
+    return renderPlaceholderTab("Պայմանագիր", "Այստեղ կմիացնենք պայմանագրի և սակագնի դաշտերը։");
   }
 
   return (
-    <div className="grid gap-5">
-      <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+    <div style={{ display: "grid", gap: 18 }}>
+      <InlineNote>
         SAFE DEV preview է․ այս էջը դեռ չի պահպանում տվյալները DB-ում։
-      </div>
+      </InlineNote>
 
-      <div className="flex flex-wrap gap-2">
-        {newPartnerRegistrationTabs.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-              activeTab === tab
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          borderBottom: "1px solid rgba(214, 202, 182, 0.9)",
+          paddingBottom: 10,
+        }}
+      >
+        {newPartnerRegistrationTabs.map((tab) => {
+          const isActive = activeTab === tab;
+
+          return (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              style={{
+                border: isActive ? "1px solid #142033" : "1px solid rgba(148, 134, 112, 0.35)",
+                borderRadius: 999,
+                background: isActive ? "#142033" : "#fffaf2",
+                padding: "9px 14px",
+                color: isActive ? "#ffffff" : "#172033",
+                fontSize: 13,
+                fontWeight: 900,
+                cursor: "pointer",
+              }}
+            >
+              {tab}
+            </button>
+          );
+        })}
       </div>
 
       {renderActiveTab()}
