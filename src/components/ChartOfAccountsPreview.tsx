@@ -13,6 +13,7 @@ type ChartAccount = {
   requiresPartner: boolean;
   isOffBalance: boolean;
   requiresCurrency: boolean;
+  currencies?: string[];
   isActive: boolean;
   description: string;
 };
@@ -102,6 +103,19 @@ const initialAccounts: ChartAccount[] = [
     isActive: true,
     description: "Մատակարարների պարտքերի հաշիվ։ Գործընկերը պարտադիր է։",
   },
+];
+
+const baseCurrency = { code: "AMD", name: "Հայկական դրամ" };
+
+const availableCurrencies = [
+  { code: "USD", name: "ԱՄՆ դոլար" },
+  { code: "EUR", name: "Եվրո" },
+  { code: "RUB", name: "Ռուսական ռուբլի" },
+  { code: "GBP", name: "Բրիտանական ֆունտ" },
+  { code: "CHF", name: "Շվեյցարական ֆրանկ" },
+  { code: "CNY", name: "Չինական յուան" },
+  { code: "GEL", name: "Վրացական լարի" },
+  { code: "AED", name: "ԱՄԷ դիրհամ" },
 ];
 
 const pageStyle: CSSProperties = {
@@ -255,7 +269,10 @@ export function ChartOfAccountsPreview() {
   const [accounts, setAccounts] = useState<ChartAccount[]>(initialAccounts);
   const [selectedId, setSelectedId] = useState("111");
   const [search, setSearch] = useState("");
+  const [isCurrencyDialogOpen, setIsCurrencyDialogOpen] = useState(false);
   const selected = accounts.find((account) => account.id === selectedId) ?? accounts[0];
+  const selectedCurrencies = selected.currencies ?? [];
+  const displayCurrencies = [baseCurrency.code, ...selectedCurrencies];
 
   const filteredAccounts = useMemo(() => {
     const trimmed = search.trim().toLowerCase();
@@ -315,6 +332,29 @@ export function ChartOfAccountsPreview() {
         account.id === selected.id ? { ...account, ...patch } : account,
       ),
     );
+  }
+
+  function enableOrDisableCurrencyAccounting(checked: boolean) {
+    if (checked) {
+      updateSelected({ requiresCurrency: true });
+      setIsCurrencyDialogOpen(true);
+      return;
+    }
+
+    updateSelected({ requiresCurrency: false, currencies: [] });
+    setIsCurrencyDialogOpen(false);
+  }
+
+  function toggleCurrency(code: string) {
+    const currentCurrencies = selected.currencies ?? [];
+    const nextCurrencies = currentCurrencies.includes(code)
+      ? currentCurrencies.filter((currencyCode) => currencyCode !== code)
+      : [...currentCurrencies, code];
+
+    updateSelected({
+      currencies: nextCurrencies,
+      requiresCurrency: nextCurrencies.length > 0 || selected.requiresCurrency,
+    });
   }
 
   function closeSelected() {
@@ -475,11 +515,27 @@ export function ChartOfAccountsPreview() {
               <input
                 type="checkbox"
                 checked={selected.requiresCurrency}
-                onChange={(event) => updateSelected({ requiresCurrency: event.target.checked })}
+                onChange={(event) => enableOrDisableCurrencyAccounting(event.target.checked)}
                 style={{ marginRight: 8 }}
               />
               Արժույթային հաշվառում
             </label>
+
+            {selected.requiresCurrency ? (
+              <button
+                type="button"
+                style={{
+                  ...buttonStyle,
+                  background: "#fff7ed",
+                  borderColor: "rgba(180, 83, 9, 0.35)",
+                  color: "#9a3412",
+                }}
+                onClick={() => setIsCurrencyDialogOpen(true)}
+              >
+                Ընտրել արժույթներ
+                {` (${displayCurrencies.join(", ")})`}
+              </button>
+            ) : null}
           </div>
 
           <label style={{ display: "grid", gap: 7, marginTop: 16, fontSize: 13, fontWeight: 850 }}>
@@ -506,7 +562,9 @@ export function ChartOfAccountsPreview() {
               {selected.isOffBalance ? "Արտահաշվեկշռային հաշիվ" : "Հաշվեկշռային հաշիվ"}
             </Badge>
             <Badge tone={selected.requiresCurrency ? "warn" : "neutral"}>
-              {selected.requiresCurrency ? "Արժույթային հաշվառում" : "ՀՀ դրամով հիմնական հաշվառում"}
+              {selected.requiresCurrency
+                ? `Արժույթային՝ ${displayCurrencies.join(", ")}`
+                : "Հիմնական արժույթ՝ AMD"}
             </Badge>
           </div>
 
@@ -527,6 +585,165 @@ export function ChartOfAccountsPreview() {
           </div>
         </aside>
       </div>
+
+      {isCurrencyDialogOpen ? (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "grid",
+            placeItems: "center",
+            background: "rgba(15, 23, 42, 0.42)",
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              width: "min(620px, 100%)",
+              border: "1px solid rgba(214, 202, 182, 0.95)",
+              borderRadius: 24,
+              background: "#fffaf2",
+              padding: 20,
+              boxShadow: "0 28px 85px rgba(15, 23, 42, 0.28)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#8a6a3e",
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: "0.16em",
+                  }}
+                >
+                  Արժույթային հաշվառում
+                </p>
+                <h3 style={{ margin: "6px 0 0", color: "#102033", fontSize: 24, fontWeight: 950 }}>
+                  Ընտրել հաշվի արժույթները
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                style={buttonStyle}
+                onClick={() => setIsCurrencyDialogOpen(false)}
+              >
+                Փակել
+              </button>
+            </div>
+
+            <p style={{ margin: "0 0 14px", color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+              ՀՀ դրամը մնում է հիմնական արժույթ։ Այստեղ ընտրում ենք այն արտարժույթները,
+              որոնցով այս հաշիվը կարող է մասնակցել ձևակերպումներին։
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <label
+                style={{
+                  border: "1px solid #142033",
+                  borderRadius: 16,
+                  background: "#eef2ff",
+                  padding: 12,
+                  color: "#172033",
+                  fontSize: 14,
+                  fontWeight: 850,
+                  cursor: "not-allowed",
+                  opacity: 0.95,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked
+                  disabled
+                  style={{ marginRight: 8 }}
+                />
+                {baseCurrency.code}
+                <span style={{ display: "block", marginTop: 4, color: "#475569", fontSize: 12, fontWeight: 750 }}>
+                  {baseCurrency.name} · միշտ ակտիվ
+                </span>
+              </label>
+
+              {availableCurrencies.map((currency) => (
+                <label
+                  key={currency.code}
+                  style={{
+                    border: selectedCurrencies.includes(currency.code)
+                      ? "1px solid #142033"
+                      : "1px solid rgba(214, 202, 182, 0.85)",
+                    borderRadius: 16,
+                    background: selectedCurrencies.includes(currency.code) ? "#eef2ff" : "#ffffff",
+                    padding: 12,
+                    color: "#172033",
+                    fontSize: 14,
+                    fontWeight: 850,
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCurrencies.includes(currency.code)}
+                    onChange={() => toggleCurrency(currency.code)}
+                    style={{ marginRight: 8 }}
+                  />
+                  {currency.code}
+                  <span style={{ display: "block", marginTop: 4, color: "#64748b", fontSize: 12, fontWeight: 750 }}>
+                    {currency.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            {selected.requiresCurrency && selectedCurrencies.length === 0 ? (
+              <div
+                style={{
+                  marginTop: 14,
+                  border: "1px solid rgba(180, 143, 79, 0.25)",
+                  borderRadius: 16,
+                  background: "#fff7ed",
+                  padding: 12,
+                  color: "#7c4a03",
+                  fontSize: 13,
+                  fontWeight: 850,
+                }}
+              >
+                AMD-ը միշտ ակտիվ է։ Եթե այս հաշիվը պետք է աշխատի արտարժույթով, ընտրիր նաև USD, EUR կամ այլ արտարժույթ։
+              </div>
+            ) : null}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+              <button
+                type="button"
+                style={buttonStyle}
+                onClick={() => {
+                  updateSelected({ requiresCurrency: false, currencies: [] });
+                  setIsCurrencyDialogOpen(false);
+                }}
+              >
+                Անջատել արժույթայինը
+              </button>
+
+              <button
+                type="button"
+                style={primaryButtonStyle}
+                onClick={() => {
+                  setIsCurrencyDialogOpen(false);
+                }}
+              >
+                Պահպանել ընտրությունը
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
