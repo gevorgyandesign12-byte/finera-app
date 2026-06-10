@@ -6,6 +6,7 @@ import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 import { CalendarDateField } from "@/components/CalendarDateField";
+import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 type ServiceContract = {
   id: string;
   organizationId: string;
@@ -4966,6 +4967,26 @@ export default function Home() {
     if (!loggedInUser) {
       return null;
     }
+
+    const activeMenuLabels = activeMenuPath.map((item) => item.label);
+    const activeLeafLabel =
+      activeMenuLabels[activeMenuLabels.length - 1] ?? activeDemoPage;
+
+    if (
+      activeLeafLabel === "Հաշվային պլան" &&
+      activeMenuLabels.includes("Կազմակերպության հաշվապահական տարածք") &&
+      activeMenuLabels.includes("Կարգավորումներ")
+    ) {
+      return (
+        <section style={styles.accountingArea}>
+          <p style={styles.kicker}>
+            Կազմակերպություններ · Կազմակերպության հաշվապահական տարածք · Կարգավորումներ
+          </p>
+          <ChartOfAccountsPreview />
+        </section>
+      );
+    }
+
 
 
     if (activeDemoPage === "Կառուցվածքային ստորաբաժանումներ") {
