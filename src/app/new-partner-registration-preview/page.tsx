@@ -1,20 +1,44 @@
-import { NewPartnerRegistrationWizardFields } from "../../components/NewPartnerRegistrationWizardFields";
 import { AIAssistantPanel } from "../../components/AIAssistantPanel";
+import { NewPartnerRegistrationWizardFields } from "../../components/NewPartnerRegistrationWizardFields";
 
 export default function NewPartnerRegistrationPreviewPage() {
   return (
-    <main className="min-h-screen bg-slate-100 px-6 py-8">
-      <div className="mx-auto grid max-w-6xl gap-6">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-slate-500">
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "#f6f1e8",
+        padding: "32px 28px",
+        color: "#102033",
+      }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+        <div style={{ marginBottom: 22 }}>
+          <p
+            style={{
+              margin: 0,
+              color: "#8a6a3e",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+            }}
+          >
             Finera / Sose SAFE DEV
           </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-950">
+          <h1
+            style={{
+              margin: "8px 0 8px",
+              color: "#102033",
+              fontSize: 38,
+              lineHeight: 1.1,
+              fontWeight: 900,
+            }}
+          >
             Նոր գործընկեր գրանցել
           </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Սա նոր wizard-ի preview տարբերակն է՝ առանց իրական DB պահպանման։
-            Հաստատելուց հետո նույն կառուցվածքը կմիացնենք հիմնական էջին։
+          <p style={{ margin: 0, maxWidth: 900, color: "#334155", fontSize: 15, lineHeight: 1.7 }}>
+            Սա նոր wizard-ի preview տարբերակն է՝ առանց իրական DB պահպանման։ Այստեղ մաքրում ենք
+            աշխատանքի ընթացքը, դաշտերի հերթականությունը և AI օգնականի տեղը։
           </p>
         </div>
 

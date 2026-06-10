@@ -1,10 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 type ChatMessage = {
   role: "assistant" | "user";
   text: string;
+};
+
+const floatingButtonStyle: CSSProperties = {
+  position: "fixed",
+  right: 24,
+  bottom: 24,
+  zIndex: 80,
+  border: "1px solid rgba(226, 232, 240, 0.9)",
+  borderRadius: 999,
+  padding: "12px 18px",
+  background: "#111827",
+  color: "#ffffff",
+  fontSize: 14,
+  fontWeight: 900,
+  boxShadow: "0 18px 45px rgba(15, 23, 42, 0.22)",
+  cursor: "pointer",
+};
+
+const panelStyle: CSSProperties = {
+  position: "fixed",
+  right: 24,
+  bottom: 24,
+  zIndex: 80,
+  width: 360,
+  maxWidth: "calc(100vw - 32px)",
+  maxHeight: "78vh",
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+  border: "1px solid rgba(226, 232, 240, 0.95)",
+  borderRadius: 24,
+  background: "#ffffff",
+  boxShadow: "0 24px 70px rgba(15, 23, 42, 0.28)",
+};
+
+const assistantMessageStyle: CSSProperties = {
+  borderRadius: 16,
+  padding: "10px 12px",
+  background: "#f1f5f9",
+  color: "#334155",
+  fontSize: 13,
+  lineHeight: 1.55,
+};
+
+const userMessageStyle: CSSProperties = {
+  borderRadius: 16,
+  padding: "10px 12px",
+  background: "#111827",
+  color: "#ffffff",
+  fontSize: 13,
+  lineHeight: 1.55,
 };
 
 export function AIAssistantPanel() {
@@ -27,10 +78,7 @@ export function AIAssistantPanel() {
 
     setMessages((current) => [
       ...current,
-      {
-        role: "user",
-        text: trimmed,
-      },
+      { role: "user", text: trimmed },
       {
         role: "assistant",
         text:
@@ -42,71 +90,91 @@ export function AIAssistantPanel() {
 
   if (!isOpen) {
     return (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-5 right-5 z-40 rounded-full border border-slate-300 bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-xl transition hover:bg-slate-800"
-      >
+      <button type="button" onClick={() => setIsOpen(true)} style={floatingButtonStyle}>
         AI օգնական
       </button>
     );
   }
 
   return (
-    <aside className="fixed bottom-5 right-5 z-40 flex max-h-[78vh] w-[360px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
-      <div className="flex items-start justify-between gap-3 border-b border-slate-200 p-4">
+    <aside style={panelStyle}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          borderBottom: "1px solid #e2e8f0",
+          padding: 16,
+        }}
+      >
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">
+          <p
+            style={{
+              margin: 0,
+              color: "#94a3b8",
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.22em",
+              textTransform: "uppercase",
+            }}
+          >
             Finera AI
           </p>
-          <h2 className="mt-1 text-base font-black text-slate-950">
+          <h2 style={{ margin: "4px 0 0", color: "#0f172a", fontSize: 17, fontWeight: 900 }}>
             Աշխատանքային օգնական
           </h2>
-          <p className="mt-1 text-xs leading-5 text-slate-600">
-            Օգնում է չսխալվել ծրագրի մեջ, ոչ թե բացատրում է պարզ բաները։
+          <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+            Օգնում է չսխալվել ծրագրի մեջ։
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => setIsOpen(false)}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-black text-slate-600 hover:bg-slate-100"
+          style={{
+            height: 30,
+            border: "1px solid #e2e8f0",
+            borderRadius: 999,
+            padding: "0 12px",
+            background: "#ffffff",
+            color: "#475569",
+            fontSize: 12,
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
         >
           Փակել
         </button>
       </div>
 
-      <div className="grid gap-2 border-b border-slate-200 p-3">
-        <button
-          type="button"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-800 hover:bg-slate-100"
-        >
-          Ստուգել այս քայլը
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-800 hover:bg-slate-100"
-        >
-          Բաց թողած դաշտեր
-        </button>
-        <button
-          type="button"
-          className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs font-bold text-slate-800 hover:bg-slate-100"
-        >
-          Գրանցման ամփոփում
-        </button>
+      <div style={{ display: "grid", gap: 8, borderBottom: "1px solid #e2e8f0", padding: 12 }}>
+        {["Ստուգել այս քայլը", "Բաց թողած դաշտեր", "Գրանցման ամփոփում"].map((label) => (
+          <button
+            key={label}
+            type="button"
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 16,
+              padding: "10px 12px",
+              background: "#f8fafc",
+              color: "#1e293b",
+              textAlign: "left",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <div className="space-y-2">
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 12 }}>
+        <div style={{ display: "grid", gap: 8 }}>
           {messages.map((message, index) => (
             <div
               key={`${message.role}-${index}`}
-              className={`rounded-2xl px-3 py-2 text-xs leading-5 ${
-                message.role === "assistant"
-                  ? "bg-slate-100 text-slate-700"
-                  : "bg-slate-950 text-white"
-              }`}
+              style={message.role === "assistant" ? assistantMessageStyle : userMessageStyle}
             >
               {message.text}
             </div>
@@ -114,18 +182,39 @@ export function AIAssistantPanel() {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 p-3">
+      <div style={{ borderTop: "1px solid #e2e8f0", padding: 12 }}>
         <textarea
           value={draftMessage}
           onChange={(event) => setDraftMessage(event.target.value)}
           placeholder="Գրել հարցը..."
           rows={2}
-          className="w-full resize-none rounded-2xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-slate-500"
+          style={{
+            width: "100%",
+            resize: "none",
+            border: "1px solid #cbd5e1",
+            borderRadius: 16,
+            padding: "10px 12px",
+            color: "#0f172a",
+            fontSize: 13,
+            outline: "none",
+            boxSizing: "border-box",
+          }}
         />
         <button
           type="button"
           onClick={sendMessage}
-          className="mt-2 w-full rounded-2xl bg-slate-950 px-4 py-2 text-xs font-black text-white hover:bg-slate-800"
+          style={{
+            width: "100%",
+            marginTop: 8,
+            border: 0,
+            borderRadius: 16,
+            padding: "10px 12px",
+            background: "#111827",
+            color: "#ffffff",
+            fontSize: 13,
+            fontWeight: 900,
+            cursor: "pointer",
+          }}
         >
           Ուղարկել
         </button>
