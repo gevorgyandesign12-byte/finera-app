@@ -2152,17 +2152,12 @@ export default function Home() {
   }
 
   function openAccountingWorkspaceForOrganization(organizationId: string) {
-    const servicedOrganizationsMenu = menuItems.find(
-      (item) => item.label === "Կազմակերպություններ"
-    );
-    const accountingWorkspaceMenu = servicedOrganizationsMenu?.children?.find(
-      (item) => item.label === "Կազմակերպության հաշվապահական տարածք"
-    );
+    const accountingMenu = menuItems.find((item) => item.label === "Հաշվապահություն");
 
     setSelectedOrganizationId(organizationId);
 
-    if (servicedOrganizationsMenu && accountingWorkspaceMenu) {
-      setActiveMenuPath([servicedOrganizationsMenu, accountingWorkspaceMenu]);
+    if (accountingMenu) {
+      setActiveMenuPath([accountingMenu]);
       setActiveDemoPage(null);
       return;
     }
@@ -2174,7 +2169,7 @@ export default function Home() {
   function renderOrganizationPickerForAccounting() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Կազմակերպություններ · Հաշվապահական տարածք</p>
+        <p style={styles.kicker}>Հաշվապահություն</p>
         <h2>Ընտրել կազմակերպություն</h2>
         <p>
           Հաշվապահական տարածքը բացվում է միայն կոնկրետ սպասարկվող կազմակերպության համար։
@@ -4976,13 +4971,13 @@ export default function Home() {
 
     if (
       activeLeafLabel === "Հաշվային պլան" &&
-      activeMenuLabels.includes("Կազմակերպության հաշվապահական տարածք") &&
+      activeMenuLabels.includes("Հաշվապահություն") &&
       activeMenuLabels.includes("Կարգավորումներ")
     ) {
       return (
         <section style={styles.accountingArea}>
           <p style={styles.kicker}>
-            Կազմակերպություններ · Կազմակերպության հաշվապահական տարածք · Կարգավորումներ
+            Հաշվապահություն · Կարգավորումներ
           </p>
           <ChartOfAccountsPreview />
         </section>
