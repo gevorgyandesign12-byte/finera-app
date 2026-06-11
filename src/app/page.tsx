@@ -508,6 +508,11 @@ export default function Home() {
     );
   }
 
+  void renderOrganizationForm;
+  void renderDbNewOrganizationForm;
+  void reloadDepartments;
+  void renderNewPartnerForm;
+
   function renderOrganizationForm() {
     return (
       <section style={styles.accountingArea}>
@@ -654,9 +659,6 @@ export default function Home() {
     const pageLabel = "Մեր կազմակերպությունը";
     const tabs = getTabsForDemoPage(pageLabel);
     const activeTab = getActiveTab(pageLabel);
-    const activeBookkeeper = activeBookkeeperId
-      ? demoEmployees.find((employee) => employee.id === activeBookkeeperId)
-      : undefined;
 
     return (
       <section style={styles.accountingArea}>
