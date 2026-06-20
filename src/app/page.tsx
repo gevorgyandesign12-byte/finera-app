@@ -5561,7 +5561,26 @@ export default function Home() {
     }
 
     if (activeDemoPage) {
+      if (
+      selectedOrganization &&
+      activeMenuLabels.includes("Հաշվապահություն") &&
+      !activeDemoPage
+    ) {
       return (
+        <section
+          style={{
+            ...styles.accountingArea,
+            minHeight: 520,
+            background: "transparent",
+            border: "1px solid transparent",
+            boxShadow: "none",
+          }}
+          aria-label="Ընտրված կազմակերպության դատարկ հաշվապահական աշխատանքային տարածք"
+        />
+      );
+    }
+
+    return (
         <section style={styles.accountingArea}>
           <p style={styles.kicker}>Ընտրված բաժին</p>
           <h2>{activeDemoPage}</h2>
@@ -5571,6 +5590,25 @@ export default function Home() {
             Հետո այստեղ կավելացնենք կոնկրետ ձևերը, ցուցակները կամ հաշվետվությունները։
           </p>
         </section>
+      );
+    }
+
+    if (
+      selectedOrganization &&
+      activeMenuLabels.includes("Հաշվապահություն") &&
+      !activeDemoPage
+    ) {
+      return (
+        <section
+          style={{
+            ...styles.accountingArea,
+            minHeight: 520,
+            background: "transparent",
+            border: "1px solid transparent",
+            boxShadow: "none",
+          }}
+          aria-label="Ընտրված կազմակերպության դատարկ հաշվապահական աշխատանքային տարածք"
+        />
       );
     }
 
@@ -5736,8 +5774,16 @@ export default function Home() {
       <section style={styles.content}>
         <header style={styles.header}>
           <div>
-            <p style={styles.kicker}>Demo dashboard</p>
-            <h1 style={styles.dashboardTitle}>Ֆինեռա հաշվապահական</h1>
+            <p style={styles.kicker}>
+              {selectedOrganization && activeMenuPath.some((item) => item.label === "Հաշվապահություն")
+                ? "Ընտրված սպասարկվող գործընկեր"
+                : "Demo dashboard"}
+            </p>
+            <h1 style={styles.dashboardTitle}>
+              {selectedOrganization && activeMenuPath.some((item) => item.label === "Հաշվապահություն")
+                ? `${selectedOrganization.name} - Հաշվապահություն`
+                : "Ֆինեռա հաշվապահական"}
+            </h1>
           </div>
 
           <button
