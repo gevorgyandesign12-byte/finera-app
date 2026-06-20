@@ -8,12 +8,12 @@ datasource db {
 }
 
 model Organization {
-  id                 String   @id @default(cuid())
+  id                 String  @id @default(cuid())
   name               String
   shortName          String?
   legalType          String
-  taxId              String?  @unique
-  status             String   @default("draft")
+  taxId              String? @unique
+  status             String  @default("draft")
   shortDescription   String?
   legalAddress       String?
   businessAddress    String?
@@ -24,7 +24,7 @@ model Organization {
   serviceStopReason String?
   archivedAt        DateTime?
 
-  registryCheckStatus String    @default("not_checked")
+  registryCheckStatus  String    @default("not_checked")
   registryCheckedAt    DateTime?
   registryCheckedBy    String?
   registryName         String?
@@ -34,25 +34,25 @@ model Organization {
   registrySource       String?
   registryNotes        String?
 
-  contracts ServiceContract[]
+  contracts             ServiceContract[]
   organizationEmployees OrganizationEmployee[]
+  serviceAssignments    ServiceAssignment[]
 
-  postalCode        String?
-  activities        OrganizationActivity[]
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  postalCode String?
+  activities OrganizationActivity[]
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
 }
 
-
 model ServiceContract {
-  id                String   @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
-  contractNumber    String
-  signedAt          String?
-  startsAt          String?
-  endsAt            String?
+  contractNumber String
+  signedAt       String?
+  startsAt       String?
+  endsAt         String?
 
   employeeCount        Int?
   monthlyDocumentCount Int?
@@ -64,41 +64,65 @@ model ServiceContract {
   hasImportExport      Boolean @default(false)
   suggestedFeeAmount   String?
   approvedFeeAmount    String?
-  feeAmount         String?
-  feeCurrency       String   @default("AMD")
-  status            String   @default("draft")
-  responsiblePerson String?
-  notes             String?
+  feeAmount            String?
+  feeCurrency          String  @default("AMD")
+  status               String  @default("draft")
+  responsiblePerson    String?
+  notes                String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([organizationId])
 }
 
-
 model FineraEmployee {
-  id               String   @id @default(cuid())
-  fullName         String
-  email            String?  @unique
-  phone            String?
-  roleGroup        String
-  positionTitle    String
-  departmentName   String
-  employmentType   String   @default("full_time")
-  employmentStatus String   @default("active")
-  hireDate         String
-  notes            String?
+  id                 String              @id @default(cuid())
+  fullName           String
+  email              String?             @unique
+  phone              String?
+  roleGroup          String
+  positionTitle      String
+  departmentName     String
+  employmentType     String              @default("full_time")
+  employmentStatus   String              @default("active")
+  hireDate           String
+  notes              String?
+  serviceAssignments ServiceAssignment[]
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
+model ServiceAssignment {
+  id String @id @default(cuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  fineraEmployeeId String
+  fineraEmployee   FineraEmployee @relation(fields: [fineraEmployeeId], references: [id])
+
+  roleScope  String
+  workScope  String
+  status     String    @default("active")
+  assignedAt DateTime  @default(now())
+  endedAt    DateTime?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, fineraEmployeeId, roleScope, workScope])
+  @@index([organizationId])
+  @@index([fineraEmployeeId])
+  @@index([roleScope])
+}
 
 model OrganizationEmployee {
-  id               String       @id @default(cuid())
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 
   fullName         String
   taxId            String?
@@ -106,64 +130,61 @@ model OrganizationEmployee {
   email            String?
   positionTitle    String
   departmentName   String?
-  employmentType   String       @default("full_time")
-  employmentStatus String       @default("active")
+  employmentType   String  @default("full_time")
+  employmentStatus String  @default("active")
   hireDate         String
   salaryAmount     String?
   notes            String?
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([organizationId])
 }
-
 
 model Position {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   title          String
-  scope          String   @default("finera")
+  scope          String  @default("finera")
   organizationId String?
   departmentName String?
-  status         String   @default("active")
+  status         String  @default("active")
   notes          String?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([scope])
   @@index([organizationId])
 }
-
 
 model Department {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   name           String
-  scope          String   @default("finera")
+  scope          String  @default("finera")
   organizationId String?
-  status         String   @default("active")
+  status         String  @default("active")
   notes          String?
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([scope])
   @@index([organizationId])
 }
-
 
 model OrganizationActivity {
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
 
-  title          String
-  code           String?
-  isPrimary      Boolean      @default(false)
-  notes          String?
+  title     String
+  code      String?
+  isPrimary Boolean @default(false)
+  notes     String?
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([organizationId])
 }
