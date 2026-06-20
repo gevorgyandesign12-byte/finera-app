@@ -77,18 +77,19 @@ model ServiceContract {
 }
 
 model FineraEmployee {
-  id                 String              @id @default(cuid())
+  id                 String                     @id @default(cuid())
   fullName           String
-  email              String?             @unique
+  email              String?                    @unique
   phone              String?
   roleGroup          String
   positionTitle      String
   departmentName     String
-  employmentType     String              @default("full_time")
-  employmentStatus   String              @default("active")
+  employmentType     String                     @default("full_time")
+  employmentStatus   String                     @default("active")
   hireDate           String
   notes              String?
   serviceAssignments ServiceAssignment[]
+  capabilities       FineraEmployeeCapability[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,6 +118,22 @@ model ServiceAssignment {
   @@index([organizationId])
   @@index([fineraEmployeeId])
   @@index([roleScope])
+}
+
+model FineraEmployeeCapability {
+  id               String         @id @default(cuid())
+  fineraEmployeeId String
+  fineraEmployee   FineraEmployee @relation(fields: [fineraEmployeeId], references: [id])
+  capabilityScope  String
+  status           String         @default("active")
+  notes            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fineraEmployeeId, capabilityScope])
+  @@index([capabilityScope])
+  @@index([status])
 }
 
 model OrganizationEmployee {
