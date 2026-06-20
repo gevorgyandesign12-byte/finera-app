@@ -35,6 +35,16 @@ export type DemoEmployee = {
   note: string;
 };
 
+export type DemoAccessScope = "accounting" | "hr" | "support" | "management" | "control";
+
+export type DemoOrganizationAccess = {
+  employeeId: string;
+  organizationId: string;
+  accessScope: DemoAccessScope;
+  accessRole?: string;
+  status: "active" | "inactive";
+};
+
 export const masterDbDemoNote =
   "Սա Master DB-ի demo/sandbox տվյալների շերտ է։ Այստեղ պահվում են Finera/Sose-ի ներքին աշխատակիցները, դերերը, բաժինները և սպասարկվող գործընկերների հետ կապերը։ Սա դեռ production database չէ։";
 
@@ -264,6 +274,47 @@ export const demoEmployees: DemoEmployee[] = [
     assignedPartnerScope: "all",
     note: "Սպասարկման գործընթացների կազմակերպում",
   },
+];
+
+
+export const demoOrganizationAccesses: DemoOrganizationAccess[] = [
+  { employeeId: "emp-002", organizationId: "ararat-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-002", organizationId: "lori-trade-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-002", organizationId: "ani-food-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-002", organizationId: "vanadzor-market-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-003", organizationId: "syunik-production-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-003", organizationId: "sevan-tour-cjsc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-003", organizationId: "gyumri-build-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-003", organizationId: "dvin-logistics-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-004", organizationId: "masis-pharma-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-004", organizationId: "shirak-agro-cjsc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-004", organizationId: "armavir-auto-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+  { employeeId: "emp-004", organizationId: "kapan-metal-llc", accessScope: "accounting", accessRole: "chief-accountant", status: "active" },
+
+  { employeeId: "emp-005", organizationId: "ararat-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-005", organizationId: "ani-food-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-006", organizationId: "lori-trade-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-006", organizationId: "vanadzor-market-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-007", organizationId: "gyumri-build-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-007", organizationId: "dvin-logistics-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-008", organizationId: "sevan-tour-cjsc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-008", organizationId: "tavush-hotel-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-009", organizationId: "masis-pharma-llc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+  { employeeId: "emp-009", organizationId: "shirak-agro-cjsc", accessScope: "accounting", accessRole: "bookkeeper", status: "active" },
+
+  { employeeId: "emp-010", organizationId: "ararat-llc", accessScope: "hr", accessRole: "hr-specialist", status: "active" },
+  { employeeId: "emp-010", organizationId: "lori-trade-llc", accessScope: "hr", accessRole: "hr-specialist", status: "active" },
+  { employeeId: "emp-010", organizationId: "gyumri-build-llc", accessScope: "hr", accessRole: "hr-specialist", status: "active" },
+  { employeeId: "emp-010", organizationId: "masis-pharma-llc", accessScope: "hr", accessRole: "hr-specialist", status: "active" },
+
+  { employeeId: "emp-011", organizationId: "ararat-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-011", organizationId: "sevan-tour-cjsc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-011", organizationId: "dvin-logistics-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-011", organizationId: "tavush-hotel-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-012", organizationId: "ani-food-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-012", organizationId: "vanadzor-market-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-012", organizationId: "armavir-auto-llc", accessScope: "support", accessRole: "support-specialist", status: "active" },
+  { employeeId: "emp-012", organizationId: "yerevan-tech-cjsc", accessScope: "support", accessRole: "support-specialist", status: "active" },
 ];
 
 export function getDepartmentName(departmentId: string) {

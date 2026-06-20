@@ -134,6 +134,7 @@ type AppOrganization = {
 import {
   demoDepartments,
   demoEmployees,
+  demoOrganizationAccesses,
   getDepartmentName,
   getPositionName,
   masterDbDemoNote,
@@ -161,17 +162,80 @@ function getAllowedDemoOrganizations(user: DemoUser, organizations: AppOrganizat
     return [];
   }
 
-  if (user.id === "manager") {
+  const employee = demoEmployees.find((item) => item.id === user.fineraEmployeeId);
+
+  if (employee?.assignedPartnerScope === "all" || user.id === "manager") {
     return organizations;
   }
 
+  if (employee?.assignedPartnerScope === "none") {
+    return [];
+  }
+
+  const activeAccesses = demoOrganizationAccesses.filter(
+    (access) => access.employeeId === user.fineraEmployeeId && access.status === "active",
+  );
+
+  const allowedOrganizationIds = new Set(activeAccesses.map((access) => access.organizationId));
+  const allowedOrganizationNames = new Set(
+    activeAccesses
+      .map((access) => demoOrganizations.find((organization) => organization.id === access.organizationId)?.name)
+      .filter(Boolean),
+  );
+
+  const filteredOrganizations = organizations.filter(
+    (organization) =>
+      allowedOrganizationIds.has(organization.id) || allowedOrganizationNames.has(organization.name),
+  );
+
+  if (filteredOrganizations.length > 0) {
+    return filteredOrganizations;
+  }
+
   return organizations.filter((organization) => user.organizations.includes(organization.name));
+}
+
+function getAllowedAccountingDemoOrganizations(user: DemoUser, organizations: AppOrganization[]) {
+  if (user.organizations.includes("System / Infrastructure")) {
+    return [];
+  }
+
+  const employee = demoEmployees.find((item) => item.id === user.fineraEmployeeId);
+
+  if (employee?.assignedPartnerScope === "all" || user.id === "manager") {
+    return organizations;
+  }
+
+  if (employee?.assignedPartnerScope === "none") {
+    return [];
+  }
+
+  const accountingAccesses = demoOrganizationAccesses.filter(
+    (access) =>
+      access.employeeId === user.fineraEmployeeId &&
+      access.accessScope === "accounting" &&
+      access.status === "active",
+  );
+
+  const allowedOrganizationIds = new Set(accountingAccesses.map((access) => access.organizationId));
+  const allowedOrganizationNames = new Set(
+    accountingAccesses
+      .map((access) => demoOrganizations.find((organization) => organization.id === access.organizationId)?.name)
+      .filter(Boolean),
+  );
+
+  return organizations.filter(
+    (organization) =>
+      allowedOrganizationIds.has(organization.id) || allowedOrganizationNames.has(organization.name),
+  );
 }
 
 export default function Home() {
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [accountingOrganizationPickerOpen, setAccountingOrganizationPickerOpen] = useState(false);
+  const [accountingOrganizationSearch, setAccountingOrganizationSearch] = useState("");
   const [activeMenuPath, setActiveMenuPath] = useState<DemoMenuItem[]>([]);
   const [activeDemoPage, setActiveDemoPage] = useState<string | null>(null);
   const [activeTabByPage, setActiveTabByPage] = useState<Record<string, string>>({});
@@ -293,6 +357,9 @@ export default function Home() {
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
   const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser, organizations) : [];
+  const accountingAllowedOrganizations = loggedInUser
+    ? getAllowedAccountingDemoOrganizations(loggedInUser, organizations)
+    : [];
   const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
   const selectedOrganization = allowedOrganizations.find(
     (organization) => organization.id === selectedOrganizationId
@@ -422,6 +489,7 @@ export default function Home() {
   function handleDemoLogin() {
     setLoggedInUserId(selectedUser.id);
     setSelectedOrganizationId("");
+    setAccountingOrganizationPickerOpen(false);
     setActiveMenuPath([]);
     setActiveDemoPage(null);
   }
@@ -436,6 +504,15 @@ export default function Home() {
             style={styles.menuItem}
             title={item.note}
             onClick={() => {
+                if (item.label === "Հաշվապահություն") {
+                  setSelectedOrganizationId("");
+                  setAccountingOrganizationSearch("");
+                  setAccountingOrganizationPickerOpen(true);
+                  setActiveMenuPath([]);
+                  setActiveDemoPage(null);
+                  return;
+                }
+
               if (hasChildren) {
                 setActiveMenuPath((current) => [...current, item]);
                 setActiveDemoPage(null);
@@ -2155,6 +2232,8 @@ export default function Home() {
     const accountingMenu = menuItems.find((item) => item.label === "Հաշվապահություն");
 
     setSelectedOrganizationId(organizationId);
+    setAccountingOrganizationSearch("");
+    setAccountingOrganizationPickerOpen(false);
 
     if (accountingMenu) {
       setActiveMenuPath([accountingMenu]);
@@ -2209,6 +2288,158 @@ export default function Home() {
       </section>
     );
   }
+
+  function renderAccountingOrganizationPickerModal() {
+    if (!accountingOrganizationPickerOpen) {
+      return null;
+    }
+
+    const searchText = accountingOrganizationSearch.trim().toLowerCase();
+    const filteredOrganizations = accountingAllowedOrganizations.filter((organization) => {
+      const value = [
+        organization.name,
+        organization.shortDescription,
+        organization.taxId,
+        organization.tenantDatabaseName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return value.includes(searchText);
+    });
+
+    return (
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 10000,
+          background: "rgba(15, 23, 42, 0.45)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 16,
+        }}
+        onMouseDown={() => setAccountingOrganizationPickerOpen(false)}
+      >
+        <div
+          style={{
+            width: "min(560px, 100%)",
+            background: "#fff",
+            borderRadius: 18,
+            boxShadow: "0 24px 70px rgba(15, 23, 42, 0.35)",
+            padding: 20,
+          }}
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <p style={styles.kicker}>Հաշվապահություն</p>
+          <h2>Ընտրել կազմակերպություն</h2>
+          <p>
+            Գրեք կազմակերպության անունը կամ ՀՎՀՀ-ն, հետո ընտրեք ցանկից։
+          </p>
+
+          {accountingAllowedOrganizations.length > 0 ? (
+            <div style={{ position: "relative", marginTop: 14 }}>
+              <input
+                autoFocus
+                style={{
+                  ...styles.input,
+                  width: "100%",
+                  paddingRight: 42,
+                }}
+                type="text"
+                value={accountingOrganizationSearch}
+                onChange={(event) => setAccountingOrganizationSearch(event.target.value)}
+                placeholder="Որոնել կազմակերպություն..."
+              />
+
+              <span
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: 8,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 10,
+                  background: "#172033",
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  pointerEvents: "none",
+                  fontSize: 16,
+                  fontWeight: 900,
+                }}
+              >
+                ▼
+              </span>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  border: "1px solid #eadfce",
+                  borderRadius: 14,
+                  background: "#fff",
+                  boxShadow: "0 14px 30px rgba(15, 23, 42, 0.12)",
+                  maxHeight: 260,
+                  overflow: "auto",
+                }}
+              >
+                {filteredOrganizations.length > 0 ? (
+                  filteredOrganizations.map((organization) => (
+                    <button
+                      key={organization.id}
+                      type="button"
+                      onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
+                      style={{
+                        display: "block",
+                        width: "100%",
+                        border: 0,
+                        borderBottom: "1px solid #f0e6d8",
+                        background: "#fff",
+                        padding: "12px 14px",
+                        textAlign: "left",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span style={{ display: "block", fontWeight: 700 }}>
+                        {organization.name}
+                      </span>
+                      <small>
+                        ՀՎՀՀ demo: {organization.taxId} · tenant DB demo:{" "}
+                        {organization.tenantDatabaseName}
+                      </small>
+                    </button>
+                  ))
+                ) : (
+                  <p style={{ margin: 0, padding: 14 }}>
+                    Այդ որոնմամբ կազմակերպություն չգտնվեց։
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p>Այս դերի համար հասանելի սպասարկվող կազմակերպություն չկա։</p>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}>
+            <button
+              type="button"
+              style={styles.secondaryButton}
+              onClick={() => {
+                setAccountingOrganizationSearch("");
+                setAccountingOrganizationPickerOpen(false);
+              }}
+            >
+              Չեղարկել
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   function formatContractFee(value: number | string | null | undefined) {
     const numericValue = typeof value === "number" ? value : Number(value ?? 0);
@@ -5232,6 +5463,7 @@ export default function Home() {
 
         {renderMainContent()}
       </section>
+        {renderAccountingOrganizationPickerModal()}
     </main>
   );
 }

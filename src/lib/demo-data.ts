@@ -3,6 +3,7 @@ export type DemoUser = {
   name: string;
   role: string;
   description: string;
+  fineraEmployeeId?: string;
   organizations: string[];
   allowedModules: string[];
 };
