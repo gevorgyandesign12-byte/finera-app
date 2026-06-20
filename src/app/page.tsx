@@ -170,6 +170,31 @@ const fineraEmployeeCapabilityOptions = [
   { value: "tech", label: "Տեխնիկական սպասարկում" },
 ] as const;
 
+
+function isOwnOrganization(organization: AppOrganization) {
+  return organization.organizationKind === "own_company" || organization.serviceStatus === "own";
+}
+
+function isServicedPartnerOrganization(organization: AppOrganization) {
+  return !isOwnOrganization(organization);
+}
+
+function getOrganizationKindLabel(organization: AppOrganization) {
+  return isOwnOrganization(organization) ? "Մեր կազմակերպությունը" : "Սպասարկվող գործընկեր";
+}
+
+function getOrganizationServiceLabel(organization: AppOrganization) {
+  if (isOwnOrganization(organization)) {
+    return "Սեփական հաշվապահություն";
+  }
+
+  if (organization.serviceStatus === "archived") {
+    return "Արխիվացված";
+  }
+
+  return "Սպասարկվում է";
+}
+
 function getTodayInputDate() {
   const today = new Date();
   const timezoneOffset = today.getTimezoneOffset() * 60000;
@@ -376,12 +401,21 @@ export default function Home() {
 
   const selectedUser = demoUsers.find((user) => user.id === selectedUserId) ?? demoUsers[0];
   const loggedInUser = demoUsers.find((user) => user.id === loggedInUserId);
-  const allowedOrganizations = loggedInUser ? getAllowedDemoOrganizations(loggedInUser, organizations) : [];
+  const ownOrganization = organizations.find((organization) => isOwnOrganization(organization));
+  const servicedPartnerOrganizations = organizations.filter((organization) =>
+    isServicedPartnerOrganization(organization)
+  );
+  const allowedOrganizations = loggedInUser
+    ? getAllowedDemoOrganizations(loggedInUser, servicedPartnerOrganizations)
+    : [];
   const accountingAllowedOrganizations = loggedInUser
-    ? getAllowedAccountingDemoOrganizations(loggedInUser, organizations)
+    ? [
+        ...(ownOrganization ? [ownOrganization] : []),
+        ...getAllowedAccountingDemoOrganizations(loggedInUser, servicedPartnerOrganizations),
+      ]
     : [];
   const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
-  const selectedOrganization = allowedOrganizations.find(
+  const selectedOrganization = organizations.find(
     (organization) => organization.id === selectedOrganizationId
   );
   const archiveTargetOrganization = organizations.find(
@@ -4080,14 +4114,21 @@ export default function Home() {
 
   function renderOrganizationProfilePage() {
     const organization = selectedOrganization;
-    const profileTabs = [
-      "Ընդհանուր տվյալներ",
-      "Աշխատակիցներ",
-      "Ստուգում",
-      "Սպասարկում",
-      "Հաշվապահական տարածք",
-      "Պայմանագիր",
-    ];
+    const profileTabs = organization && isOwnOrganization(organization)
+      ? [
+          "Ընդհանուր տվյալներ",
+          "Աշխատակիցներ",
+          "Ստուգում",
+          "Հաշվապահական տարածք",
+        ]
+      : [
+          "Ընդհանուր տվյալներ",
+          "Աշխատակիցներ",
+          "Ստուգում",
+          "Սպասարկում",
+          "Հաշվապահական տարածք",
+          "Պայմանագիր",
+        ];
 
     if (!organization) {
       return (
@@ -4128,7 +4169,7 @@ export default function Home() {
             <p style={{ margin: "6px 0 0" }}>ՀՎՀՀ</p>
           </div>
           <div style={styles.previewBox}>
-            <strong>{organization.serviceStatus === "archived" ? "Արխիվացված" : "Սպասարկվում է"}</strong>
+            <strong>{getOrganizationServiceLabel(organization)}</strong>
             <p style={{ margin: "6px 0 0" }}>Սպասարկման վիճակ</p>
           </div>
           <div style={styles.previewBox}>
@@ -4174,6 +4215,10 @@ export default function Home() {
               <div style={styles.previewBox}>
                 <strong>Տեսակ</strong>
                 <p style={{ marginBottom: 0 }}>{organization.legalType ?? "—"}</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Finera տեսակ</strong>
+                <p style={{ marginBottom: 0 }}>{getOrganizationKindLabel(organization)}</p>
               </div>
               <div style={styles.previewBox}>
                 <strong>ՀՎՀՀ</strong>
@@ -4222,7 +4267,7 @@ export default function Home() {
             <h3 style={styles.sectionTitle}>Սպասարկման վիճակ</h3>
             <div style={styles.previewBox}>
               <strong>
-                {organization.serviceStatus === "archived" ? "Արխիվացված" : "Գործող սպասարկում"}
+                {getOrganizationServiceLabel(organization)}
               </strong>
               <p>Դադարեցման ամսաթիվ՝ {organization.serviceStoppedAt ? new Date(organization.serviceStoppedAt).toLocaleDateString("hy-AM") : "—"}</p>
               <p style={{ marginBottom: 0 }}>
@@ -4497,6 +4542,61 @@ export default function Home() {
           </div>
         ) : null}
 
+        {ownOrganization ? (
+          <div style={{ ...styles.previewBox, marginBottom: "18px" }}>
+            <p style={styles.kicker}>Կազմակերպություններ · Մեր կազմակերպությունը</p>
+            <h2 style={{ marginTop: 0 }}>{ownOrganization.name}</h2>
+            <p>
+              Finera/Sose-ն առանձին կազմակերպություն է և ունի իր սեփական հաշվապահական տարածքը։
+              Սա սպասարկվող գործընկեր չէ։
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: "10px",
+                marginTop: "12px",
+              }}
+            >
+              <small>
+                <strong>Տեսակ</strong>
+                <br />
+                {getOrganizationKindLabel(ownOrganization)}
+              </small>
+              <small>
+                <strong>ՀՎՀՀ</strong>
+                <br />
+                {ownOrganization.taxId ?? "—"}
+              </small>
+              <small>
+                <strong>Հաշվապահական վիճակ</strong>
+                <br />
+                {getOrganizationServiceLabel(ownOrganization)}
+              </small>
+              <small>
+                <strong>Tenant DB demo</strong>
+                <br />
+                {ownOrganization.tenantDatabaseName ?? "—"}
+              </small>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "14px" }}>
+              <button
+                type="button"
+                style={styles.primaryButton}
+                onClick={() => {
+                  setSelectedOrganizationId(ownOrganization.id);
+                  setOrganizationProfileTab("Հաշվապահական տարածք");
+                  setActiveDemoPage("Կազմակերպության պրոֆիլ");
+                }}
+              >
+                Բացել մեր կազմակերպության հաշվապահությունը
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <p style={styles.kicker}>Կազմակերպություններ · DEV Master DB</p>
         <h2>Գործող սպասարկում</h2>
         <p>
@@ -4577,7 +4677,7 @@ export default function Home() {
                   <small>
                     <strong>Սպասարկում</strong>
                     <br />
-                    {organization.serviceStatus === "archived" ? "Արխիվացված" : "Սպասարկվում է"}
+                    {getOrganizationServiceLabel(organization)}
                   </small>
                   <small>
                     <strong>Ստուգում</strong>
