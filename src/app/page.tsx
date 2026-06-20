@@ -2354,27 +2354,6 @@ export default function Home() {
                 placeholder="Որոնել կազմակերպություն..."
               />
 
-              <span
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: 8,
-                  width: 30,
-                  height: 30,
-                  borderRadius: 10,
-                  background: "#172033",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  pointerEvents: "none",
-                  fontSize: 16,
-                  fontWeight: 900,
-                }}
-              >
-                ▼
-              </span>
-
               <div
                 style={{
                   marginTop: 6,
@@ -2398,15 +2377,16 @@ export default function Home() {
                         border: 0,
                         borderBottom: "1px solid #f0e6d8",
                         background: "#fff",
+                        color: "#0f172a",
                         padding: "12px 14px",
                         textAlign: "left",
                         cursor: "pointer",
                       }}
                     >
-                      <span style={{ display: "block", fontWeight: 700 }}>
+                      <span style={{ display: "block", fontWeight: 800, color: "#0f172a" }}>
                         {organization.name}
                       </span>
-                      <small>
+                      <small style={{ color: "#475569" }}>
                         ՀՎՀՀ demo: {organization.taxId} · tenant DB demo:{" "}
                         {organization.tenantDatabaseName}
                       </small>
@@ -5293,7 +5273,14 @@ export default function Home() {
 
               <label>
                 Գումար
-                <input style={styles.input} type="number" min="0" step="0.01" placeholder="0.00" />
+                <input
+                  style={styles.input}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  data-journal-field="amount"
+                />
               </label>
 
               <label>
@@ -5303,7 +5290,11 @@ export default function Home() {
 
               <label>
                 Դեբետ հաշիվ
-                <select style={styles.input} defaultValue="">
+                <select
+                  style={styles.input}
+                  defaultValue=""
+                  data-journal-field="debitAccount"
+                >
                   <option value="" disabled>
                     Ընտրել դեբետ հաշիվ
                   </option>
@@ -5317,7 +5308,11 @@ export default function Home() {
 
               <label>
                 Կրեդիտ հաշիվ
-                <select style={styles.input} defaultValue="">
+                <select
+                  style={styles.input}
+                  defaultValue=""
+                  data-journal-field="creditAccount"
+                >
                   <option value="" disabled>
                     Ընտրել կրեդիտ հաշիվ
                   </option>
@@ -5388,12 +5383,72 @@ export default function Home() {
                   borderRadius: 14,
                   padding: "12px 18px",
                   background: "white",
-                  cursor: "not-allowed",
-                  opacity: 0.75,
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  const amount = Number(
+                    document.querySelector<HTMLInputElement>(
+                      '[data-journal-field="amount"]',
+                    )?.value ?? 0,
+                  );
+                  const debitAccount =
+                    document.querySelector<HTMLSelectElement>(
+                      '[data-journal-field="debitAccount"]',
+                    )?.value ?? "";
+                  const creditAccount =
+                    document.querySelector<HTMLSelectElement>(
+                      '[data-journal-field="creditAccount"]',
+                    )?.value ?? "";
+                  const result = document.getElementById("journal-entry-demo-result");
+
+                  if (!result) {
+                    return;
+                  }
+
+                  const errors = [];
+
+                  if (!amount || amount <= 0) {
+                    errors.push("գումարը պետք է լինի 0-ից մեծ");
+                  }
+
+                  if (!debitAccount) {
+                    errors.push("դեբետ հաշիվը պետք է ընտրված լինի");
+                  }
+
+                  if (!creditAccount) {
+                    errors.push("կրեդիտ հաշիվը պետք է ընտրված լինի");
+                  }
+
+                  if (debitAccount && creditAccount && debitAccount === creditAccount) {
+                    errors.push("դեբետ և կրեդիտ հաշիվները չեն կարող նույնը լինել");
+                  }
+
+                  if (errors.length > 0) {
+                    result.textContent = `Ստուգումը չանցավ․ ${errors.join(", ")}։`;
+                    return;
+                  }
+
+                  result.textContent =
+                    "Ստուգումը անցավ․ ձևակերպումը պատրաստ է որպես demo սևագիր։";
                 }}
               >
                 Ստուգել ձևակերպումը
               </button>
+            </div>
+
+            <div
+              id="journal-entry-demo-result"
+              style={{
+                marginTop: 14,
+                border: "1px dashed rgba(15, 23, 42, 0.22)",
+                borderRadius: 16,
+                padding: 14,
+                minHeight: 48,
+                background: "rgba(248, 250, 252, 0.82)",
+                lineHeight: 1.6,
+              }}
+            >
+              Սեղմեք «Ստուգել ձևակերպումը»՝ demo վավերացումը տեսնելու համար։
             </div>
           </div>
 
