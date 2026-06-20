@@ -5191,6 +5191,235 @@ export default function Home() {
     );
   }
 
+
+  function renderAccountingJournalEntriesPage() {
+    const today = new Date().toISOString().slice(0, 10);
+    const demoAccounts = [
+      { code: "251", name: "Դրամարկղ" },
+      { code: "252", name: "Հաշվարկային հաշիվ" },
+      { code: "211", name: "Գնորդների դեբիտորական պարտքեր" },
+      { code: "521", name: "Մատակարարների կրեդիտորական պարտքեր" },
+      { code: "611", name: "Վաճառքից հասույթ" },
+      { code: "713", name: "Վարչական ծախսեր" },
+    ];
+
+    const demoPartners = [
+      "",
+      "Լուկաս ՍՊԸ",
+      "Արթուր Կեզ ԱՁ",
+      "Նարեկ Demo ՍՊԸ",
+      "Առանց գործընկերոջ",
+    ];
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Հաշվապահություն · Գործառնություններ</p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            marginBottom: 20,
+          }}
+        >
+          <div>
+            <h2 style={{ marginTop: 0 }}>Հաշվապահական ձևակերպումներ</h2>
+            <p style={{ maxWidth: 820, lineHeight: 1.7 }}>
+              SAFE demo տարբերակ․ այստեղ ձևակերպումը դեռ չի գրանցվում իրական բազայում։
+              Նպատակը կառուցվածքն է՝ մեկ դեբետ, մեկ կրեդիտ, գումար, արժույթ և առանձին
+              դեբետ/կրեդիտ գործընկերներ։
+            </p>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid rgba(22, 101, 52, 0.25)",
+              background: "rgba(220, 252, 231, 0.55)",
+              borderRadius: 18,
+              padding: 16,
+              minWidth: 260,
+            }}
+          >
+            <strong>SAFE կարգավիճակ</strong>
+            <p style={{ marginBottom: 0 }}>
+              Demo ձև է․ չի ստեղծում իրական հաշվապահական գրանցում, չի փոխում մնացորդներ։
+            </p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 0.8fr)",
+            gap: 18,
+            alignItems: "start",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid rgba(15, 23, 42, 0.12)",
+              borderRadius: 22,
+              padding: 20,
+              background: "rgba(255, 255, 255, 0.82)",
+              boxShadow: "0 18px 40px rgba(15, 23, 42, 0.06)",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Նոր ձևակերպում</h3>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 14,
+              }}
+            >
+              <label>
+                Ամսաթիվ
+                <input style={styles.input} type="date" defaultValue={today} />
+              </label>
+
+              <label>
+                Արժույթ
+                <select style={styles.input} defaultValue="AMD">
+                  <option value="AMD">AMD · ՀՀ դրամ</option>
+                  <option value="USD">USD · Demo</option>
+                  <option value="EUR">EUR · Demo</option>
+                  <option value="RUB">RUB · Demo</option>
+                </select>
+              </label>
+
+              <label>
+                Գումար
+                <input style={styles.input} type="number" min="0" step="0.01" placeholder="0.00" />
+              </label>
+
+              <label>
+                Փաստաթղթի համար
+                <input style={styles.input} type="text" placeholder="Օրինակ՝ JE-0001" />
+              </label>
+
+              <label>
+                Դեբետ հաշիվ
+                <select style={styles.input} defaultValue="">
+                  <option value="" disabled>
+                    Ընտրել դեբետ հաշիվ
+                  </option>
+                  {demoAccounts.map((account) => (
+                    <option key={`debit-${account.code}`} value={account.code}>
+                      {account.code} · {account.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Կրեդիտ հաշիվ
+                <select style={styles.input} defaultValue="">
+                  <option value="" disabled>
+                    Ընտրել կրեդիտ հաշիվ
+                  </option>
+                  {demoAccounts.map((account) => (
+                    <option key={`credit-${account.code}`} value={account.code}>
+                      {account.code} · {account.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Դեբետ գործընկեր
+                <select style={styles.input} defaultValue="">
+                  {demoPartners.map((partner) => (
+                    <option key={`debit-partner-${partner || "empty"}`} value={partner}>
+                      {partner || "Ընտրել ըստ անհրաժեշտության"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Կրեդիտ գործընկեր
+                <select style={styles.input} defaultValue="">
+                  {demoPartners.map((partner) => (
+                    <option key={`credit-partner-${partner || "empty"}`} value={partner}>
+                      {partner || "Ընտրել ըստ անհրաժեշտության"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label style={{ display: "block", marginTop: 14 }}>
+              Նկարագրություն
+              <textarea
+                style={{ ...styles.input, minHeight: 92, resize: "vertical" }}
+                placeholder="Օրինակ՝ ծառայության հասույթի ճանաչում, վճարում, ծախսի գրանցում..."
+              />
+            </label>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                marginTop: 18,
+              }}
+            >
+              <button
+                type="button"
+                style={{
+                  border: 0,
+                  borderRadius: 14,
+                  padding: "12px 18px",
+                  fontWeight: 700,
+                  cursor: "not-allowed",
+                  opacity: 0.75,
+                }}
+              >
+                Պահել որպես demo սևագիր
+              </button>
+              <button
+                type="button"
+                style={{
+                  border: "1px solid rgba(15, 23, 42, 0.16)",
+                  borderRadius: 14,
+                  padding: "12px 18px",
+                  background: "white",
+                  cursor: "not-allowed",
+                  opacity: 0.75,
+                }}
+              >
+                Ստուգել ձևակերպումը
+              </button>
+            </div>
+          </div>
+
+          <aside
+            style={{
+              border: "1px solid rgba(15, 23, 42, 0.12)",
+              borderRadius: 22,
+              padding: 18,
+              background: "rgba(248, 250, 252, 0.9)",
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>AI ստուգման ապագա կանոններ</h3>
+            <ul style={{ lineHeight: 1.8, paddingLeft: 20, marginBottom: 0 }}>
+              <li>Դեբետ և կրեդիտ կողմերի գումարները պետք է հավասար լինեն։</li>
+              <li>AMD-ը հիմնական արժույթն է, արտարժույթը պետք է ունենա փոխարժեք։</li>
+              <li>Գործընկեր դաշտը պարտադիր կլինի միայն այն հաշվի համար, որտեղ միացված է գործընկերային հաշվառումը։</li>
+              <li>Փակված հաշվետու ժամանակաշրջանում գրանցում չի թույլատրվի։</li>
+              <li>AI-ն կարող է առաջարկել ձևակերպում, բայց վերջնական գրանցումը հաստատում է մարդը։</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+    );
+  }
+
+
   function renderMainContent() {
     if (!loggedInUser) {
       return null;
@@ -5199,6 +5428,13 @@ export default function Home() {
     const activeMenuLabels = activeMenuPath.map((item) => item.label);
     const activeLeafLabel =
       activeDemoPage ?? activeMenuLabels[activeMenuLabels.length - 1];
+
+    if (
+      activeLeafLabel === "Հաշվապահական ձևակերպումներ" &&
+      activeMenuLabels.includes("Հաշվապահություն")
+    ) {
+      return renderAccountingJournalEntriesPage();
+    }
 
     if (
       activeLeafLabel === "Հաշվային պլան" &&
