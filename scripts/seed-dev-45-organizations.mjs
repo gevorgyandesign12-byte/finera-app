@@ -46,6 +46,7 @@ function buildOrganization(index) {
     postalCode: "0000",
     businessAddress: `ՀՀ, Երևան, Demo հասցե ${index + 1}`,
     tenantDatabaseName: `tenant_${taxId}_demo`,
+    organizationKind: "serviced_partner",
     serviceStatus: "servicing",
     registryCheckStatus: "not_checked",
   };

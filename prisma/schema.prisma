@@ -18,6 +18,7 @@ model Organization {
   legalAddress       String?
   businessAddress    String?
   tenantDatabaseName String?
+  organizationKind   String  @default("serviced_partner")
 
   serviceStatus     String    @default("servicing")
   serviceStoppedAt  DateTime?

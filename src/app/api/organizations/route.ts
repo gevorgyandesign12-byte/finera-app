@@ -33,6 +33,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     postalCode: organization.postalCode,
     businessAddress: organization.businessAddress,
     tenantDatabaseName: organization.tenantDatabaseName,
+    organizationKind: organization.organizationKind,
 
     serviceStatus: organization.serviceStatus,
     serviceStoppedAt: organization.serviceStoppedAt?.toISOString() ?? null,
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
     const postalCode = readString(body.postalCode);
     const businessAddress = readString(body.businessAddress);
     const status = readString(body.status) || "draft";
+    const organizationKind = readString(body.organizationKind) || "serviced_partner";
 
     if (!name) {
       return NextResponse.json({ error: "Անվանումը պարտադիր է։" }, { status: 400 });
@@ -109,7 +111,8 @@ export async function POST(request: Request) {
         postalCode: postalCode || null,
         businessAddress: businessAddress || null,
         tenantDatabaseName: makeTenantDatabaseName(name, taxId),
-        serviceStatus: "servicing",
+        organizationKind: organizationKind === "own_company" ? "own_company" : "serviced_partner",
+        serviceStatus: organizationKind === "own_company" ? "own" : "servicing",
         registryCheckStatus: "not_checked",
       },
     });
