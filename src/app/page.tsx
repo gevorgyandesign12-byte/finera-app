@@ -77,6 +77,14 @@ type AppPosition = {
   updatedAt?: string | null;
 };
 
+type AppEmployeeCapability = {
+  id: string;
+  capabilityScope: string;
+  capabilityLabel?: string | null;
+  status?: string | null;
+  notes?: string | null;
+};
+
 type AppEmployee = {
   id: string;
   fullName: string;
@@ -89,6 +97,7 @@ type AppEmployee = {
   employmentStatus?: string | null;
   hireDate?: string | null;
   notes?: string | null;
+  capabilities?: AppEmployeeCapability[];
   createdAt?: string | null;
   updatedAt?: string | null;
 };
@@ -149,6 +158,15 @@ const bookkeeperResponsibilityScopes = [
   "Հիմնական միջոցներ",
   "Հարկային հաշվետվությունների նախապատրաստում",
   "Ֆինանսական հաշվետվություններ դիտել",
+] as const;
+
+const fineraEmployeeCapabilityOptions = [
+  { value: "manager", label: "Մենեջեր / նշանակումների կառավարում" },
+  { value: "chief_accountant", label: "Գլխավոր հաշվապահ" },
+  { value: "accountant", label: "Հաշվետար / հաշվապահ" },
+  { value: "payroll_hr", label: "Աշխատավարձ և կադրեր" },
+  { value: "support", label: "Support / սպասարկում" },
+  { value: "tech", label: "Տեխնիկական սպասարկում" },
 ] as const;
 
 function getTodayInputDate() {
@@ -294,6 +312,7 @@ export default function Home() {
     departmentName: "Հաշվապահություն",
     employmentType: "full_time",
     hireDate: getTodayInputDate(),
+    capabilityScopes: ["accountant"],
     notes: "",
   });
   const [organizationEmployees, setOrganizationEmployees] = useState<OrganizationEmployee[]>([]);
@@ -2959,6 +2978,11 @@ export default function Home() {
       return;
     }
 
+    if (hireEmployeeForm.capabilityScopes.length === 0) {
+      setEmployeeSaveMessage("Աշխատակցի առնվազն մեկ կարողություն պետք է ընտրված լինի։");
+      return;
+    }
+
     setIsSavingEmployee(true);
     setEmployeeSaveMessage("Պահպանում ենք աշխատակցին DEV Master DB-ում...");
 
@@ -2992,6 +3016,7 @@ export default function Home() {
         departmentName: "Հաշվապահություն",
         employmentType: "full_time",
         hireDate: getTodayInputDate(),
+        capabilityScopes: ["accountant"],
         notes: "",
       });
       setActiveDemoPage("Աշխատակիցների ցանկ");
@@ -3337,7 +3362,7 @@ export default function Home() {
           </div>
           <div style={styles.previewBox}>
             <strong>
-              {fineraEmployees.filter((employee) => employee.roleGroup === "bookkeeper").length}
+              {fineraEmployees.filter((employee) => employee.capabilities?.some((capability) => capability.capabilityScope === "accountant") || employee.roleGroup === "bookkeeper" || employee.roleGroup === "accountant").length}
             </strong>
             <p style={{ margin: "6px 0 0" }}>Հաշվետարներ</p>
           </div>
@@ -3375,6 +3400,11 @@ export default function Home() {
                     <strong>Դերի խումբ</strong>
                     <br />
                     {employee.roleGroup ?? "—"}
+                  </small>
+                  <small>
+                    <strong>Կարողություններ</strong>
+                    <br />
+                    {employee.capabilities?.map((capability) => capability.capabilityLabel ?? capability.capabilityScope).join(", ") || "—"}
                   </small>
                   <small>
                     <strong>Աշխատանքի սկիզբ</strong>
@@ -3456,8 +3486,10 @@ export default function Home() {
                 <option value="chief_accountant">Գլխավոր հաշվապահ</option>
                 <option value="bookkeeper">Հաշվետար / հաշվապահական օգնական</option>
                 <option value="hr_legal">HR / իրավական</option>
+                <option value="payroll_hr">Աշխատավարձ և կադրեր</option>
                 <option value="manager">Ղեկավար / վերահսկող</option>
                 <option value="support">Support</option>
+                <option value="tech">Տեխնիկական սպասարկում</option>
               </select>
             </label>
 
@@ -3576,6 +3608,52 @@ export default function Home() {
                 placeholder="+374..."
               />
             </label>
+          </div>
+
+          <div style={{ ...styles.previewBox, display: "grid", gap: "10px" }}>
+            <strong>Աշխատակցի ընդհանուր կարողություններ</strong>
+            <p style={{ margin: 0 }}>
+              Սա աշխատակցի ընդհանուր թույլատրելի դերերն են։ Կոնկրետ կազմակերպության վրա նշանակումը
+              հետո պահվում է առանձին՝ ServiceAssignment աղյուսակում։
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "8px",
+              }}
+            >
+              {fineraEmployeeCapabilityOptions.map((option) => (
+                <label
+                  key={option.value}
+                  style={{
+                    ...styles.label,
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={hireEmployeeForm.capabilityScopes.includes(option.value)}
+                    onChange={(event) =>
+                      setHireEmployeeForm((current) => {
+                        const capabilityScopes = event.target.checked
+                          ? Array.from(new Set([...current.capabilityScopes, option.value]))
+                          : current.capabilityScopes.filter((capability) => capability !== option.value);
+
+                        return {
+                          ...current,
+                          capabilityScopes,
+                        };
+                      })
+                    }
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <label style={styles.label}>
