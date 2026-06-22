@@ -5158,6 +5158,16 @@ export default function Home() {
       return ["Ընդհանուր տվյալներ", "Կառուցվածքային ստորաբաժանումներ", "Սպասարկման նշանակում", "Պայմանագիր"];
     }
 
+    if (pageLabel === "Հաշվեկշիռ") {
+      return [
+        "Հաշվապահական հաշվեկշիռ",
+        "Ֆինանսական արդյունքների հաշվետվություն",
+        "Սեփական կապիտալի փոփոխություններ",
+        "Դրամական հոսքեր",
+        "Ծանոթագրություններ",
+      ];
+    }
+
     if (pageLabel === "Մեր կազմակերպությունը") {
       return ["Ընդհանուր տվյալներ", "Աշխատակիցներ", "Բաժիններ", "Իրավական տվյալներ", "Կոնտակտներ", "Բանկային տվյալներ"];
     }
@@ -5230,6 +5240,158 @@ export default function Home() {
         <h2 style={{ margin: 0 }}>{pageLabel}</h2>
         {pageLabel === "Հաշվեկշիռ" ? renderReportingYearSelect() : null}
       </div>
+    );
+  }
+
+
+  function renderFinancialReportTable(rows: string[][]) {
+    return (
+      <div style={{ overflowX: "auto", marginTop: 16 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+          <thead>
+            <tr>
+              {["Տող", "Հոդված", "Նախորդ տարի", "Հաշվետու տարի"].map((title) => (
+                <th
+                  key={title}
+                  style={{
+                    textAlign: "left",
+                    padding: "12px 14px",
+                    borderBottom: "1px solid #cbd5e1",
+                    background: "#f8fafc",
+                    color: "#334155",
+                    fontSize: 13,
+                  }}
+                >
+                  {title}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={`${row[0]}-${row[1]}`}>
+                {row.map((value, index) => (
+                  <td
+                    key={`${row[0]}-${index}`}
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid #e2e8f0",
+                      fontWeight: index === 1 && value.startsWith("Ընդամենը") ? 800 : 400,
+                      color: index === 0 ? "#64748b" : "#0f172a",
+                    }}
+                  >
+                    {value}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  function renderFinancialReportNotesDemo() {
+    const notes = [
+      "Հաշվապահական քաղաքականություն",
+      "Հիմնական միջոցների և մաշվածության մոտեցումներ",
+      "Պաշարների գնահատման մոտեցումներ",
+      "Դեբիտորական և կրեդիտորական պարտքերի բացատրություններ",
+      "Կապակցված կողմերի և էական ռիսկերի բացահայտումներ",
+    ];
+
+    return (
+      <>
+        <strong>Ֆինանսական հաշվետվություններին կից ծանոթագրություններ</strong>
+        <p>
+          Սա SAFE demo placeholder է։ Ապագայում այստեղ կձևավորվեն բացատրական նշումները,
+          հաշվապահական քաղաքականության ընտրությունները և հաշվետվությունների կարևոր բացահայտումները։
+        </p>
+
+        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+          {notes.map((note, index) => (
+            <div
+              key={note}
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 14,
+                background: "#ffffff",
+                padding: "14px 16px",
+              }}
+            >
+              <strong>
+                {index + 1}. {note}
+              </strong>
+              <p style={{ margin: "8px 0 0", color: "#475569" }}>
+                Demo բացատրություն։ Իրական տվյալները հետո կկապվեն tenant accounting DB-ի հաշվապահական շարժերի հետ։
+              </p>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  function renderFinancialReportDemoContent(activeTab: string) {
+    const rowsByTab: Record<string, string[][]> = {
+      "Հաշվապահական հաշվեկշիռ": [
+        ["010", "Հիմնական միջոցներ", "0", "0"],
+        ["030", "Ոչ նյութական ակտիվներ", "0", "0"],
+        ["080", "Ընդամենը ոչ ընթացիկ ակտիվներ", "0", "0"],
+        ["140", "Ապրանքներ", "0", "0"],
+        ["160", "Դեբիտորական պարտքեր վաճառքների գծով", "0", "0"],
+        ["200", "Դրամական միջոցներ և դրանց համարժեքներ", "0", "0"],
+        ["220", "Ընդամենը ընթացիկ ակտիվներ", "0", "0"],
+        ["230", "Հաշվեկշիռ՝ ակտիվ", "0", "0"],
+        ["300", "Ընդամենը սեփական կապիտալ", "0", "0"],
+        ["360", "Ընդամենը ոչ ընթացիկ պարտավորություններ", "0", "0"],
+        ["490", "Ընդամենը ընթացիկ պարտավորություններ", "0", "0"],
+        ["500", "Հաշվեկշիռ՝ պասիվ", "0", "0"],
+      ],
+      "Ֆինանսական արդյունքների հաշվետվություն": [
+        ["010", "Հասույթ", "0", "0"],
+        ["020", "Վաճառքի ինքնարժեք", "0", "0"],
+        ["030", "Համախառն շահույթ", "0", "0"],
+        ["040", "Իրացման ծախսեր", "0", "0"],
+        ["050", "Վարչական ծախսեր", "0", "0"],
+        ["090", "Գործառնական շահույթ", "0", "0"],
+        ["160", "Շահույթ մինչև շահութահարկ", "0", "0"],
+        ["170", "Շահութահարկի գծով ծախս", "0", "0"],
+        ["180", "Զուտ շահույթ", "0", "0"],
+      ],
+      "Սեփական կապիտալի փոփոխություններ": [
+        ["010", "Սկզբնական մնացորդ", "0", "0"],
+        ["020", "Ժամանակաշրջանի զուտ շահույթ / վնաս", "0", "0"],
+        ["030", "Մասնակիցների ներդրումներ", "0", "0"],
+        ["040", "Շահաբաժիններ", "0", "0"],
+        ["050", "Այլ փոփոխություններ", "0", "0"],
+        ["060", "Վերջնական մնացորդ", "0", "0"],
+      ],
+      "Դրամական հոսքեր": [
+        ["010", "Գործառնական գործունեությունից դրամական հոսքեր", "0", "0"],
+        ["020", "Ներդրումային գործունեությունից դրամական հոսքեր", "0", "0"],
+        ["030", "Ֆինանսավորման գործունեությունից դրամական հոսքեր", "0", "0"],
+        ["040", "Դրամական միջոցների զուտ փոփոխություն", "0", "0"],
+        ["050", "Դրամական միջոցներ ժամանակաշրջանի սկզբում", "0", "0"],
+        ["060", "Դրամական միջոցներ ժամանակաշրջանի վերջում", "0", "0"],
+      ],
+    };
+
+    if (activeTab === "Ծանոթագրություններ") {
+      return renderFinancialReportNotesDemo();
+    }
+
+    const rows = rowsByTab[activeTab] ?? rowsByTab["Հաշվապահական հաշվեկշիռ"];
+
+    return (
+      <>
+        <strong>{activeTab}</strong>
+        <p>
+          Սա SAFE demo ձև է։ Թվերը դեռ հաշվարկված չեն․ հաջորդ փուլերում դրանք կկապվեն
+          հաշվային պլանի, ձևակերպումների և tenant accounting DB-ի տվյալների հետ։
+        </p>
+        {renderFinancialReportTable(rows)}
+      </>
     );
   }
 
@@ -5308,30 +5470,11 @@ export default function Home() {
 
         {activeTab === "Օրվա ամփոփում" ? (
           <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Օրվա ամփոփում</h3>
-            <div style={styles.cardsGrid}>
-              <div style={styles.smallCard}>
-                <strong>Գյուղմթերքներ</strong>
-                <p>
-                  AI-ն ապագայում կստուգի գյուղատնտեսական մթերքների գնման, վաճառքի,
-                  փաստաթղթավորման և հարկային ռեժիմների նորությունները։
-                </p>
-              </div>
-
-              <div style={styles.smallCard}>
-                <strong>Գինու արտադրություն</strong>
-                <p>
-                  AI-ն կհետևի արտադրության, ակցիզային, մակնշման, թույլտվությունների և հարկային ազդակներին։
-                </p>
-              </div>
-
-              <div style={styles.smallCard}>
-                <strong>Հիվանդանոց / բժշկական ծառայություններ</strong>
-                <p>
-                  AI-ն կհետևի բժշկական ծառայությունների, պայմանագրերի, աշխատավարձի և հաշվետվությունների փոփոխություններին։
-                </p>
-              </div>
-            </div>
+            <strong>{activeTab}</strong>
+            <p>
+              Սա demo tab բովանդակություն է «{pageLabel}» բաժնի համար։
+              Հետո այս հատվածում կավելացնենք կոնկրետ դաշտերը, աղյուսակները կամ հաշվետվությունները։
+            </p>
           </div>
         ) : null}
 
@@ -5787,6 +5930,54 @@ export default function Home() {
     );
   }
 
+
+  function renderFinancialStatementsPage() {
+    const pageLabel = "Հաշվեկշիռ";
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
+
+    return (
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Հաշվապահություն · Հաշվետվություններ</p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <h2 style={{ margin: 0 }}>Հաշվեկշիռ</h2>
+          {renderReportingYearSelect()}
+        </div>
+
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.tabPanel}>{renderFinancialReportDemoContent(activeTab)}</div>
+      </section>
+    );
+  }
+
   function renderMainContent() {
     const financeSettingsMenuLabels = activeMenuPath.map((item) => item.label);
     const financeSettingsPageLabel =
@@ -5822,6 +6013,14 @@ export default function Home() {
     const activeMenuLabels = activeMenuPath.map((item) => item.label);
     const activeLeafLabel =
       activeDemoPage ?? activeMenuLabels[activeMenuLabels.length - 1];
+
+      if (
+        activeLeafLabel === "Հաշվեկշիռ" &&
+        activeMenuLabels.includes("Հաշվապահություն")
+      ) {
+        return renderFinancialStatementsPage();
+      }
+
 
     if (
       activeLeafLabel === "Հաշվապահական ձևակերպումներ" &&
