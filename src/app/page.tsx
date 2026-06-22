@@ -5654,7 +5654,110 @@ export default function Home() {
   }
 
 
+
+  function renderCurrenciesPage() {
+    const currencies = [
+      ["AMD", "Հայկական դրամ", "Armenian Dram", "051", "Բազային արժույթ", "1.0000", "Ակտիվ"],
+      ["USD", "ԱՄՆ դոլար", "US Dollar", "840", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
+      ["EUR", "Եվրո", "Euro", "978", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
+      ["RUB", "Ռուսական ռուբլի", "Russian Ruble", "643", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
+    ];
+
+    return (
+      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
+        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
+          Ֆինանսներ / Կարգավորումներ
+        </p>
+        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Արժույթներ</h2>
+        <p style={{ margin: "0 0 22px", color: "#475569", lineHeight: 1.7 }}>
+          Սա SAFE demo տեղեկատու է։ Արժույթները և փոխարժեքները ապագայում պետք է պահվեն Master DB-ում,
+          իսկ tenant accounting DB-ում պետք է պահպանվի փաստաթղթի պահին օգտագործված snapshot-ը։
+        </p>
+
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+            <thead>
+              <tr>
+                {["Կոդ", "Անվանում", "English", "Թվային կոդ", "Տեսակ", "Կուրս AMD-ի նկատմամբ", "Կարգավիճակ"].map((title) => (
+                  <th key={title} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #cbd5e1", background: "#f8fafc" }}>
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {currencies.map((currency) => (
+                <tr key={currency[0]}>
+                  {currency.map((value, index) => (
+                    <td key={`${currency[0]}-${value}`} style={{ padding: 12, borderBottom: "1px solid #e2e8f0", fontWeight: index === 0 ? 800 : 400 }}>
+                      {value}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    );
+  }
+
+  function renderCurrencyRatesPage() {
+    return (
+      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
+        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
+          Ֆինանսներ / Կարգավորումներ
+        </p>
+        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Արժույթային կուրսեր</h2>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+          SAFE demo placeholder։ Հաջորդ փուլում այստեղ կերևան Master DB-ում պահվող demo փոխարժեքները։
+        </p>
+      </section>
+    );
+  }
+
+  function renderBanksDirectoryPage() {
+    return (
+      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
+        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
+          Ֆինանսներ / Կարգավորումներ
+        </p>
+        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Բանկեր</h2>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+          SAFE demo placeholder։ Այստեղ կպահվի բանկերի ընդհանուր տեղեկատուն։
+        </p>
+      </section>
+    );
+  }
+
   function renderMainContent() {
+    const financeSettingsMenuLabels = activeMenuPath.map((item) => item.label);
+    const financeSettingsPageLabel =
+      activeDemoPage ?? financeSettingsMenuLabels[financeSettingsMenuLabels.length - 1];
+
+    if (
+      financeSettingsPageLabel === "Արժույթներ" &&
+      financeSettingsMenuLabels.includes("Հաշվապահություն") &&
+      financeSettingsMenuLabels.includes("Ֆինանսներ")
+    ) {
+      return renderCurrenciesPage();
+    }
+
+    if (
+      financeSettingsPageLabel === "Արժույթային կուրսեր" &&
+      financeSettingsMenuLabels.includes("Հաշվապահություն") &&
+      financeSettingsMenuLabels.includes("Ֆինանսներ")
+    ) {
+      return renderCurrencyRatesPage();
+    }
+
+    if (
+      financeSettingsPageLabel === "Բանկեր" &&
+      financeSettingsMenuLabels.includes("Հաշվապահություն") &&
+      financeSettingsMenuLabels.includes("Ֆինանսներ")
+    ) {
+      return renderBanksDirectoryPage();
+    }
     if (!loggedInUser) {
       return null;
     }
