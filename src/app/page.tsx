@@ -5245,21 +5245,36 @@ export default function Home() {
 
 
   function renderFinancialReportTable(rows: string[][]) {
+    const maxColumns = Math.max(4, ...rows.map((row) => row.length));
+    const headers =
+      maxColumns >= 6
+        ? [
+            "Ցուցանիշի անվանումը",
+            "տող",
+            "Նախորդ տարի (աճողական)",
+            "Հաշվետու տարի (աճողական)",
+            "Նախորդ տարվա միջանկյալ ժամանակաշրջան",
+            "Հաշվետու տարվա միջանկյալ ժամանակաշրջան",
+          ]
+        : ["Տող", "Հոդված", "Նախորդ տարի", "Հաշվետու տարի"];
+
     return (
       <div style={{ overflowX: "auto", marginTop: 16 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: maxColumns >= 6 ? 1120 : 760 }}>
           <thead>
             <tr>
-              {["Տող", "Հոդված", "Նախորդ տարի", "Հաշվետու տարի"].map((title) => (
+              {headers.map((title, index) => (
                 <th
                   key={title}
                   style={{
-                    textAlign: "left",
+                    textAlign: index >= 2 ? "right" : "left",
                     padding: "12px 14px",
-                    borderBottom: "1px solid #cbd5e1",
-                    background: "#f8fafc",
-                    color: "#334155",
+                    border: "1px solid #94a3b8",
+                    background: "#cbd5e1",
+                    color: "#0f172a",
                     fontSize: 13,
+                    fontWeight: 800,
+                    whiteSpace: index === 1 ? "nowrap" : "normal",
                   }}
                 >
                   {title}
@@ -5268,67 +5283,69 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={`${row[0]}-${row[1]}`}>
-                {row.map((value, index) => (
-                  <td
-                    key={`${row[0]}-${index}`}
-                    style={{
-                      padding: "12px 14px",
-                      borderBottom: "1px solid #e2e8f0",
-                      fontWeight: index === 1 && value.startsWith("Ընդամենը") ? 800 : 400,
-                      color: index === 0 ? "#64748b" : "#0f172a",
-                    }}
-                  >
-                    {value}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row, index) => {
+              const label = String(maxColumns >= 6 ? row[0] ?? "" : row[1] ?? "");
+              const isSectionRow =
+                maxColumns === 4 &&
+                row[0] === "" &&
+                row[1] !== "" &&
+                row.slice(2).every((cell) => cell === "");
+
+              const isMainSection = label === "ԱԿՏԻՎ" || label === "ՊԱՍԻՎ";
+              const isTotalRow =
+                label.startsWith("Համախառն") ||
+                label.startsWith("Գործառնական շահույթ") ||
+                label.startsWith("Սովորական գործունեությունից") ||
+                label.startsWith("Զուտ շահույթ") ||
+                label.replace(/\s/g, "") === "ՀԱՇՎԵԿՇԻՌ" ||
+                label.startsWith("Ընդամենը");
+
+              if (isSectionRow) {
+                return (
+                  <tr key={`${row.join("-")}-${index}`}>
+                    <td
+                      colSpan={headers.length}
+                      style={{
+                        padding: isMainSection ? "14px 16px" : "10px 14px",
+                        border: "1px solid #94a3b8",
+                        background: isMainSection ? "#e2e8f0" : "#f8fafc",
+                        color: "#0f172a",
+                        fontSize: isMainSection ? 18 : 15,
+                        fontWeight: 900,
+                        textAlign: isMainSection ? "center" : "left",
+                      }}
+                    >
+                      {row[1]}
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr key={`${row.join("-")}-${index}`}>
+                  {headers.map((_, cellIndex) => (
+                    <td
+                      key={`${row.join("-")}-${cellIndex}`}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #cbd5e1",
+                        background: isTotalRow ? "#f8fafc" : "#ffffff",
+                        color: "#0f172a",
+                        fontSize: 13,
+                        fontWeight: isTotalRow ? 800 : 500,
+                        textAlign: cellIndex >= 2 ? "right" : "left",
+                        whiteSpace: cellIndex === 1 ? "nowrap" : "normal",
+                      }}
+                    >
+                      {row[cellIndex] ?? ""}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
-    );
-  }
-
-  function renderFinancialReportNotesDemo() {
-    const notes = [
-      "Հաշվապահական քաղաքականություն",
-      "Հիմնական միջոցների և մաշվածության մոտեցումներ",
-      "Պաշարների գնահատման մոտեցումներ",
-      "Դեբիտորական և կրեդիտորական պարտքերի բացատրություններ",
-      "Կապակցված կողմերի և էական ռիսկերի բացահայտումներ",
-    ];
-
-    return (
-      <>
-        <strong>Ֆինանսական հաշվետվություններին կից ծանոթագրություններ</strong>
-        <p>
-          Սա SAFE demo placeholder է։ Ապագայում այստեղ կձևավորվեն բացատրական նշումները,
-          հաշվապահական քաղաքականության ընտրությունները և հաշվետվությունների կարևոր բացահայտումները։
-        </p>
-
-        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          {notes.map((note, index) => (
-            <div
-              key={note}
-              style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 14,
-                background: "#ffffff",
-                padding: "14px 16px",
-              }}
-            >
-              <strong>
-                {index + 1}. {note}
-              </strong>
-              <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                Demo բացատրություն։ Իրական տվյալները հետո կկապվեն tenant accounting DB-ի հաշվապահական շարժերի հետ։
-              </p>
-            </div>
-          ))}
-        </div>
-      </>
     );
   }
 
@@ -5408,15 +5425,31 @@ export default function Home() {
         ["500", "Հ Ա Շ Վ Ե Կ Շ Ի Ռ", "—", "—"],
       ],
       "Ֆինանսական արդյունքների հաշվետվություն": [
-        ["010", "Հասույթ", "0", "0"],
-        ["020", "Վաճառքի ինքնարժեք", "0", "0"],
-        ["030", "Համախառն շահույթ", "0", "0"],
-        ["040", "Իրացման ծախսեր", "0", "0"],
-        ["050", "Վարչական ծախսեր", "0", "0"],
-        ["090", "Գործառնական շահույթ", "0", "0"],
-        ["160", "Շահույթ մինչև շահութահարկ", "0", "0"],
-        ["170", "Շահութահարկի գծով ծախս", "0", "0"],
-        ["180", "Զուտ շահույթ", "0", "0"],
+        ["Արտադրանքի, ապրանքների, աշխատանքների, ծառայությունների իրացումից հասույթ", "010", "", "", "", ""],
+        ["Իրացված արտադրանքի, ապրանքների, աշխատանքների, ծառայությունների ինքնարժեք", "020", "", "", "", ""],
+        ["Համախառն շահույթ (վնաս)", "030", "—", "—", "—", "—"],
+        ["Իրացման ծախսեր", "040", "", "", "", ""],
+        ["Վարչական ծախսեր", "050", "", "", "", ""],
+        ["Արտադրանքի, ապրանքների, աշխատանքների, ծառայությունների իրացումից շահույթ (վնաս)", "060", "—", "—", "—", "—"],
+        ["Գործառնական այլ եկամուտներ, այդ թվում՝", "070", "", "", "", ""],
+        ["", "071", "", "", "", ""],
+        ["", "072", "", "", "", ""],
+        ["Գործառնական այլ ծախսեր, այդ թվում՝", "080", "", "", "", ""],
+        ["", "081", "", "", "", ""],
+        ["", "082", "", "", "", ""],
+        ["Գործառնական շահույթ (վնաս)", "090", "—", "—", "—", "—"],
+        ["Ֆինանսական ծախսեր", "100", "", "", "", ""],
+        ["Բաժնեմասնակցության մեթոդով հաշվառվող ներդրումների գծով շահույթ (վնաս)", "110", "", "", "", ""],
+        ["Ընդհատվող գործառնությանը վերագրելի ակտիվների վաճառքներից և պարտավորությունների մարումներից շահույթ (վնաս)", "120", "", "", "", ""],
+        ["Այլ ոչ գործառնական շահույթ (վնաս), այդ թվում՝", "130", "", "", "", ""],
+        ["", "131", "", "", "", ""],
+        ["Սովորական գործունեությունից շահույթ (վնաս)", "140", "—", "—", "—", "—"],
+        ["Արտասովոր դեպքերից շահույթ (վնաս)", "150", "", "", "", ""],
+        ["Զուտ շահույթ (վնաս) նախքան շահութահարկի գծով ծախսի նվազեցումը", "160", "—", "—", "—", "—"],
+        ["Շահութահարկի գծով ծախս (փոխհատուցում)", "170", "", "", "", ""],
+        ["Զուտ շահույթ (վնաս) շահութահարկի գծով ծախսի նվազեցումից հետո", "180", "—", "—", "—", "—"],
+        ["Մեկ բաժնետոմսին բաժին ընկնող բազային շահույթ (վնաս)*", "190", "", "", "", ""],
+        ["Մեկ բաժնետոմսին բաժին ընկնող նոսրացված շահույթ (վնաս)*", "200", "", "", "", ""],
       ],
       "Սեփական կապիտալի փոփոխություններ": [
         ["010", "Սկզբնական մնացորդ", "0", "0"],
@@ -5430,181 +5463,223 @@ export default function Home() {
         ["010", "Գործառնական գործունեությունից դրամական հոսքեր", "0", "0"],
         ["020", "Ներդրումային գործունեությունից դրամական հոսքեր", "0", "0"],
         ["030", "Ֆինանսավորման գործունեությունից դրամական հոսքեր", "0", "0"],
-        ["040", "Դրամական միջոցների զուտ փոփոխություն", "0", "0"],
-        ["050", "Դրամական միջոցներ ժամանակաշրջանի սկզբում", "0", "0"],
-        ["060", "Դրամական միջոցներ ժամանակաշրջանի վերջում", "0", "0"],
+        ["040", "Դրամական միջոցների զուտ աճ / նվազում", "0", "0"],
+        ["050", "Դրամական միջոցներ ժամանակաշրջանի վերջին", "0", "0"],
       ],
     };
 
     if (activeTab === "Ծանոթագրություններ") {
-      return renderFinancialReportNotesDemo();
+      return (
+        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
+          {[
+            "Հաշվապահական քաղաքականության հիմնական դրույթներ",
+            "Հիմնական միջոցների և մաշվածության մոտեցումներ",
+            "Պաշարների գնահատման մեթոդներ",
+            "Դեբիտորական և կրեդիտորական պարտքերի բացվածք",
+            "Էական ռիսկեր և պայմանական պարտավորություններ",
+          ].map((item) => (
+            <div
+              key={item}
+              style={{
+                padding: "12px 14px",
+                border: "1px solid #cbd5e1",
+                borderRadius: 12,
+                background: "#ffffff",
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      );
     }
 
-    const rows = rowsByTab[activeTab] ?? rowsByTab["Հաշվապահական հաշվեկշիռ"];
+    return renderFinancialReportTable(rowsByTab[activeTab] ?? rowsByTab["Հաշվապահական հաշվեկշիռ"]);
+  }
+
+
+  function renderCurrenciesPage() {
+    const rows = [
+      ["AMD", "Հայկական դրամ", "Այո", "Բազային արժույթ"],
+      ["USD", "ԱՄՆ դոլար", "Այո", "Օտարերկրյա արժույթ"],
+      ["EUR", "Եվրո", "Այո", "Օտարերկրյա արժույթ"],
+      ["RUB", "Ռուսական ռուբլի", "Այո", "Օտարերկրյա արժույթ"],
+    ];
 
     return (
-      <>
-        <strong>{activeTab}</strong>
-        <p>
-          Սա SAFE demo ձև է։ Թվերը դեռ հաշվարկված չեն․ հաջորդ փուլերում դրանք կկապվեն
-          հաշվային պլանի, ձևակերպումների և tenant accounting DB-ի տվյալների հետ։
+      <section style={styles.card}>
+        {renderDemoPageTitle("Արժույթներ")}
+        <p style={styles.sectionText}>
+          Demo բաժին է․ արժույթների տեղեկատուն ապագայում պետք է պահվի Master DB-ում։
         </p>
-        {renderFinancialReportTable(rows)}
-      </>
+
+        <div style={{ overflowX: "auto", marginTop: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+            <thead>
+              <tr>
+                {["Կոդ", "Անվանում", "Գործող է", "Նշում"].map((title) => (
+                  <th
+                    key={title}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row[0]}>
+                  {row.map((cell) => (
+                    <td
+                      key={`${row[0]}-${cell}`}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #e2e8f0",
+                        color: "#0f172a",
+                        fontSize: 13,
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     );
   }
 
-  function renderTabs(pageLabel: string) {
-    const tabs = getTabsForDemoPage(pageLabel);
-    const activeTab = getActiveTab(pageLabel);
+  function renderCurrencyRatesPage() {
+    const rows = [
+      ["2026-01-01", "USD", "Demo", "ԿԲ պաշտոնական կուրս"],
+      ["2026-01-01", "EUR", "Demo", "ԿԲ պաշտոնական կուրս"],
+      ["2026-01-01", "RUB", "Demo", "ԿԲ պաշտոնական կուրս"],
+    ];
 
     return (
-      <>
-        <div style={styles.tabsBar}>
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              style={{
-                ...styles.tabButton,
-                ...(tab === activeTab ? styles.tabButtonActive : {}),
-              }}
-              onClick={() => {
-                setActiveTabByPage((current) => ({
-                  ...current,
-                  [pageLabel]: tab,
-                }));
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+      <section style={styles.card}>
+        {renderDemoPageTitle("Արժույթային կուրսեր")}
+        <p style={styles.sectionText}>
+          Demo բաժին է․ իրական կուրսերը հետագայում կբեռնվեն պաշտոնական աղբյուրներից Master DB։
+        </p>
 
-        <div style={styles.tabPanel}>
-          <strong>{activeTab}</strong>
-          <p>
-            Սա demo tab բովանդակություն է «{pageLabel}» բաժնի համար։
-            Հետո այս հատվածում կավելացնենք կոնկրետ դաշտերը, աղյուսակները կամ հաշվետվությունները։
-          </p>
+        <div style={{ overflowX: "auto", marginTop: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+            <thead>
+              <tr>
+                {["Ամսաթիվ", "Արժույթ", "Կուրս", "Աղբյուր"].map((title) => (
+                  <th
+                    key={title}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={`${row[0]}-${row[1]}`}>
+                  {row.map((cell) => (
+                    <td
+                      key={`${row[0]}-${row[1]}-${cell}`}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #e2e8f0",
+                        color: "#0f172a",
+                        fontSize: 13,
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </>
+      </section>
     );
   }
 
-  function renderLegalNewsPage() {
-    const pageLabel = "Նորություններ";
-    const tabs = getTabsForDemoPage(pageLabel);
-    const activeTab = getActiveTab(pageLabel);
+  function renderBanksDirectoryPage() {
+    const rows = [
+      ["Հայաստանի բանկեր", "Demo", "Բանկերի տեղեկատու"],
+      ["Բանկային հաշիվներ", "Demo", "Կազմակերպության բանկային հաշիվների կապում"],
+      ["Վճարային ձևաչափեր", "Demo", "Արտահանում / ներմուծում ապագա փուլում"],
+    ];
 
     return (
-      <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Գլխավոր մենյու</p>
-        <h2>Նորություններ</h2>
-        <p>
-          Այս բաժինը demo է․ ապագայում AI-ն օրական կստուգի պաշտոնական օրենսդրական և ոլորտային նորությունները
-          և կցույց տա միայն այն ազդակները, որոնք կարող են ազդել սպասարկվող գործընկերների հաշվապահության վրա։
+      <section style={styles.card}>
+        {renderDemoPageTitle("Բանկեր")}
+        <p style={styles.sectionText}>
+          Demo բաժին է․ բանկերի և բանկային հաշիվների կարգավորումները հետագայում կկապվեն կազմակերպության հաշվապահական տարածքի հետ։
         </p>
 
-        <div style={styles.tabsBar}>
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              style={{
-                ...styles.tabButton,
-                ...(tab === activeTab ? styles.tabButtonActive : {}),
-              }}
-              onClick={() => {
-                setActiveTabByPage((current) => ({
-                  ...current,
-                  [pageLabel]: tab,
-                }));
-              }}
-            >
-              {tab}
-            </button>
-          ))}
+        <div style={{ overflowX: "auto", marginTop: 16 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+            <thead>
+              <tr>
+                {["Բաժին", "Կարգավիճակ", "Նշում"].map((title) => (
+                  <th
+                    key={title}
+                    style={{
+                      textAlign: "left",
+                      padding: "12px 14px",
+                      border: "1px solid #cbd5e1",
+                      background: "#f8fafc",
+                      color: "#0f172a",
+                      fontSize: 13,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row[0]}>
+                  {row.map((cell) => (
+                    <td
+                      key={`${row[0]}-${cell}`}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #e2e8f0",
+                        color: "#0f172a",
+                        fontSize: 13,
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {activeTab === "Օրվա ամփոփում" ? (
-          <div style={styles.tabPanel}>
-            <strong>{activeTab}</strong>
-            <p>
-              Սա demo tab բովանդակություն է «{pageLabel}» բաժնի համար։
-              Հետո այս հատվածում կավելացնենք կոնկրետ դաշտերը, աղյուսակները կամ հաշվետվությունները։
-            </p>
-          </div>
-        ) : null}
-
-        {activeTab === "Ոլորտներ" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Ոլորտներ</h3>
-            <div style={styles.checkboxGrid}>
-              {["Գյուղմթերքներ", "Գինու արտադրություն", "Հիվանդանոց / բժշկական ծառայություններ", "Արտադրություն", "Առևտուր", "Շինարարություն", "Ծառայություններ"].map((sector) => (
-                <label key={sector} style={styles.checkboxCard}>
-                  <input type="checkbox" />
-                  <span>
-                    <strong>{sector}</strong>
-                    <small>ոլորտային demo ֆիլտր</small>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {activeTab === "Պաշտոնական աղբյուրներ" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Պաշտոնական աղբյուրներ</h3>
-            <div style={styles.cardsGrid}>
-              {[
-                "Պաշտոնական օրենսդրական հրապարակումներ",
-                "Պետական մարմինների հայտարարություններ",
-                "Հարկային և մաքսային ոլորտի պաշտոնական նորություններ",
-                "Կառավարության որոշումներ և նախագծեր",
-                "Ոլորտային կարգավորող մարմինների հրապարակումներ",
-              ].map((source) => (
-                <div key={source} style={styles.smallCard}>
-                  <strong>{source}</strong>
-                  <p>Production փուլում այստեղ կլինի աղբյուրի հասցեն, ստուգման հաճախականությունը և վերջին ստուգման ամսաթիվը։</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {activeTab === "AI հսկողություն" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>AI հսկողություն</h3>
-            <div style={styles.formGrid}>
-              <label style={styles.label}>
-                Ստուգման հաճախականություն
-                <select style={styles.select} defaultValue="daily">
-                  <option value="daily">Ամեն օր</option>
-                  <option value="weekly">Շաբաթական</option>
-                  <option value="manual">Միայն ձեռքով</option>
-                </select>
-              </label>
-
-              <label style={styles.label}>
-                Մարդու հաստատում
-                <select style={styles.select} defaultValue="required">
-                  <option value="required">Պարտադիր է</option>
-                  <option value="optional">Ըստ անհրաժեշտության</option>
-                </select>
-              </label>
-            </div>
-
-            <div style={styles.previewBox}>
-              <strong>Անվտանգության կանոն</strong>
-              <p style={{ marginBottom: 0 }}>
-                AI-ն միայն կարդում, դասակարգում և ամփոփում է նորությունները։
-                Իրավական կամ հարկային գործողություն ինքնուրույն չի կատարում։
-              </p>
-            </div>
-          </div>
-        ) : null}
       </section>
     );
   }
@@ -5914,81 +5989,167 @@ export default function Home() {
 
 
 
-  function renderCurrenciesPage() {
-    const currencies = [
-      ["AMD", "Հայկական դրամ", "Armenian Dram", "051", "Բազային արժույթ", "1.0000", "Ակտիվ"],
-      ["USD", "ԱՄՆ դոլար", "US Dollar", "840", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
-      ["EUR", "Եվրո", "Euro", "978", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
-      ["RUB", "Ռուսական ռուբլի", "Russian Ruble", "643", "Արտարժույթ", "Demo կուրս", "Ակտիվ"],
-    ];
+  
+
+  function renderLegalNewsPage() {
+    const pageLabel = "Նորություններ";
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
 
     return (
-      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
-        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
-          Ֆինանսներ / Կարգավորումներ
-        </p>
-        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Արժույթներ</h2>
-        <p style={{ margin: "0 0 22px", color: "#475569", lineHeight: 1.7 }}>
-          Սա SAFE demo տեղեկատու է։ Արժույթները և փոխարժեքները ապագայում պետք է պահվեն Master DB-ում,
-          իսկ tenant accounting DB-ում պետք է պահպանվի փաստաթղթի պահին օգտագործված snapshot-ը։
+      <section style={styles.accountingArea}>
+        <p style={styles.kicker}>Գլխավոր մենյու</p>
+        <h2>Նորություններ</h2>
+        <p>
+          Այս բաժինը demo է․ ապագայում AI-ն օրական կստուգի պաշտոնական օրենսդրական և ոլորտային նորությունները
+          և կցույց տա միայն այն ազդակները, որոնք կարող են ազդել սպասարկվող գործընկերների հաշվապահության վրա։
         </p>
 
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 760 }}>
-            <thead>
-              <tr>
-                {["Կոդ", "Անվանում", "English", "Թվային կոդ", "Տեսակ", "Կուրս AMD-ի նկատմամբ", "Կարգավիճակ"].map((title) => (
-                  <th key={title} style={{ textAlign: "left", padding: 12, borderBottom: "1px solid #cbd5e1", background: "#f8fafc" }}>
-                    {title}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currencies.map((currency) => (
-                <tr key={currency[0]}>
-                  {currency.map((value, index) => (
-                    <td key={`${currency[0]}-${value}`} style={{ padding: 12, borderBottom: "1px solid #e2e8f0", fontWeight: index === 0 ? 800 : 400 }}>
-                      {value}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
+
+        {activeTab === "Օրվա ամփոփում" ? (
+          <div style={styles.tabPanel}>
+            <strong>{activeTab}</strong>
+            <p>
+              Սա demo tab բովանդակություն է «{pageLabel}» բաժնի համար։
+              Հետո այս հատվածում կավելացնենք կոնկրետ դաշտերը, աղյուսակները կամ հաշվետվությունները։
+            </p>
+          </div>
+        ) : null}
+
+        {activeTab === "Ոլորտներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Ոլորտներ</h3>
+            <div style={styles.checkboxGrid}>
+              {["Գյուղմթերքներ", "Գինու արտադրություն", "Հիվանդանոց / բժշկական ծառայություններ", "Արտադրություն", "Առևտուր", "Շինարարություն", "Ծառայություններ"].map((sector) => (
+                <label key={sector} style={styles.checkboxCard}>
+                  <input type="checkbox" />
+                  <span>
+                    <strong>{sector}</strong>
+                    <small>ոլորտային demo ֆիլտր</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "Պաշտոնական աղբյուրներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Պաշտոնական աղբյուրներ</h3>
+            <div style={styles.cardsGrid}>
+              {[
+                "Պաշտոնական օրենսդրական հրապարակումներ",
+                "Պետական մարմինների հայտարարություններ",
+                "Հարկային և մաքսային ոլորտի պաշտոնական նորություններ",
+                "Կառավարության որոշումներ և նախագծեր",
+                "Ոլորտային կարգավորող մարմինների հրապարակումներ",
+              ].map((source) => (
+                <div key={source} style={styles.smallCard}>
+                  <strong>{source}</strong>
+                  <p>Production փուլում այստեղ կլինի աղբյուրի հասցեն, ստուգման հաճախականությունը և վերջին ստուգման ամսաթիվը։</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {activeTab === "AI հսկողություն" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>AI հսկողություն</h3>
+            <div style={styles.formGrid}>
+              <label style={styles.label}>
+                Ստուգման հաճախականություն
+                <select style={styles.select} defaultValue="daily">
+                  <option value="daily">Ամեն օր</option>
+                  <option value="weekly">Շաբաթական</option>
+                  <option value="manual">Միայն ձեռքով</option>
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                Մարդու հաստատում
+                <select style={styles.select} defaultValue="required">
+                  <option value="required">Պարտադիր է</option>
+                  <option value="optional">Ըստ անհրաժեշտության</option>
+                </select>
+              </label>
+            </div>
+
+            <div style={styles.previewBox}>
+              <strong>Անվտանգության կանոն</strong>
+              <p style={{ marginBottom: 0 }}>
+                AI-ն միայն կարդում, դասակարգում և ամփոփում է նորությունները։
+                Իրավական կամ հարկային գործողություն ինքնուրույն չի կատարում։
+              </p>
+            </div>
+          </div>
+        ) : null}
       </section>
     );
   }
 
-  function renderCurrencyRatesPage() {
+
+  
+
+  function renderTabs(pageLabel: string) {
+    const tabs = getTabsForDemoPage(pageLabel);
+    const activeTab = getActiveTab(pageLabel);
+
     return (
-      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
-        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
-          Ֆինանսներ / Կարգավորումներ
-        </p>
-        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Արժույթային կուրսեր</h2>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          SAFE demo placeholder։ Հաջորդ փուլում այստեղ կերևան Master DB-ում պահվող demo փոխարժեքները։
-        </p>
-      </section>
+      <>
+        <div style={styles.tabsBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              style={{
+                ...styles.tabButton,
+                ...(tab === activeTab ? styles.tabButtonActive : {}),
+              }}
+              onClick={() => {
+                setActiveTabByPage((current) => ({
+                  ...current,
+                  [pageLabel]: tab,
+                }));
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div style={styles.tabPanel}>
+          <strong>{activeTab}</strong>
+          <p>
+            Սա demo tab բովանդակություն է «{pageLabel}» բաժնի համար։
+            Հետո այս հատվածում կավելացնենք կոնկրետ դաշտերը, աղյուսակները կամ հաշվետվությունները։
+          </p>
+        </div>
+      </>
     );
   }
 
-  function renderBanksDirectoryPage() {
-    return (
-      <section style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: 18, padding: 24 }}>
-        <p style={{ margin: "0 0 8px", color: "#9a7a34", fontSize: 12, fontWeight: 700 }}>
-          Ֆինանսներ / Կարգավորումներ
-        </p>
-        <h2 style={{ margin: "0 0 10px", color: "#0f172a", fontSize: 28 }}>Բանկեր</h2>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          SAFE demo placeholder։ Այստեղ կպահվի բանկերի ընդհանուր տեղեկատուն։
-        </p>
-      </section>
-    );
-  }
-
+  
 
   function renderFinancialStatementsPage() {
     const pageLabel = "Հաշվեկշիռ";
