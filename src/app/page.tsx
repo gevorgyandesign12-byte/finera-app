@@ -5524,29 +5524,92 @@ export default function Home() {
     };
 
     if (activeTab === "Ծանոթագրություններ") {
+      const notesTabs = [
+        "1. Ընդհանուր տեղեկություններ",
+        "2. Հաշվապահական քաղաքականություն",
+        "3. Հիմնական միջոցներ",
+        "4. Ոչ նյութական ակտիվներ",
+        "5. Պաշարներ",
+        "6. Դեբիտորական պարտքեր",
+        "7. Դրամական միջոցներ",
+        "8. Կապիտալ",
+        "9. Վարկեր և փոխառություններ",
+        "10. Կրեդիտորական պարտքեր",
+        "11. Հասույթ և ծախսեր",
+        "12. Հարկեր",
+        "13. Այլ բացահայտումներ",
+      ];
+      const activeNotesTab = notesTabs[0];
+
       return (
-        <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-          {[
-            "Հաշվապահական քաղաքականության հիմնական դրույթներ",
-            "Հիմնական միջոցների և մաշվածության մոտեցումներ",
-            "Պաշարների գնահատման մեթոդներ",
-            "Դեբիտորական և կրեդիտորական պարտքերի բացվածք",
-            "Էական ռիսկեր և պայմանական պարտավորություններ",
-          ].map((item) => (
-            <div
-              key={item}
-              style={{
-                padding: "12px 14px",
-                border: "1px solid #cbd5e1",
-                borderRadius: 12,
-                background: "#ffffff",
-                color: "#0f172a",
-                fontWeight: 700,
-              }}
-            >
-              {item}
+        <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
+          <div
+            style={{
+              padding: "12px 14px",
+              border: "1px solid #bfdbfe",
+              borderRadius: 14,
+              background: "#eff6ff",
+              color: "#1e3a8a",
+              fontWeight: 800,
+            }}
+          >
+            Ֆինանսական հաշվետվություններին կից ծանոթագրություններ․ demo skeleton է։ Յուրաքանչյուր բաժնի իրական աղյուսակները կավելացնենք առանձին PDF/Excel ձևերի հիման վրա։
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "stretch",
+              gap: 4,
+              overflowX: "auto",
+              padding: "10px 10px 0",
+              border: "1px solid #bfdbfe",
+              borderBottom: "3px solid #2563eb",
+              borderRadius: "14px 14px 0 0",
+              background: "#e0f2fe",
+            }}
+          >
+            {notesTabs.map((tabName, index) => (
+              <button
+                key={tabName}
+                type="button"
+                style={{
+                  minWidth: 150,
+                  maxWidth: 210,
+                  padding: "10px 12px",
+                  border: "1px solid #93c5fd",
+                  borderBottom: index === 0 ? "3px solid #2563eb" : "1px solid #93c5fd",
+                  borderRadius: "12px 12px 0 0",
+                  background: index === 0 ? "#bfdbfe" : "#f8fbff",
+                  color: index === 0 ? "#0f172a" : "#1e3a8a",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  lineHeight: 1.25,
+                  cursor: "default",
+                  boxShadow: index === 0 ? "0 -1px 0 #2563eb inset" : "none",
+                  whiteSpace: "normal",
+                }}
+              >
+                {tabName}
+              </button>
+            ))}
+          </div>
+
+          <div
+            style={{
+              padding: "16px 18px",
+              border: "1px solid #bfdbfe",
+              borderTop: "none",
+              borderRadius: "0 0 14px 14px",
+              background: "#ffffff",
+              color: "#0f172a",
+            }}
+          >
+            <div style={{ fontWeight: 900, marginBottom: 8 }}>{activeNotesTab}</div>
+            <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+              Այստեղ կտեղադրվեն ընտրված sub-tab-ի աղյուսակները։ Հաջորդ քայլերով յուրաքանչյուր բաժնի PDF/Excel ձևը կուղարկես, և մենք այդ բաժնի իրական demo աղյուսակները կավելացնենք առանձին SAFE քայլով։
             </div>
-          ))}
+          </div>
         </div>
       );
     }
