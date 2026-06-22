@@ -5176,6 +5176,63 @@ export default function Home() {
     return activeTabByPage[pageLabel] ?? tabs[0] ?? "";
   }
 
+
+  function renderReportingYearSelect() {
+    const reportingYears = ["2026", "2025", "2024", "2023", "2022"];
+
+    return (
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          color: "#475569",
+          fontSize: 14,
+          fontWeight: 700,
+          whiteSpace: "nowrap",
+        }}
+      >
+        Հաշվետու տարի՝
+        <select
+          defaultValue="2026"
+          style={{
+            minWidth: 110,
+            border: "1px solid #cbd5e1",
+            borderRadius: 10,
+            background: "#ffffff",
+            color: "#0f172a",
+            fontSize: 14,
+            fontWeight: 700,
+            padding: "8px 12px",
+          }}
+        >
+          {reportingYears.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  function renderDemoPageTitle(pageLabel: string) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <h2 style={{ margin: 0 }}>{pageLabel}</h2>
+        {pageLabel === "Հաշվեկշիռ" ? renderReportingYearSelect() : null}
+      </div>
+    );
+  }
+
   function renderTabs(pageLabel: string) {
     const tabs = getTabsForDemoPage(pageLabel);
     const activeTab = getActiveTab(pageLabel);
@@ -5865,7 +5922,7 @@ export default function Home() {
     return (
         <section style={styles.accountingArea}>
           <p style={styles.kicker}>Ընտրված բաժին</p>
-          <h2>{activeDemoPage}</h2>
+          {renderDemoPageTitle(activeDemoPage)}
           {renderTabs(activeDemoPage)}
           <p>
             Այս բաժնի աշխատանքային էջը դեռ placeholder է։
