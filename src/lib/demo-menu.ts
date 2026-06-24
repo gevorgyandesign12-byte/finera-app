@@ -67,6 +67,15 @@ export const demoMenuByRole: Record<string, DemoMenuItem[]> = {
                 ],
               },
           {
+                label: "Գլխավոր բազա",
+                note: "Master DB ընդհանուր տեղեկատուներ և կենտրոնացված տվյալներ",
+                children: [
+                  { label: "Չափման միավորներ", note: "Ապրանքների և նյութերի նկարագրման համար Master DB չափման միավորներ" },
+                  { label: "Արժույթներ", note: "Master DB արժույթների տեղեկատու" },
+                  { label: "Փոխարժեքներ", note: "Master DB օրական փոխարժեքներ" },
+                ],
+              },
+          {
                 label: "Կարգավորումներ",
                 note: "Հազվադեպ փոփոխվող ընդհանուր կարգավորումներ",
                 children: [

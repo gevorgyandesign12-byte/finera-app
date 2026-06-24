@@ -579,6 +579,11 @@ export default function Home() {
               }
 
 
+              if (item.label === "Չափման միավորներ") {
+                router.push("/master-data/measurement-units");
+                return;
+              }
+
               if (hasChildren) {
                 setActiveMenuPath((current) => [...current, item]);
                 setActiveDemoPage(null);
