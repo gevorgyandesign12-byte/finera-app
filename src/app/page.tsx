@@ -283,6 +283,7 @@ export default function Home() {
   const [activeMenuPath, setActiveMenuPath] = useState<DemoMenuItem[]>([]);
   const [activeDemoPage, setActiveDemoPage] = useState<string | null>(null);
   const [activeTabByPage, setActiveTabByPage] = useState<Record<string, string>>({});
+  const [activeFinancialNotesTab, setActiveFinancialNotesTab] = useState("1. Հաշվապահական քաղաքականություն");
   const [selectedBookkeeperIds, setSelectedBookkeeperIds] = useState<string[]>([]);
   const [activeBookkeeperId, setActiveBookkeeperId] = useState<string | null>(null);
   const [bookkeeperScopesById, setBookkeeperScopesById] = useState<Record<string, string[]>>({});
@@ -5525,21 +5526,34 @@ export default function Home() {
 
     if (activeTab === "Ծանոթագրություններ") {
       const notesTabs = [
-        "1. Ընդհանուր տեղեկություններ",
-        "2. Հաշվապահական քաղաքականություն",
-        "3. Հիմնական միջոցներ",
-        "4. Ոչ նյութական ակտիվներ",
-        "5. Պաշարներ",
-        "6. Դեբիտորական պարտքեր",
-        "7. Դրամական միջոցներ",
-        "8. Կապիտալ",
-        "9. Վարկեր և փոխառություններ",
-        "10. Կրեդիտորական պարտքեր",
-        "11. Հասույթ և ծախսեր",
-        "12. Հարկեր",
-        "13. Այլ բացահայտումներ",
+        "1. Հաշվապահական քաղաքականություն",
+        "2. Հիմնական միջոցներ",
+        "3. Ոչ նյութական ակտիվներ",
+        "4. Պաշարներ",
+        "5. Դեբիտորական պարտքեր",
+        "6. Դրամական միջոցներ",
+        "7. Կապիտալ",
+        "8. Վարկեր և փոխառություններ",
+        "9. Կրեդիտորական պարտքեր",
+        "10. Հասույթ և ծախսեր",
+        "11. Հարկեր",
+        "12. Այլ բացահայտումներ",
       ];
-      const activeNotesTab = notesTabs[0];
+      const financialNotesPolicyApproachRows = [
+        "1. Պաշարների ինքնարժեքի որոշման բանաձևը",
+        "2. Հիմնական միջոցների հետագա չափման մոտեցումը",
+        "3. Ոչ նյութական ակտիվների հետագա չափման մոտեցումը",
+        "4. Ներդրումային գույքի հետագա չափման մոտեցումը",
+        "5. Վաճառքի համար մատչելի ֆինանսական ակտիվների իրական արժեքով վերաչափումից շահույթների (վնասների) ճանաչման մոտեցումը",
+        "6. Դուստր ընկերություններում, ասոցիացված կազմակերպություններում, համատեղ վերահսկվող միավորումներում ներդրումների հաշվառման մոտեցումը",
+        "7. Էական սխալների ուղղման և հաշվապահական հաշվառման քաղաքականությունում փոփոխությունների ազդեցության արտացոլման մոտեցումը",
+        "8. Կառուցման և ծառայությունների մատուցման պայմանագրերի գծով հասույթի ճանաչման համար գործարքի ավարտվածության աստիճանի որոշման մոտեցումը",
+        "9. Արտարժույթի փոխարժեքային տարբերությունների ճանաչման մոտեցումը",
+        "10. Փոխառության ծախսումների հաշվառման մոտեցումը",
+        "11.",
+      ];
+            const selectedFinancialNotesTab = notesTabs.includes(activeFinancialNotesTab) ? activeFinancialNotesTab : notesTabs[0];
+      const hasPolicyApproachTable = selectedFinancialNotesTab === "1. Հաշվապահական քաղաքականություն";
 
       return (
         <div style={{ display: "grid", gap: 14, marginTop: 16 }}>
@@ -5569,30 +5583,35 @@ export default function Home() {
               background: "#e0f2fe",
             }}
           >
-            {notesTabs.map((tabName, index) => (
-              <button
-                key={tabName}
-                type="button"
-                style={{
-                  minWidth: 150,
-                  maxWidth: 210,
-                  padding: "10px 12px",
-                  border: "1px solid #93c5fd",
-                  borderBottom: index === 0 ? "3px solid #2563eb" : "1px solid #93c5fd",
-                  borderRadius: "12px 12px 0 0",
-                  background: index === 0 ? "#bfdbfe" : "#f8fbff",
-                  color: index === 0 ? "#0f172a" : "#1e3a8a",
-                  fontSize: 12,
-                  fontWeight: 900,
-                  lineHeight: 1.25,
-                  cursor: "default",
-                  boxShadow: index === 0 ? "0 -1px 0 #2563eb inset" : "none",
-                  whiteSpace: "normal",
-                }}
-              >
-                {tabName}
-              </button>
-            ))}
+            {notesTabs.map((tabName) => {
+              const isSelected = tabName === selectedFinancialNotesTab;
+
+              return (
+                <button
+                  key={tabName}
+                  type="button"
+                  onClick={() => setActiveFinancialNotesTab(tabName)}
+                  style={{
+                    minWidth: 150,
+                    maxWidth: 210,
+                    padding: "10px 12px",
+                    border: "1px solid #93c5fd",
+                    borderBottom: isSelected ? "3px solid #2563eb" : "1px solid #93c5fd",
+                    borderRadius: "12px 12px 0 0",
+                    background: isSelected ? "#bfdbfe" : "#f8fbff",
+                    color: isSelected ? "#0f172a" : "#1e3a8a",
+                    fontSize: 12,
+                    fontWeight: 900,
+                    lineHeight: 1.25,
+                    cursor: "pointer",
+                    boxShadow: isSelected ? "0 -1px 0 #2563eb inset" : "none",
+                    whiteSpace: "normal",
+                  }}
+                >
+                  {tabName}
+                </button>
+              );
+            })}
           </div>
 
           <div
@@ -5605,10 +5624,101 @@ export default function Home() {
               color: "#0f172a",
             }}
           >
-            <div style={{ fontWeight: 900, marginBottom: 8 }}>{activeNotesTab}</div>
-            <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
-              Այստեղ կտեղադրվեն ընտրված sub-tab-ի աղյուսակները։ Հաջորդ քայլերով յուրաքանչյուր բաժնի PDF/Excel ձևը կուղարկես, և մենք այդ բաժնի իրական demo աղյուսակները կավելացնենք առանձին SAFE քայլով։
-            </div>
+            <div style={{ fontWeight: 900, marginBottom: 8 }}>{selectedFinancialNotesTab}</div>
+
+            {hasPolicyApproachTable ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "flex-end",
+                    color: "#0f172a",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 900 }}>
+                      5.2.1. Հաշվապահական հաշվառման քաղաքականության մոտեցումները
+                    </div>
+                    <div style={{ color: "#475569", fontSize: 13, marginTop: 4 }}>
+                      Լրացվում է կազմակերպության կողմից ընտրված հաշվապահական հաշվառման քաղաքականության հիման վրա։
+                    </div>
+                  </div>
+                  <div style={{ color: "#475569", fontSize: 13, fontWeight: 800 }}>Աղյուսակ 1</div>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      minWidth: 920,
+                      borderCollapse: "collapse",
+                      border: "1px solid #0f172a",
+                      fontSize: 13,
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            width: "56%",
+                            padding: "10px 12px",
+                            border: "1px solid #0f172a",
+                            background: "#cbd5e1",
+                            textAlign: "center",
+                            fontWeight: 900,
+                          }}
+                        >
+                          Հոդվածների անվանումները
+                        </th>
+                        <th
+                          style={{
+                            padding: "10px 12px",
+                            border: "1px solid #0f172a",
+                            background: "#cbd5e1",
+                            textAlign: "center",
+                            fontWeight: 900,
+                          }}
+                        >
+                          Ընտրված հաշվապահական հաշվառման քաղաքականությունը
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {financialNotesPolicyApproachRows.map((rowName) => (
+                        <tr key={rowName}>
+                          <td
+                            style={{
+                              padding: "9px 10px",
+                              border: "1px solid #0f172a",
+                              verticalAlign: "top",
+                              minHeight: 38,
+                            }}
+                          >
+                            {rowName}
+                          </td>
+                          <td
+                            style={{
+                              padding: "9px 10px",
+                              border: "1px solid #0f172a",
+                              verticalAlign: "top",
+                              minHeight: 38,
+                            }}
+                          >
+                            {" "}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                Այստեղ կտեղադրվեն ընտրված sub-tab-ի աղյուսակները։ Հաջորդ քայլերով յուրաքանչյուր բաժնի PDF/Excel ձևը կուղարկես, և մենք այդ բաժնի իրական demo աղյուսակները կավելացնենք առանձին SAFE քայլով։
+              </div>
+            )}
           </div>
         </div>
       );
