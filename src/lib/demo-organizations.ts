@@ -1,5 +1,6 @@
 export type DemoOrganization = {
   id: string;
+  organizationNumber: number;
   name: string;
   taxId: string;
   status: "active" | "paused" | "demo";
@@ -10,6 +11,7 @@ export type DemoOrganization = {
 export const demoOrganizations: DemoOrganization[] = [
   {
     id: "ararat-llc",
+    organizationNumber: 10001,
     name: "Արարատ ՍՊԸ",
     taxId: "00000001",
     status: "active",
@@ -18,6 +20,7 @@ export const demoOrganizations: DemoOrganization[] = [
   },
   {
     id: "lori-trade-llc",
+    organizationNumber: 10002,
     name: "Լոռի Թրեյդ ՍՊԸ",
     taxId: "00000002",
     status: "active",
@@ -26,6 +29,7 @@ export const demoOrganizations: DemoOrganization[] = [
   },
   {
     id: "syunik-production-llc",
+    organizationNumber: 10003,
     name: "Սյունիք Արտադրություն ՍՊԸ",
     taxId: "00000003",
     status: "demo",
