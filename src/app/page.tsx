@@ -2,6 +2,7 @@
 
 import type { CSSProperties, FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
@@ -275,6 +276,7 @@ function getAllowedAccountingDemoOrganizations(user: DemoUser, organizations: Ap
 }
 
 export default function Home() {
+  const router = useRouter();
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
@@ -567,6 +569,15 @@ export default function Home() {
                   setActiveDemoPage(null);
                   return;
                 }
+
+              if (item.label === "Շահութահարկ") {
+
+                router.push("/accounting/tax-reports-v2/profit-tax");
+
+                return;
+
+              }
+
 
               if (hasChildren) {
                 setActiveMenuPath((current) => [...current, item]);
