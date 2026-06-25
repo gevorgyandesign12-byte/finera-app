@@ -1946,7 +1946,12 @@ export default function Home() {
 
                     <button
                       type="button"
-                      style={styles.secondaryButton}
+                      style={{
+                        ...styles.primaryButton,
+                        opacity: newPartnerActivityAddresses.length === 0 ? 0.55 : 1,
+                        cursor: newPartnerActivityAddresses.length === 0 ? "not-allowed" : "pointer",
+                      }}
+                      disabled={newPartnerActivityAddresses.length === 0}
                       onClick={() => {
                         if (newPartnerActivityAddresses.length === 0) {
                           setNewPartnerMessage("Նախ ավելացրու գործունեության հասցե, հետո դրա տակ՝ ստորաբաժանում։");
