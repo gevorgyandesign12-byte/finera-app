@@ -143,7 +143,7 @@ export function LegalOrganizationTypesManager({
                 code: event.target.value,
               }))
             }
-            placeholder="Օրինակ՝ cooperative"
+            placeholder="Օրինակ՝ 1010"
           />
         </label>
 
