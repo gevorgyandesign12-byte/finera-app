@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
+import { legalOrganizationTypes, residencyStatuses } from "@/lib/demo-master-reference-data";
 import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
+import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
 type ServiceContract = {
   id: string;
   organizationId: string;
@@ -119,6 +121,7 @@ type AppOrganization = {
   name: string;
   shortName?: string | null;
   legalType?: string | null;
+  residency?: string | null;
   taxId?: string | null;
   status?: string | null;
   shortDescription?: string | null;
@@ -372,12 +375,13 @@ export default function Home() {
   const [departmentInlineName, setDepartmentInlineName] = useState("");
   const [departmentInlineMessage, setDepartmentInlineMessage] = useState<string | null>(null);
   const [isSavingDepartment, setIsSavingDepartment] = useState(false);
-  const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Ռեկվիզիտներ");
+  const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Ընդհանուր");
   const [newPartnerDraft, setNewPartnerDraft] = useState<AppOrganization | null>(null);
   const [newPartnerMessage, setNewPartnerMessage] = useState<string | null>(null);
   const [isSavingNewPartner, setIsSavingNewPartner] = useState(false);
   const [newPartnerMainForm, setNewPartnerMainForm] = useState({
     name: "",
+    residency: residencyStatuses[0]?.code ?? "resident",
     legalType: "llc",
     taxId: "",
     registryNumber: "",
@@ -583,7 +587,6 @@ export default function Home() {
                 router.push("/master-data/measurement-units");
                 return;
               }
-
               if (hasChildren) {
                 setActiveMenuPath((current) => [...current, item]);
                 setActiveDemoPage(null);
@@ -1197,7 +1200,7 @@ export default function Home() {
 
     if (!newPartnerDraft) {
       setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
-      setNewPartnerRegistrationTab("Ռեկվիզիտներ");
+      setNewPartnerRegistrationTab("Ընդհանուր");
       return;
     }
 
@@ -1275,7 +1278,7 @@ export default function Home() {
 
     if (!newPartnerDraft) {
       setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
-      setNewPartnerRegistrationTab("Ռեկվիզիտներ");
+      setNewPartnerRegistrationTab("Ընդհանուր");
       return;
     }
 
@@ -1356,8 +1359,8 @@ export default function Home() {
       setNewPartnerDraft(data.organization);
       setSelectedOrganizationId(data.organization.id);
       setOrganizations((current) => [data.organization as AppOrganization, ...current]);
-      setNewPartnerMessage("Ռեկվիզիտները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
-      setNewPartnerRegistrationTab("Իրավաբանական");
+      setNewPartnerMessage("Ընդհանուր տվյալները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
+      setNewPartnerRegistrationTab("Գործունեություն");
       void loadWizardActivities(data.organization.id);
       void loadWizardDepartments(data.organization.id);
     } catch {
@@ -1369,7 +1372,7 @@ export default function Home() {
 
   function renderNewPartnerRegistrationWizard() {
     const tabs = [
-      "Ռեկվիզիտներ",
+      "Ընդհանուր",
       "Գործունեություն",
       "Ստորաբաժանումներ",
     ];
@@ -1416,12 +1419,19 @@ export default function Home() {
           </div>
         ) : null}
 
-        {newPartnerRegistrationTab === "Ռեկվիզիտներ" ? (
+        {newPartnerRegistrationTab === "Ընդհանուր" ? (
           <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Ռեկվիզիտներ</h3>
+            <h3 style={styles.sectionTitle}>Ընդհանուր</h3>
 
             <form noValidate onSubmit={handleCreateWizardOrganization} style={{ display: "grid", gap: "18px" }}>
               <div style={styles.formGrid}>
+                <div style={{ gridColumn: "1 / -1", border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>1. Հիմնական տվյալներ</h3>
+                  <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>
+                    Անվանում, ռեզիդենտություն, իրավակազմակերպական տեսակ, ՀՎՀՀ և պետական գրանցման համար։
+                  </p>
+                </div>
+
                 <label style={styles.label}>
                   Կազմակերպության անվանում
                   <input
@@ -1439,6 +1449,28 @@ export default function Home() {
                 </label>
 
                 <label style={styles.label}>
+                  Ռեզիդենտություն
+                  <select
+                    style={styles.select}
+                    value={newPartnerMainForm.residency}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        residency: event.target.value,
+                      }))
+                    }
+                  >
+                    {residencyStatuses
+                      .filter((status) => status.isActive)
+                      .map((status) => (
+                        <option key={status.code} value={status.code}>
+                          {status.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label style={styles.label}>
                   Իրավակազմակերպական տեսակ
                   <select
                     style={styles.select}
@@ -1450,12 +1482,13 @@ export default function Home() {
                       }))
                     }
                   >
-                    <option value="llc">ՍՊԸ</option>
-                    <option value="ie">ԱՁ</option>
-                    <option value="cjsc">ՓԲԸ</option>
-                    <option value="ojsc">ԲԲԸ</option>
-                    <option value="ngo">ՀԿ</option>
-                    <option value="other">Այլ</option>
+                    {legalOrganizationTypes
+                      .filter((type) => type.isActive)
+                      .map((type) => (
+                        <option key={type.code} value={type.code}>
+                          {type.label}
+                        </option>
+                      ))}
                   </select>
                 </label>
 
@@ -1498,8 +1531,15 @@ export default function Home() {
                   />
                 </label>
 
+                <div style={{ gridColumn: "1 / -1", border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>2. Հասցեներ</h3>
+                  <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>
+                    Գրանցման հասցեն մեկ դաշտ է, իսկ գործունեության հասցեները կարող են լինել մի քանիսը՝ գրասենյակ, պահեստ, խանութ, արտադրամաս։
+                  </p>
+                </div>
+
                 <label style={styles.label}>
-                  Իրավաբանական հասցե
+                  Գրանցման հասցե
                   <input
                     style={styles.input}
                     type="text"
@@ -1510,7 +1550,7 @@ export default function Home() {
                         legalAddress: event.target.value,
                       }))
                     }
-                    placeholder="Իրավաբանական հասցե"
+                    placeholder="Գրանցման հասցե"
                   />
                 </label>
 
@@ -1531,10 +1571,9 @@ export default function Home() {
                 </label>
 
                 <label style={styles.label}>
-                  Գործունեության հասցե
-                  <input
-                    style={styles.input}
-                    type="text"
+                  Գործունեության հասցեներ
+                  <textarea
+                    style={{ ...styles.input, minHeight: 86, resize: "vertical" }}
                     value={newPartnerMainForm.businessAddress}
                     onChange={(event) =>
                       setNewPartnerMainForm((current) => ({
@@ -1542,9 +1581,13 @@ export default function Home() {
                         businessAddress: event.target.value,
                       }))
                     }
-                    placeholder="Գործունեության հասցե"
+                    placeholder={"Օրինակ՝\\nԳրասենյակ — Երևան\\nՊահեստ — Կապան\\nԽանութ — Գյումրի\\nԱրտադրամաս — այլ հասցե"}
                   />
                 </label>
+
+                <div style={{ gridColumn: "1 / -1", border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>3. Կապ և պատասխանատու անձ</h3>
+                </div>
 
                 <label style={styles.label}>
                   Հեռախոս
@@ -6560,6 +6603,10 @@ export default function Home() {
 
     if (activeDemoPage === "Նորություններ") {
       return renderLegalNewsPage();
+    }
+
+    if (activeDemoPage === "Իրավակազմակերպական տեսակներ") {
+      return <LegalOrganizationTypesManager />;
     }
 
     if (activeDemoPage) {

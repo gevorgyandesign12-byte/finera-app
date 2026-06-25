@@ -71,6 +71,7 @@ export const demoMenuByRole: Record<string, DemoMenuItem[]> = {
                 note: "Master DB ընդհանուր տեղեկատուներ և կենտրոնացված տվյալներ",
                 children: [
                   { label: "Չափման միավորներ", note: "Ապրանքների և նյութերի նկարագրման համար Master DB չափման միավորներ" },
+                  { label: "Իրավակազմակերպական տեսակներ", note: "Master DB իրավակազմակերպական տեսակների տեղեկատու" },
                   { label: "Արժույթներ", note: "Master DB արժույթների տեղեկատու" },
                   { label: "Փոխարժեքներ", note: "Master DB օրական փոխարժեքներ" },
                 ],
