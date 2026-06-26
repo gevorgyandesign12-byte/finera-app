@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    departments: departments.map((department) => toApiDepartment(department)),
+    departments: departments.map(toApiDepartment),
   });
 }
 

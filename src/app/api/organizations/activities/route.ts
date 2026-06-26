@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    activities: activities.map((activity) => toApiActivity(activity)),
+    activities: activities.map(toApiActivity),
   });
 }
 

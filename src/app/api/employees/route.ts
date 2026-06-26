@@ -89,7 +89,7 @@ function toApiEmployee(employee: FineraEmployeeWithCapabilities | null) {
     employmentStatus: employee.employmentStatus,
     hireDate: employee.hireDate,
     notes: employee.notes,
-    capabilities: capabilities.map((capability) => ({
+    capabilities: capabilities.map((capability: CapabilityRecord) => ({
       id: capability.id,
       capabilityScope: capability.capabilityScope,
       capabilityLabel: capabilityLabels[capability.capabilityScope] ?? capability.capabilityScope,
@@ -113,7 +113,7 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    employees: employees.map((employee) => toApiEmployee(employee)),
+    employees: employees.map(toApiEmployee),
   });
 }
 
