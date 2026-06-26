@@ -2143,18 +2143,26 @@ export default function Home() {
 
                           <label style={styles.label}>
                             Քաղաք / գյուղ / բնակավայր
-                            <input
-                              style={styles.input}
-                              type="text"
-                              value={newPartnerMainForm.activityCity}
-                              onChange={(event) =>
-                                setNewPartnerMainForm((current) => ({
-                                  ...current,
-                                  activityCity: event.target.value,
-                                }))
-                              }
-                              placeholder="Օրինակ՝ Գյումրի"
-                            />
+                            <select
+                                style={styles.input}
+                                value={newPartnerMainForm.activityCity}
+                                onChange={(event) =>
+                                  setNewPartnerMainForm((current) => ({
+                                    ...current,
+                                    activityCity: event.target.value,
+                                  }))
+                                }
+                                disabled={!newPartnerMainForm.activityRegion}
+                              >
+                                <option value="">Select city</option>
+                                {armenianSettlements
+                                  .filter((settlement) => settlement.regionCode === newPartnerMainForm.activityRegion)
+                                  .map((settlement) => (
+                                    <option key={settlement.code} value={settlement.code}>
+                                      {settlement.nameHy}
+                                    </option>
+                                  ))}
+                              </select>
                           </label>
 
                           <label style={styles.label}>
