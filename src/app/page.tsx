@@ -7,6 +7,7 @@ import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 import { countries, legalOrganizationTypes, residencyStatuses } from "@/lib/demo-master-reference-data";
+import { armenianRegions } from "@/lib/demo-armenia-address-data";
 import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
@@ -1663,18 +1664,24 @@ export default function Home() {
 
                 <label style={styles.label}>
                   Գրանցման մարզ / նահանգ / շրջան
-                  <input
+                  <select
                     style={styles.input}
-                    type="text"
                     value={newPartnerMainForm.registrationRegion}
                     onChange={(event) =>
                       setNewPartnerMainForm((current) => ({
                         ...current,
                         registrationRegion: event.target.value,
+                        registrationCity: "",
                       }))
                     }
-                    placeholder="Օրինակ՝ Կոտայքի մարզ կամ California"
-                  />
+                  >
+                    <option value="">Select region</option>
+                    {armenianRegions.map((region) => (
+                      <option key={region.code} value={region.code}>
+                        {region.nameHy}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label style={styles.label}>
