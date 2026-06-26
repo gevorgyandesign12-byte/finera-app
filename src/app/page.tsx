@@ -2121,18 +2121,24 @@ export default function Home() {
 
                           <label style={styles.label}>
                             Մարզ / նահանգ / շրջան
-                            <input
-                              style={styles.input}
-                              type="text"
-                              value={newPartnerMainForm.activityRegion}
-                              onChange={(event) =>
-                                setNewPartnerMainForm((current) => ({
-                                  ...current,
-                                  activityRegion: event.target.value,
-                                }))
-                              }
-                              placeholder="Օրինակ՝ Շիրակի մարզ"
-                            />
+                            <select
+                                style={styles.input}
+                                value={newPartnerMainForm.activityRegion}
+                                onChange={(event) =>
+                                  setNewPartnerMainForm((current) => ({
+                                    ...current,
+                                    activityRegion: event.target.value,
+                                    activityCity: "",
+                                  }))
+                                }
+                            >
+                              <option value="">Select region</option>
+                              {armenianRegions.map((region) => (
+                                <option key={region.code} value={region.code}>
+                                  {region.nameHy}
+                                </option>
+                              ))}
+                            </select>
                           </label>
 
                           <label style={styles.label}>
