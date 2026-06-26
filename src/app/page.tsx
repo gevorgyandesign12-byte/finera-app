@@ -1458,7 +1458,7 @@ export default function Home() {
   function renderNewPartnerRegistrationWizard() {
     const tabs = [
       "Ընդհանուր",
-    "Հասցեներ և ստորաբաժանումներ",
+    "Գրանցման հասցեներ և կառուցվածք",
     "Գործունեություն",
     ];
 
