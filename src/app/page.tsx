@@ -7,7 +7,7 @@ import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
 import { countries, legalOrganizationTypes, residencyStatuses } from "@/lib/demo-master-reference-data";
-import { armenianRegions } from "@/lib/demo-armenia-address-data";
+import { armenianRegions, armenianSettlements } from "@/lib/demo-armenia-address-data";
 import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
@@ -1686,9 +1686,8 @@ export default function Home() {
 
                 <label style={styles.label}>
                   Գրանցման քաղաք / գյուղ / բնակավայր
-                  <input
+                  <select
                     style={styles.input}
-                    type="text"
                     value={newPartnerMainForm.registrationCity}
                     onChange={(event) =>
                       setNewPartnerMainForm((current) => ({
@@ -1696,8 +1695,17 @@ export default function Home() {
                         registrationCity: event.target.value,
                       }))
                     }
-                    placeholder="Օրինակ՝ Երևան, Աշտարակ, Փարաքար գյուղ"
-                  />
+                    disabled={!newPartnerMainForm.registrationRegion}
+                  >
+                    <option value="">Select city</option>
+                    {armenianSettlements
+                      .filter((settlement) => settlement.regionCode === newPartnerMainForm.registrationRegion)
+                      .map((settlement) => (
+                        <option key={settlement.code} value={settlement.code}>
+                          {settlement.nameHy}
+                        </option>
+                      ))}
+                  </select>
                 </label>
 
                 <label style={styles.label}>
