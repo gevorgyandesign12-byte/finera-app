@@ -112,15 +112,29 @@ const unitTypes: Array<"բոլորը" | UnitType> = [
   "այլ",
 ];
 
+const unitActionHeader = "Գործողություն";
+const addUnitButtonLabel = "+ Ավելացնել չափման միավոր";
+const editUnitButtonLabel = "Խմբագրել";
+const addUnitNamePrompt = "Մուտքագրիր չափման միավորի անվանումը";
+const addUnitSymbolPrompt = "Մուտքագրիր չափման միավորի նշանը";
+const editUnitNamePrompt = "Խմբագրել չափման միավորի անվանումը";
+const editUnitSymbolPrompt = "Խմբագրել չափման միավորի նշանը";
+const addedMessage = "Նոր չափման միավորը ավելացվեց demo ցուցակում։";
+const updatedMessage = "Չափման միավորը թարմացվեց demo ցուցակում։";
+const demoOnlyMessage = "SAFE demo․ փոփոխությունը պահվում է միայն այս էջում՝ մինչև refresh։";
+
 export function MeasurementUnitsManager({ standalone = false }: { standalone?: boolean }) {
   const [search, setSearch] = useState("");
   const [selectedType, setSelectedType] = useState<"բոլորը" | UnitType>("բոլորը");
+  const [units, setUnits] = useState<MeasurementUnit[]>(demoUnits);
+  const [hoveredUnitId, setHoveredUnitId] = useState<string | null>(null);
+  const [unitMessage, setUnitMessage] = useState<string | null>(null);
 
   const filteredUnits = useMemo(() => {
     const q = search.trim().toLowerCase();
     const type = selectedType.trim();
 
-    return demoUnits.filter((unit) => {
+    return units.filter((unit) => {
       const typeOk = type === "բոլորը" || unit.unitType === type;
 
       const text = [
@@ -137,8 +151,66 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
 
       return typeOk && searchOk;
     });
-  }, [search, selectedType]);
+  }, [search, selectedType, units]);
 
+
+  const addButtonStyle = {
+    border: "none",
+    borderRadius: 12,
+    padding: "11px 14px",
+    background: "#15803d",
+    color: "#ffffff",
+    fontWeight: 900,
+    cursor: "pointer",
+    boxShadow: "0 10px 24px rgba(21, 128, 61, 0.18)",
+  } as const;
+
+  const editButtonStyle = {
+    border: "1px solid #f59e0b",
+    borderRadius: 10,
+    padding: "8px 10px",
+    background: "#fde68a",
+    color: "#78350f",
+    fontWeight: 900,
+    cursor: "pointer",
+  } as const;
+
+  function handleAddUnitDemo() {
+    const nameHy = window.prompt(addUnitNamePrompt)?.trim();
+    if (!nameHy) return;
+    const symbolHy = window.prompt(addUnitSymbolPrompt)?.trim();
+    if (!symbolHy) return;
+    const nextNumber =
+      units.reduce((max, unit) => {
+        const numeric = Number(unit.code);
+        return Number.isFinite(numeric) ? Math.max(max, numeric) : max;
+      }, 9004) + 1;
+    const nextUnit: MeasurementUnit = {
+      id: `unit-demo-${Date.now()}`,
+      code: String(nextNumber).padStart(4, "0"),
+      nameHy,
+      symbolHy,
+      unitType: unitTypes[1] as UnitType,
+      decimalPlaces: 0,
+      isActive: true,
+      note: demoOnlyMessage,
+    };
+    setUnits((current) => [nextUnit, ...current]);
+    setUnitMessage(addedMessage);
+  }
+
+  function handleEditUnitDemo(unit: MeasurementUnit) {
+    const nameHy = window.prompt(editUnitNamePrompt, unit.nameHy)?.trim();
+    if (!nameHy) return;
+    const symbolHy = window.prompt(editUnitSymbolPrompt, unit.symbolHy)?.trim();
+    if (!symbolHy) return;
+    setUnits((current) =>
+      current.map((item) =>
+        item.id === unit.id ? { ...item, nameHy, symbolHy, note: item.note || demoOnlyMessage } : item,
+      ),
+    );
+    setUnitMessage(updatedMessage);
+  }
   return (
     <section
       style={{
@@ -172,6 +244,9 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
                 snapshot՝ պատմական ճշգրտության համար։
               </p>
             </div>
+            <button type="button" style={addButtonStyle} onClick={handleAddUnitDemo}>
+              {addUnitButtonLabel}
+            </button>
           </div>
         </section>
 
@@ -247,8 +322,14 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
           </div>
 
           <div style={{ color: "#64748b", fontSize: 13, fontWeight: 800 }}>
-            Ցուցադրվում է {filteredUnits.length} / {demoUnits.length} չափման միավոր
+            Ցուցադրվում է {filteredUnits.length} / {units.length} չափման միավոր
           </div>
+
+          {unitMessage ? (
+            <div style={{ border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#14532d", borderRadius: 14, padding: 12, fontWeight: 800 }}>
+              {unitMessage}
+            </div>
+          ) : null}
 
           <div style={{ overflowX: "auto" }}>
             <table
@@ -262,7 +343,7 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
             >
               <thead>
                 <tr>
-                  {["Կոդ", "Անվանում", "Նշան", "Տեսակ", "Կլորացում", "Կարգավիճակ", "Նշում"].map((header) => (
+                  {["Կոդ", "Անվանում", "Նշան", "Տեսակ", "Կլորացում", "Կարգավիճակ", "Նշում", unitActionHeader].map((header) => (
                     <th
                       key={header}
                       style={{
@@ -279,7 +360,11 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
               </thead>
               <tbody>
                 {filteredUnits.map((unit) => (
-                  <tr key={unit.id}>
+                  <tr
+                    key={unit.id}
+                    onMouseEnter={() => setHoveredUnitId(unit.id)}
+                    onMouseLeave={() => setHoveredUnitId((current) => (current === unit.id ? null : current))}
+                  >
                     <td style={{ padding: "9px 12px", border: "1px solid #cbd5e1", fontWeight: 900, color: "#1d4ed8" }}>
                       {unit.code}
                     </td>
@@ -300,6 +385,20 @@ export function MeasurementUnitsManager({ standalone = false }: { standalone?: b
                     </td>
                     <td style={{ padding: "9px 12px", border: "1px solid #cbd5e1", color: "#64748b" }}>
                       {unit.note}
+                    </td>
+                    <td style={{ padding: "9px 12px", border: "1px solid #cbd5e1" }}>
+                      <button
+                        type="button"
+                        style={{
+                          ...editButtonStyle,
+                          opacity: hoveredUnitId === unit.id ? 1 : 0,
+                          pointerEvents: hoveredUnitId === unit.id ? "auto" : "none",
+                          transition: "opacity 140ms ease",
+                        }}
+                        onClick={() => handleEditUnitDemo(unit)}
+                      >
+                        {editUnitButtonLabel}
+                      </button>
                     </td>
                   </tr>
                 ))}
