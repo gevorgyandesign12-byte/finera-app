@@ -1428,12 +1428,17 @@ export default function Home() {
     setNewPartnerMessage("Պահպանում ենք հիմնական տեղեկությունները DEV DB-ում...");
 
     try {
+      const isEditingOrganization = Boolean(newPartnerDraft?.id);
       const response = await fetch("/api/organizations", {
-        method: "POST",
+        method: isEditingOrganization ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newPartnerMainForm),
+        body: JSON.stringify(
+          isEditingOrganization
+            ? { ...newPartnerMainForm, organizationId: newPartnerDraft?.id }
+            : newPartnerMainForm
+        ),
       });
 
       const data = (await response.json()) as {
@@ -1448,7 +1453,11 @@ export default function Home() {
 
       setNewPartnerDraft(data.organization);
       setSelectedOrganizationId(data.organization.id);
-      setOrganizations((current) => [data.organization as AppOrganization, ...current]);
+      setOrganizations((current) =>
+        isEditingOrganization
+          ? current.map((item) => (item.id === data.organization?.id ? (data.organization as AppOrganization) : item))
+          : [data.organization as AppOrganization, ...current]
+      );
       setNewPartnerMessage("Գրանցումը հաջողությամբ պահպանվեց DEV DB-ում։");
       window.alert(data.organization.name + "-ի գրանցումը կատարվեց հաջողությամբ։");
       setNewPartnerRegistrationTab("Գործունեություն");
