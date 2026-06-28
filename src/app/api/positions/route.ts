@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    positions: positions.map((position) => toApiPosition(position)),
+    positions: positions.map((position: (typeof positions)[number]) => toApiPosition(position)),
   });
 }
 

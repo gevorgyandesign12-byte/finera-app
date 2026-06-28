@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    organizations: organizations.map((organization) => toApiOrganization(organization)),
+    organizations: organizations.map((organization: (typeof organizations)[number]) => toApiOrganization(organization)),
   });
 }
 

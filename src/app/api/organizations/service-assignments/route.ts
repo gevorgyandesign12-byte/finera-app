@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const assignments = organization.serviceAssignments.map((assignment) => ({
+  const assignments = organization.serviceAssignments.map((assignment: (typeof organization.serviceAssignments)[number]) => ({
     id: assignment.id,
     roleScope: assignment.roleScope,
     roleLabel: roleLabels[assignment.roleScope] ?? assignment.roleScope,

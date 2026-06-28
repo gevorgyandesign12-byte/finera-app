@@ -1944,10 +1944,10 @@ export default function Home() {
           </div>
         ) : null}
 
-              {newPartnerRegistrationTab === "Հասցեներ և ստորաբաժանումներ" ? (
+              {newPartnerRegistrationTab === "Գործունեության հասցեներ և ստորաբաժանումներ" ? (
                 <section style={{ display: "grid", gap: 16 }}>
                   <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
-                    <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>Հասցեներ և ստորաբաժանումներ</h3>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>Գործունեության հասցեներ և ստորաբաժանումներ</h3>
                     <p style={{ margin: 0, color: "#6b7280", fontSize: 13, lineHeight: 1.6 }}>
                       Սկզբում գրանցվում է գործունեության հասցեն, հետո այդ հասցեի տակ՝ առնվազն մեկ ստորաբաժանում։
                       Հետագայում այս կառուցվածքը կօգնի ապրանքների տեղափոխության, պահեստի, արտադրության և տրանսպորտային փաստաթղթերի ավտոմատացման համար։
