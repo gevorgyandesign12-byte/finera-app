@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     registryStatus: organization.registryStatus,
     registrySource: organization.registrySource,
     registryNotes: organization.registryNotes,
+    stateRegistrationDate: organization.stateRegistrationDate,
   };
 }
 
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
     const businessAddress = readString(body.businessAddress);
     const status = readString(body.status) || "draft";
     const organizationKind = readString(body.organizationKind) || "serviced_partner";
+    const stateRegistrationDate = readString(body.stateRegistrationDate);
 
     if (!name) {
       return NextResponse.json({ error: "Անվանումը պարտադիր է։" }, { status: 400 });
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         organizationKind: organizationKind === "own_company" ? "own_company" : "serviced_partner",
         serviceStatus: organizationKind === "own_company" ? "own" : "servicing",
         registryCheckStatus: "not_checked",
+        stateRegistrationDate: stateRegistrationDate || null,
       },
     });
 

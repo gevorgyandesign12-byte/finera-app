@@ -310,6 +310,7 @@ export default function Home() {
   const [archivedOrganizations, setArchivedOrganizations] = useState<AppOrganization[]>([]);
   const [archiveListMessage, setArchiveListMessage] = useState<string | null>(null);
   const [organizationProfileTab, setOrganizationProfileTab] = useState("Ընդհանուր տվյալներ");
+  const [newPartnerEditingOrganizationName, setNewPartnerEditingOrganizationName] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<ServiceContract | null>(null);
   const [contractMessage, setContractMessage] = useState<string | null>(null);
   const [isSavingContract, setIsSavingContract] = useState(false);
@@ -387,6 +388,7 @@ export default function Home() {
     legalType: legalOrganizationTypes[0]?.code ?? "1001",
     taxId: "",
     registryNumber: "",
+    stateRegistrationDate: "",
     legalAddress: "",
     postalCode: "",
     registrationCountryCode: countries[0]?.code ?? "1001",
@@ -1271,6 +1273,7 @@ export default function Home() {
 
       if (!response.ok || !data.organization) {
         setOrganizationSaveStatus(data.error ?? "Չհաջողվեց պահպանել կազմակերպությունը։");
+        window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
         return;
       }
 
@@ -1342,6 +1345,7 @@ export default function Home() {
       setNewPartnerActivities(data.activities ?? []);
     } catch {
       setNewPartnerMessage("Չհաջողվեց բեռնել գործունեության տեսակները։");
+        window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
     }
   }
 
@@ -1445,11 +1449,13 @@ export default function Home() {
       setNewPartnerDraft(data.organization);
       setSelectedOrganizationId(data.organization.id);
       setOrganizations((current) => [data.organization as AppOrganization, ...current]);
-      setNewPartnerMessage("Ընդհանուր տվյալները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
+      setNewPartnerMessage("Գրանցումը հաջողությամբ պահպանվեց DEV DB-ում։");
+      window.alert(data.organization.name + "-ի գրանցումը կատարվեց հաջողությամբ։");
       setNewPartnerRegistrationTab("Գործունեություն");
       void loadWizardActivities(data.organization.id);
     } catch {
       setNewPartnerMessage("Չհաջողվեց կապ հաստատել organizations API-ի հետ։");
+      window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
     } finally {
       setIsSavingNewPartner(false);
     }
@@ -1467,7 +1473,7 @@ export default function Home() {
     return (
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գրանցում</p>
-        <h2>Նոր գործընկեր գրանցել</h2>
+        <h2>{newPartnerEditingOrganizationName ?? "\u0546\u0578\u0580 \u0563\u0578\u0580\u056e\u0568\u0576\u056f\u0565\u0580 \u0563\u0580\u0561\u0576\u0581\u0565\u056c"}</h2>
         <p>
           Գրանցումը բաժանում ենք փուլերի՝ հիմնական տվյալներ, գործունեության տեսակներ,
           հետո տվյալ կազմակերպության կառուցվածքային ստորաբաժանումներ։
@@ -1623,6 +1629,21 @@ export default function Home() {
                       }))
                     }
                     placeholder="Գրանցման համար"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Պետական գրանցման ամսաթիվ
+                  <input
+                    style={styles.input}
+                    type="date"
+                    value={newPartnerMainForm.stateRegistrationDate}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        stateRegistrationDate: event.target.value,
+                      }))
+                    }
                   />
                 </label>
 
@@ -1809,26 +1830,16 @@ export default function Home() {
                   />
                 </label>
 
-                <label style={styles.label}>
-                  Տնօրեն / պատասխանատու անձ
-                  <input
-                    style={styles.input}
-                    type="text"
-                    value={newPartnerMainForm.directorName}
-                    onChange={(event) =>
-                      setNewPartnerMainForm((current) => ({
-                        ...current,
-                        directorName: event.target.value,
-                      }))
-                    }
-                    placeholder="Անուն ազգանուն"
-                  />
-                </label>
               </div>
 
-              <button type="submit" style={styles.primaryButton} disabled={isSavingNewPartner}>
-                {isSavingNewPartner ? "Պահպանվում է..." : "Պահպանել և անցնել հաջորդ քայլին"}
-              </button>
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", alignItems: "center", marginTop: 10 }}>
+                <button type="button" style={{ border: "1px solid #b91c1c", background: "#dc2626", color: "#ffffff", borderRadius: 12, padding: "12px 22px", cursor: "pointer", fontWeight: 700 }} onClick={() => setNewPartnerMessage("\u0533\u0580\u0561\u0576\u0581\u0578\u0582\u0574\u0568 \u0579\u0565\u0572\u0561\u0580\u056f\u057e\u0565\u0581\u0589")}>
+                  Չեղարկել
+                </button>
+                <button type="submit" style={{ ...styles.primaryButton, background: "#16a34a", border: "1px solid #15803d", color: "#ffffff", width: "auto", minWidth: 120, padding: "12px 28px" }} disabled={isSavingNewPartner}>
+                  {isSavingNewPartner ? "Գրանցվում է..." : "Գրանցել"}
+                </button>
+              </div>
             </form>
           </div>
         ) : null}
@@ -2550,6 +2561,39 @@ export default function Home() {
     setSelectedOrganizationId(organizationId);
     setOrganizationProfileTab("Ընդհանուր տվյալներ");
     setActiveDemoPage("Կազմակերպության պրոֆիլ");
+  }
+
+  function openOrganizationEditPage(organization: AppOrganization) {
+    const editableOrganization = organization as AppOrganization & Record<string, string | null | undefined>;
+    setSelectedOrganizationId(organization.id);
+    setNewPartnerDraft(organization);
+    setNewPartnerEditingOrganizationName(organization.name);
+    setNewPartnerRegistrationTab("\u0538\u0576\u0564\u0570\u0561\u0576\u0578\u0582\u0580 \u057f\u057e\u0575\u0561\u056c\u0576\u0565\u0580");
+    setNewPartnerMessage(null);
+    setNewPartnerMainForm((current) => ({
+      ...current,
+      name: editableOrganization.name ?? "",
+      shortName: editableOrganization.shortName ?? "",
+      residency: editableOrganization.residency ?? current.residency,
+      legalType: editableOrganization.legalType ?? current.legalType,
+      taxId: editableOrganization.taxId ?? "",
+      registryNumber: editableOrganization.registryNumber ?? "",
+      stateRegistrationDate: editableOrganization.stateRegistrationDate ?? "",
+      legalAddress: editableOrganization.legalAddress ?? "",
+      postalCode: editableOrganization.postalCode ?? "",
+      registrationCountryCode: editableOrganization.registrationCountryCode ?? current.registrationCountryCode,
+      registrationRegion: editableOrganization.registrationRegion ?? "",
+      registrationCommunity: editableOrganization.registrationCommunity ?? "",
+      registrationSettlement: editableOrganization.registrationSettlement ?? "",
+      registrationStreet: editableOrganization.registrationStreet ?? "",
+      registrationBuilding: editableOrganization.registrationBuilding ?? "",
+      registrationApartment: editableOrganization.registrationApartment ?? "",
+      businessAddress: editableOrganization.businessAddress ?? "",
+      phone: editableOrganization.phone ?? "",
+      email: editableOrganization.email ?? "",
+      directorName: editableOrganization.directorName ?? "",
+    }));
+    setActiveDemoPage("\u0546\u0578\u0580 \u0563\u0578\u0580\u056e\u0568\u0576\u056f\u0565\u0580 \u0563\u0580\u0561\u0576\u0581\u0565\u056c");
   }
 
   function openArchiveOrganizationDialog(organizationId: string) {
@@ -4753,6 +4797,20 @@ export default function Home() {
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Կազմակերպություններ · Պրոֆիլ</p>
         <h2>{organization.name}</h2>
+        <button
+          type="button"
+          style={{
+            ...styles.primaryButton,
+            width: "fit-content",
+            margin: "8px 0 12px",
+            background: "#16a34a",
+            border: "1px solid #15803d",
+            color: "#ffffff",
+          }}
+          onClick={() => openOrganizationEditPage(organization)}
+        >
+          {"\u053d\u0574\u0562\u0561\u0563\u0580\u0565\u056c"}
+        </button>
         <p>
           Սա կազմակերպության կենտրոնական էջն է։ Այստեղից պետք է կառավարվի տվյալ կազմակերպության
           ընդհանուր տվյալները, ստուգումը, սպասարկման վիճակը, պայմանագիրը և հաշվապահական տարածքը։
