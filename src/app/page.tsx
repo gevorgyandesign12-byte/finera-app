@@ -454,6 +454,7 @@ export default function Home() {
 
     if (!hasAddressDetails) {
       setNewPartnerMessage("Լրացրու գործունեության հասցեի առնվազն մեկ դաշտ։");
+      window.alert("Գրանցումը հաջողությամբ չի կատարվել։");
       return;
     }
 
@@ -495,6 +496,7 @@ export default function Home() {
     setNewPartnerDepartmentAddressId(nextAddressId);
     setNewPartnerDepartmentModalOpen(true);
     setNewPartnerMessage("Հասցեն գրանցվեց։ Այժմ ավելացրու այդ հասցեի առնվազն մեկ ստորաբաժանում։");
+    window.alert("Ձեր գրանցումը կատարվեց հաջողությամբ։");
   }
 
   function updateNewPartnerDepartmentForm(
@@ -515,6 +517,7 @@ export default function Home() {
   function addNewPartnerDepartment(addressId: string) {
     if (!addressId) {
       setNewPartnerMessage("Ընտրիր հասցեն, որի տակ պետք է ավելացվի ստորաբաժանումը։");
+      window.alert("Գրանցումը հաջողությամբ չի կատարվել։");
       return;
     }
 
@@ -554,6 +557,7 @@ export default function Home() {
     setNewPartnerDepartmentModalOpen(false);
     setNewPartnerDepartmentAddressId("");
     setNewPartnerMessage("Ստորաբաժանումը գրանցվեց ընտրված գործունեության հասցեի տակ։");
+    window.alert("Ձեր գրանցումը կատարվեց հաջողությամբ։");
   }
   const [newPartnerActivities, setNewPartnerActivities] = useState<AppOrganizationActivity[]>([]);
   const [newPartnerActivityForm, setNewPartnerActivityForm] = useState({
@@ -1429,6 +1433,48 @@ export default function Home() {
 
     try {
       const isEditingOrganization = Boolean(newPartnerDraft?.id);
+      const composedLegalAddress = [
+        newPartnerMainForm.registrationRegion,
+        newPartnerMainForm.registrationCity,
+        newPartnerMainForm.registrationStreet,
+        newPartnerMainForm.registrationBuilding,
+        newPartnerMainForm.registrationApartment,
+      ]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      const firstAddedActivityAddress = newPartnerActivityAddresses[0];
+      const composedBusinessAddress = [
+        newPartnerMainForm.activityRegion,
+        newPartnerMainForm.activityCity,
+        newPartnerMainForm.activityStreet,
+        newPartnerMainForm.activityBuilding,
+        newPartnerMainForm.activityApartment,
+      ]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      const composedAddedBusinessAddress = firstAddedActivityAddress
+        ? [
+            firstAddedActivityAddress.region,
+            firstAddedActivityAddress.city,
+            firstAddedActivityAddress.street,
+            firstAddedActivityAddress.building,
+            firstAddedActivityAddress.apartment,
+          ]
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .join(", ")
+        : "";
+
+      const organizationPayload = {
+        ...newPartnerMainForm,
+        legalAddress: newPartnerMainForm.legalAddress.trim() || composedLegalAddress,
+        businessAddress: newPartnerMainForm.businessAddress.trim() || composedBusinessAddress || composedAddedBusinessAddress,
+      };
+
       const response = await fetch("/api/organizations", {
         method: isEditingOrganization ? "PATCH" : "POST",
         headers: {
@@ -1436,8 +1482,8 @@ export default function Home() {
         },
         body: JSON.stringify(
           isEditingOrganization
-            ? { ...newPartnerMainForm, organizationId: newPartnerDraft?.id }
-            : newPartnerMainForm
+            ? { ...organizationPayload, organizationId: newPartnerDraft?.id }
+            : organizationPayload
         ),
       });
 
@@ -1451,7 +1497,7 @@ export default function Home() {
         return;
       }
 
-      setNewPartnerDraft(data.organization);
+      setNewPartnerDraft(isEditingOrganization ? data.organization : null);
       setSelectedOrganizationId(data.organization.id);
       setOrganizations((current) =>
         isEditingOrganization
@@ -1459,9 +1505,59 @@ export default function Home() {
           : [data.organization as AppOrganization, ...current]
       );
       setNewPartnerMessage("Գրանցումը հաջողությամբ պահպանվեց DEV DB-ում։");
-      window.alert(data.organization.name + "-ի գրանցումը կատարվեց հաջողությամբ։");
-      setNewPartnerRegistrationTab("Գործունեություն");
-      void loadWizardActivities(data.organization.id);
+
+      // reset-main-registration-after-success
+      if (!isEditingOrganization) {
+        setNewPartnerMainForm({
+          name: "",
+          residency: residencyStatuses[0]?.code ?? "resident",
+          legalType: legalOrganizationTypes[0]?.code ?? "1001",
+          taxId: "",
+          registryNumber: "",
+          stateRegistrationDate: "",
+          legalAddress: "",
+          postalCode: "",
+          registrationCountryCode: countries[0]?.code ?? "1001",
+          registrationRegion: "",
+          registrationCity: "",
+          registrationStreet: "",
+          registrationBuilding: "",
+          registrationApartment: "",
+          activityCountryCode: countries[0]?.code ?? "1001",
+          activityRegion: "",
+          activityCity: "",
+          activityAddressType: "\u0533\u0580\u0561\u057d\u0565\u0576\u0575\u0561\u056f",
+          activityStreet: "",
+          activityBuilding: "",
+          activityApartment: "",
+          businessAddress: "",
+          phone: "",
+          email: "",
+          directorName: "",
+        });
+        setNewPartnerActivityAddresses([]);
+        setNewPartnerDepartmentFormsByAddress({});
+        setNewPartnerAddressModalOpen(false);
+        setNewPartnerDepartmentModalOpen(false);
+        setNewPartnerDepartmentAddressId("");
+        setNewPartnerActivities([]);
+        setNewPartnerActivityForm({
+          title: "",
+          code: "",
+          isPrimary: true,
+          notes: "",
+        });
+      }
+
+      window.alert(isEditingOrganization ? "Բոլոր փոփոխությունները կատարվեցին հաջողությամբՉ" : "Ղեր գրանցումը կատարվեց հաջողությամբՉ");
+
+      if (isEditingOrganization) {
+        setActiveDemoPage("Կազմակերպության պրոֆիլ");
+        setOrganizationProfileTab("Անդհանուր տվյալներ");
+      } else {
+        setNewPartnerRegistrationTab("Գործունեություն");
+        void loadWizardActivities(data.organization.id);
+      }
     } catch {
       setNewPartnerMessage("Չհաջողվեց կապ հաստատել organizations API-ի հետ։");
       window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
@@ -1845,9 +1941,23 @@ export default function Home() {
                 <button type="button" style={{ border: "1px solid #b91c1c", background: "#dc2626", color: "#ffffff", borderRadius: 12, padding: "12px 22px", cursor: "pointer", fontWeight: 700 }} onClick={() => setNewPartnerMessage("\u0533\u0580\u0561\u0576\u0581\u0578\u0582\u0574\u0568 \u0579\u0565\u0572\u0561\u0580\u056f\u057e\u0565\u0581\u0589")}>
                   Չեղարկել
                 </button>
-                <button type="submit" style={{ ...styles.primaryButton, background: "#16a34a", border: "1px solid #15803d", color: "#ffffff", width: "auto", minWidth: 120, padding: "12px 28px" }} disabled={isSavingNewPartner}>
-                  {isSavingNewPartner ? "Գրանցվում է..." : "Գրանցել"}
-                </button>
+                <button
+              type="submit"
+              disabled={isSavingNewPartner}
+              style={{
+                ...styles.primaryButton,
+                background: newPartnerDraft?.id ? "#f59e0b" : "#16a34a",
+                border: newPartnerDraft?.id ? "1px solid #d97706" : "1px solid #15803d",
+                color: "#ffffff",
+                width: "auto",
+                minWidth: 120,
+                padding: "12px 28px",
+                opacity: isSavingNewPartner ? 0.65 : 1,
+                cursor: isSavingNewPartner ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSavingNewPartner ? "Պահպանվում է..." : newPartnerDraft?.id ? "Խմբագրել" : "Գրանցել"}
+            </button>
               </div>
             </form>
           </div>
@@ -1975,14 +2085,36 @@ export default function Home() {
                   </div>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <button type="button" style={styles.primaryButton} onClick={() => setNewPartnerAddressModalOpen(true)}>
-                      + Ավելացնել գործունեության հասցե
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.primaryButton,
+                        width: "fit-content",
+                        alignSelf: "flex-start",
+                        padding: "9px 16px",
+                        background: "#16a34a",
+                        border: "1px solid #15803d",
+                        color: "#ffffff",
+                        fontSize: 14,
+                        lineHeight: 1.2,
+                      }}
+                      onClick={() => setNewPartnerAddressModalOpen(true)}
+                    >
+                      Գրանցում
                     </button>
 
                     <button
                       type="button"
                       style={{
                         ...styles.primaryButton,
+                        width: "fit-content",
+                        alignSelf: "flex-start",
+                        padding: "9px 16px",
+                        background: "#16a34a",
+                        border: "1px solid #15803d",
+                        color: "#ffffff",
+                        fontSize: 14,
+                        lineHeight: 1.2,
                         opacity: newPartnerActivityAddresses.length === 0 ? 0.55 : 1,
                         cursor: newPartnerActivityAddresses.length === 0 ? "not-allowed" : "pointer",
                       }}
@@ -2002,7 +2134,7 @@ export default function Home() {
                         setNewPartnerDepartmentModalOpen(true);
                       }}
                     >
-                      + Ավելացնել ստորաբաժանում
+                      Գրանցում
                     </button>
                   </div>
 
@@ -2558,9 +2690,17 @@ export default function Home() {
             </div>
           ) : null}
 
-          <button type="submit" style={styles.primaryButton} disabled={isSavingOrganization}>
-            {isSavingOrganization ? "Պահպանվում է..." : "Գրանցել DEV DB-ում"}
-          </button>
+          <button
+                  type="submit"
+                  disabled={isSavingOrganization}
+                  style={{
+                    ...styles.primaryButton,
+                    opacity: isSavingOrganization ? 0.65 : 1,
+                    cursor: isSavingOrganization ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {isSavingOrganization ? "Պահպանվում է..." : "Պահպանել"}
+                </button>
         </form>
       </section>
     );
