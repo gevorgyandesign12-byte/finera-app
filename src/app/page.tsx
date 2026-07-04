@@ -410,6 +410,117 @@ export default function Home() {
     directorName: "",
   });
 
+
+
+  const emptyNewPartnerOwnershipForm = {
+    personType: "physical",
+    name: "",
+    identifier: "",
+    sharePercent: "",
+    shareCount: "",
+    notes: "",
+  };
+
+  const [newPartnerOwnershipForm, setNewPartnerOwnershipForm] = useState(emptyNewPartnerOwnershipForm);
+  const [newPartnerOwnershipEntries, setNewPartnerOwnershipEntries] = useState<Array<{
+    id: string;
+    legalType: string;
+    personType: string;
+    name: string;
+    identifier: string;
+    sharePercent: string;
+    shareCount: string;
+    notes: string;
+  }>>([]);
+  const [newPartnerOwnershipError, setNewPartnerOwnershipError] = useState("");
+
+  const getNewPartnerOwnershipMode = () => {
+    if (newPartnerMainForm.legalType === "1002") return "individual";
+    if (newPartnerMainForm.legalType === "1001") return "llc";
+    if (newPartnerMainForm.legalType === "1003" || newPartnerMainForm.legalType === "1004") return "shares";
+    return "placeholder";
+  };
+
+  const handleNewPartnerOwnershipFieldChange = (
+    field: "personType" | "name" | "identifier" | "sharePercent" | "shareCount" | "notes",
+    value: string,
+  ) => {
+    setNewPartnerOwnershipForm((current) => ({ ...current, [field]: value }));
+    setNewPartnerOwnershipError("");
+  };
+
+  const handleAddNewPartnerOwnershipEntry = () => {
+    const ownershipMode = getNewPartnerOwnershipMode();
+
+    if (ownershipMode !== "llc" && ownershipMode !== "shares") {
+      return;
+    }
+
+    const name = newPartnerOwnershipForm.name.trim();
+    const identifier = newPartnerOwnershipForm.identifier.trim();
+    const sharePercentText = newPartnerOwnershipForm.sharePercent.trim();
+    const shareCountText = newPartnerOwnershipForm.shareCount.trim();
+    const notes = newPartnerOwnershipForm.notes.trim();
+
+    if (!name) {
+      setNewPartnerOwnershipError("Անունը / անվանումը պարտադիր է։");
+      return;
+    }
+
+    let parsedSharePercent = 0;
+
+    if (sharePercentText) {
+      parsedSharePercent = Number(sharePercentText);
+
+      if (!Number.isFinite(parsedSharePercent) || parsedSharePercent <= 0 || parsedSharePercent > 100) {
+        setNewPartnerOwnershipError(ownershipMode === "llc" ? "Բաժնեմասի տոկոսը պետք է լինի 0-ից մեծ և 100-ից ոչ ավել։" : "Փաթեթի բաժնեմասի տոկոսը պետք է լինի 0-ից մեծ և 100-ից ոչ ավել։");
+        return;
+      }
+    }
+
+    if (ownershipMode === "shares" && shareCountText) {
+      const parsedShareCount = Number(shareCountText);
+
+      if (!Number.isFinite(parsedShareCount) || parsedShareCount <= 0 || !Number.isInteger(parsedShareCount)) {
+        setNewPartnerOwnershipError("Բաժնետոմսերի քանակը պետք է լինի դրական ամբողջ թիվ։");
+        return;
+      }
+    }
+
+    if (ownershipMode === "llc" && sharePercentText) {
+      const currentTotal = newPartnerOwnershipEntries
+        .filter((entry) => entry.legalType === newPartnerMainForm.legalType)
+        .reduce((sum, entry) => sum + (Number.parseFloat(entry.sharePercent) || 0), 0);
+
+      if (currentTotal + parsedSharePercent > 100) {
+        setNewPartnerOwnershipError("Բաժնեմասերի ընդհանուր տոկոսը չի կարող գերազանցել 100%-ը։");
+        return;
+      }
+    }
+
+    setNewPartnerOwnershipEntries((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        legalType: newPartnerMainForm.legalType,
+        personType: newPartnerOwnershipForm.personType,
+        name,
+        identifier,
+        sharePercent: sharePercentText,
+        shareCount: ownershipMode === "shares" ? shareCountText : "",
+        notes,
+      },
+    ]);
+
+    setNewPartnerOwnershipForm(emptyNewPartnerOwnershipForm);
+    setNewPartnerOwnershipError("");
+  };
+
+  const handleRemoveNewPartnerOwnershipEntry = (entryId: string) => {
+    setNewPartnerOwnershipEntries((current) => current.filter((entry) => entry.id !== entryId));
+    setNewPartnerOwnershipError("");
+  };
+
   const [newPartnerActivityAddresses, setNewPartnerActivityAddresses] = useState<
     Array<{
       id: string;
@@ -1566,9 +1677,11 @@ export default function Home() {
     }
   }
 
-  function renderNewPartnerRegistrationWizard() {
+  
+function renderNewPartnerRegistrationWizard() {
     const tabs = [
       "Ընդհանուր",
+    "Հիմնադիրներ",
     "Գործունեության հասցեներ և ստորաբաժանումներ",
     "Գործունեություն",
     ];
@@ -1962,6 +2075,271 @@ export default function Home() {
             </form>
           </div>
         ) : null}
+
+        {newPartnerRegistrationTab === "Հիմնադիրներ" && (() => {
+            const ownershipMode = getNewPartnerOwnershipMode();
+            const currentOwnershipEntries = newPartnerOwnershipEntries.filter(
+              (entry) => entry.legalType === newPartnerMainForm.legalType,
+            );
+            const totalSharePercent = currentOwnershipEntries.reduce(
+              (sum, entry) => sum + (Number.parseFloat(entry.sharePercent) || 0),
+              0,
+            );
+            const ownershipHeading =
+              ownershipMode === "individual"
+                ? "ԱՁ տվյալներ"
+                : ownershipMode === "llc"
+                  ? "Մասնակիցներ"
+                  : ownershipMode === "shares"
+                    ? "Բաժնետերեր"
+                    : "Հիմնադիրներ";
+            const ownershipIntro =
+              ownershipMode === "llc"
+                ? "Մուտքագրեք մասնակիցներին միայն SAFE demo-ի համար։"
+                : ownershipMode === "shares"
+                  ? "Մուտքագրեք բաժնետերերին միայն SAFE demo-ի համար։"
+                  : "";
+
+            return (
+              <section
+                style={{
+                  border: "1px solid rgba(148, 163, 184, 0.32)",
+                  borderRadius: "18px",
+                  padding: "18px",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  display: "grid",
+                  gap: "16px",
+                }}
+              >
+                <div style={{ display: "grid", gap: "6px" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.05rem" }}>{ownershipHeading}</h3>
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    SAFE demo փուլ․ տվյալները դեռ չեն պահպանվում բազայում։
+                  </p>
+                  {ownershipIntro ? (
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{ownershipIntro}</p>
+                  ) : null}
+                </div>
+
+                {ownershipMode === "individual" ? (
+                  <div
+                    style={{
+                      borderRadius: "14px",
+                      border: "1px solid rgba(14, 165, 233, 0.28)",
+                      background: "rgba(224, 242, 254, 0.5)",
+                      padding: "14px",
+                      color: "#075985",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    ԱՁ-ն հիմնադիրներ/մասնակիցներ/բաժնետերեր չունի, քանի որ անհատ ձեռնարկատերը առանձին իրավաբանական անձ չէ։ Սեփականատիրոջ տվյալները պահվելու են ընդհանուր տվյալների բաժնում։
+                  </div>
+                ) : null}
+
+                {ownershipMode === "placeholder" ? (
+                  <div
+                    style={{
+                      borderRadius: "14px",
+                      border: "1px solid rgba(245, 158, 11, 0.34)",
+                      background: "rgba(254, 243, 199, 0.5)",
+                      padding: "14px",
+                      color: "#92400e",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Այս իրավական ձևի հիմնադիրների/մասնակցության տրամաբանությունը դեռ SAFE փուլում է։ Կձևավորվի առանձին կանոններով՝ առանց ՍՊԸ/բաժնետիրական մոդելը կուրորեն կիրառելու։
+                  </div>
+                ) : null}
+
+                {(ownershipMode === "llc" || ownershipMode === "shares") ? (
+                  <>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: "12px",
+                      }}
+                    >
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Անձի տեսակ
+                        <select
+                          value={newPartnerOwnershipForm.personType}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("personType", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                            background: "white",
+                          }}
+                        >
+                          <option value="physical">Ֆիզիկական անձ</option>
+                          <option value="legal">Իրավաբանական անձ</option>
+                          <option value="state">Պետություն / համայնք</option>
+                        </select>
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Անուն / Անվանում
+                        <input
+                          value={newPartnerOwnershipForm.name}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("name", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        ՀՎՀՀ / անձնագիր / ՀԾՀ
+                        <input
+                          value={newPartnerOwnershipForm.identifier}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("identifier", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      {ownershipMode === "shares" ? (
+                        <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                          Բաժնետոմսերի քանակ
+                          <input
+                            value={newPartnerOwnershipForm.shareCount}
+                            onChange={(event) => handleNewPartnerOwnershipFieldChange("shareCount", event.target.value)}
+                            inputMode="numeric"
+                            style={{
+                              border: "1px solid rgba(148, 163, 184, 0.45)",
+                              borderRadius: "12px",
+                              padding: "10px 12px",
+                            }}
+                          />
+                        </label>
+                      ) : null}
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        {ownershipMode === "shares" ? "Փաթեթի բաժնեմաս %" : "Բաժնեմաս %"}
+                        <input
+                          value={newPartnerOwnershipForm.sharePercent}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("sharePercent", event.target.value)}
+                          inputMode="decimal"
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Նշումներ
+                        <input
+                          value={newPartnerOwnershipForm.notes}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("notes", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {newPartnerOwnershipError ? (
+                      <div
+                        style={{
+                          borderRadius: "12px",
+                          border: "1px solid rgba(220, 38, 38, 0.28)",
+                          background: "rgba(254, 226, 226, 0.55)",
+                          color: "#991b1b",
+                          padding: "10px 12px",
+                        }}
+                      >
+                        {newPartnerOwnershipError}
+                      </div>
+                    ) : null}
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={handleAddNewPartnerOwnershipEntry}
+                        style={{
+                          border: "0",
+                          borderRadius: "999px",
+                          padding: "10px 16px",
+                          background: "#0f172a",
+                          color: "white",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {ownershipMode === "shares" ? "Ավելացնել բաժնետեր" : "Ավելացնել մասնակից"}
+                      </button>
+
+                      <span style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                        Ընդհանուր բաժնեմաս: {totalSharePercent ? `${totalSharePercent}%` : "0%"}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gap: "10px" }}>
+                      {currentOwnershipEntries.length === 0 ? (
+                        <div style={{ color: "#64748b", fontSize: "0.92rem" }}>Դեռ գրառում չկա։</div>
+                      ) : (
+                        currentOwnershipEntries.map((entry) => (
+                          <div
+                            key={entry.id}
+                            style={{
+                              border: "1px solid rgba(148, 163, 184, 0.28)",
+                              borderRadius: "14px",
+                              padding: "12px",
+                              display: "grid",
+                              gap: "8px",
+                              background: "rgba(248, 250, 252, 0.8)",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                              <strong>{entry.name}</strong>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveNewPartnerOwnershipEntry(entry.id)}
+                                style={{
+                                  border: "1px solid rgba(148, 163, 184, 0.45)",
+                                  borderRadius: "999px",
+                                  padding: "6px 10px",
+                                  background: "white",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Հեռացնել
+                              </button>
+                            </div>
+                            <div style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
+                              {entry.personType === "physical"
+                                ? "Ֆիզիկական անձ"
+                                : entry.personType === "legal"
+                                  ? "Իրավաբանական անձ"
+                                  : "Պետություն / համայնք"}
+                              {entry.identifier ? ` · ${entry.identifier}` : ""}
+                              {entry.shareCount ? ` · Բաժնետոմսերի քանակ: ${entry.shareCount}` : ""}
+                              {entry.sharePercent ? ` · ${ownershipMode === "shares" ? "Փաթեթի բաժնեմաս %" : "Բաժնեմաս %"}: ${entry.sharePercent}%` : ""}
+                              {entry.notes ? ` · ${entry.notes}` : ""}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: 1.6 }}>
+                      {ownershipMode === "llc" ? "ՍՊԸ մասնակիցների քանակային սահմանափակումը հետո կստուգվի հատուկ օրենքով․ այս փուլում չենք hardcode անում։" : newPartnerMainForm.legalType === "1003" ? "ՓԲԸ-ի համար նախատեսվում է փակ շրջանառության տրամաբանություն։" : "ԲԲԸ-ի համար նախատեսվում է բաց շրջանառության տրամաբանություն։"}
+                    </div>
+                  </>
+                ) : null}
+              </section>
+            );
+          })()}
 
         {newPartnerRegistrationTab === "Գործունեություն" ? (
           <div style={styles.tabPanel}>
