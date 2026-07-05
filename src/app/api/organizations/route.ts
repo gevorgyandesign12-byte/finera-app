@@ -33,6 +33,9 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     postalCode: organization.postalCode,
     businessAddress: organization.businessAddress,
     tenantDatabaseName: organization.tenantDatabaseName,
+    tenantDatabaseStatus: organization.tenantDatabaseStatus,
+    tenantDatabaseCreatedAt: organization.tenantDatabaseCreatedAt?.toISOString() ?? null,
+    tenantDatabaseError: organization.tenantDatabaseError,
     organizationKind: organization.organizationKind,
 
     serviceStatus: organization.serviceStatus,

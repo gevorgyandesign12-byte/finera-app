@@ -131,6 +131,9 @@ type AppOrganization = {
   postalCode?: string | null;
   businessAddress?: string | null;
   tenantDatabaseName?: string | null;
+  tenantDatabaseStatus?: string | null;
+  tenantDatabaseCreatedAt?: string | null;
+  tenantDatabaseError?: string | null;
   organizationKind?: string | null;
   serviceStatus?: string | null;
   serviceStoppedAt?: string | null;
