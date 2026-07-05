@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    employees: employees.map(toApiOrganizationEmployee),
+    employees: employees.map((employee: (typeof employees)[number]) => toApiOrganizationEmployee(employee)),
   });
 }
 

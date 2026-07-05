@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import YearSelectModal from "../../../../components/YearSelectModal";
 import SimpleTabs, { TabItem } from "../../../../components/SimpleTabs";
 
-export default function ProfitTaxPage({ params }: { params: { year: string } }) {
+export default function ProfitTaxPage() {
   const router = useRouter();
+  const params = useParams<{ year: string }>();
   const yearNum = Number(params.year);
 
   const [yearModal, setYearModal] = useState(false);

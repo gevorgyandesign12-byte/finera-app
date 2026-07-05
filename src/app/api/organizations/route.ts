@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +49,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     registryStatus: organization.registryStatus,
     registrySource: organization.registrySource,
     registryNotes: organization.registryNotes,
+    stateRegistrationDate: organization.stateRegistrationDate,
   };
 }
 
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    organizations: organizations.map(toApiOrganization),
+    organizations: organizations.map((organization: (typeof organizations)[number]) => toApiOrganization(organization)),
   });
 }
 
@@ -79,6 +80,7 @@ export async function POST(request: Request) {
     const businessAddress = readString(body.businessAddress);
     const status = readString(body.status) || "draft";
     const organizationKind = readString(body.organizationKind) || "serviced_partner";
+    const stateRegistrationDate = readString(body.stateRegistrationDate);
 
     if (!name) {
       return NextResponse.json({ error: "Անվանումը պարտադիր է։" }, { status: 400 });
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         organizationKind: organizationKind === "own_company" ? "own_company" : "serviced_partner",
         serviceStatus: organizationKind === "own_company" ? "own" : "servicing",
         registryCheckStatus: "not_checked",
+        stateRegistrationDate: stateRegistrationDate || null,
       },
     });
 
@@ -130,6 +133,86 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Կազմակերպությունը չպահպանվեց DEV DB-ում։" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const organizationId = readString(body.organizationId);
+    const name = readString(body.name);
+    const shortName = readString(body.shortName);
+    const legalType = readString(body.legalType);
+    const taxId = readString(body.taxId);
+    const shortDescription = readString(body.shortDescription);
+    const legalAddress = readString(body.legalAddress);
+    const postalCode = readString(body.postalCode);
+    const businessAddress = readString(body.businessAddress);
+    const status = readString(body.status) || "draft";
+    const stateRegistrationDate = readString(body.stateRegistrationDate);
+
+    if (!organizationId) {
+      return NextResponse.json({ error: "\u053f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0561\u0576 ID-\u0576 \u057a\u0561\u0580\u057f\u0561\u0564\u056b\u0580 \u0567\u0589" }, { status: 400 });
+    }
+
+    if (!name) {
+      return NextResponse.json({ error: "\u0531\u0576\u057e\u0561\u0576\u0578\u0582\u0574\u0568 \u057a\u0561\u0580\u057f\u0561\u0564\u056b\u0580 \u0567\u0589" }, { status: 400 });
+    }
+
+    if (!legalType) {
+      return NextResponse.json({ error: "\u053f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0561\u0576 \u057f\u0565\u057d\u0561\u056f\u0568 \u057a\u0561\u0580\u057f\u0561\u0564\u056b\u0580 \u0567\u0589" }, { status: 400 });
+    }
+
+    if (!taxId) {
+      return NextResponse.json({ error: "\u0540\u054e\u0540\u0540-\u0576 \u057a\u0561\u0580\u057f\u0561\u0564\u056b\u0580 \u0567 demo \u0563\u0580\u0561\u0576\u0581\u0574\u0561\u0576 \u0570\u0561\u0574\u0561\u0580\u0589" }, { status: 400 });
+    }
+
+    if (!/^\d{8}$/.test(taxId)) {
+      return NextResponse.json(
+        { error: "\u0540\u054e\u0540\u0540-\u0576 \u057a\u0565\u057f\u0584 \u0567 \u056c\u056b\u0576\u056b \u0574\u056b\u0561\u0575\u0576 8 \u0569\u057e\u0561\u0576\u0577\u0561\u0576\u055d \u0561\u057c\u0561\u0576\u0581 \u057f\u0561\u057c\u0565\u0580\u056b \u056f\u0561\u0574 \u0576\u0577\u0561\u0576\u0576\u0565\u0580\u056b\u0589" },
+        { status: 400 }
+      );
+    }
+
+    const organization = await prisma.organization.update({
+      where: { id: organizationId },
+      data: {
+        name,
+        shortName: shortName || null,
+        legalType,
+        taxId,
+        status,
+        shortDescription: shortDescription || null,
+        legalAddress: legalAddress || null,
+        postalCode: postalCode || null,
+        businessAddress: businessAddress || null,
+        stateRegistrationDate: stateRegistrationDate || null,
+      },
+    });
+
+    return NextResponse.json({ organization: toApiOrganization(organization) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+
+    if (message.includes("Unique constraint")) {
+      return NextResponse.json(
+        { error: "\u0531\u0575\u057d \u0540\u054e\u0540\u0540-\u0578\u057e \u056f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0578\u0582\u0576 \u0561\u0580\u0564\u0565\u0576 \u056f\u0561 DEV Master DB-\u0578\u0582\u0574\u0589" },
+        { status: 409 }
+      );
+    }
+
+    if (message.includes("Record to update not found")) {
+      return NextResponse.json(
+        { error: "\u053f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0578\u0582\u0576\u0568 \u0579\u0563\u057f\u0576\u057e\u0565\u0581 DEV DB-\u0578\u0582\u0574\u0589" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "\u053f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0561\u0576 \u057f\u057e\u0575\u0561\u056c\u0576\u0565\u0580\u0568 \u0579\u0569\u0561\u0580\u0574\u0561\u0581\u057e\u0565\u0581\u056b\u0576 DEV DB-\u0578\u0582\u0574\u0589" },
       { status: 500 }
     );
   }

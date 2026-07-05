@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
 import { demoMenuByRole, type DemoMenuItem } from "@/lib/demo-menu";
-import { legalOrganizationTypes, residencyStatuses } from "@/lib/demo-master-reference-data";
+import { countries, legalOrganizationTypes, residencyStatuses } from "@/lib/demo-master-reference-data";
+import { armenianRegions, armenianSettlements } from "@/lib/demo-armenia-address-data";
 import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
+import { MeasurementUnitsManager } from "@/components/MeasurementUnitsManager";
 type ServiceContract = {
   id: string;
   organizationId: string;
@@ -308,6 +310,7 @@ export default function Home() {
   const [archivedOrganizations, setArchivedOrganizations] = useState<AppOrganization[]>([]);
   const [archiveListMessage, setArchiveListMessage] = useState<string | null>(null);
   const [organizationProfileTab, setOrganizationProfileTab] = useState("Ընդհանուր տվյալներ");
+  const [newPartnerEditingOrganizationName, setNewPartnerEditingOrganizationName] = useState<string | null>(null);
   const [selectedContract, setSelectedContract] = useState<ServiceContract | null>(null);
   const [contractMessage, setContractMessage] = useState<string | null>(null);
   const [isSavingContract, setIsSavingContract] = useState(false);
@@ -382,26 +385,296 @@ export default function Home() {
   const [newPartnerMainForm, setNewPartnerMainForm] = useState({
     name: "",
     residency: residencyStatuses[0]?.code ?? "resident",
-    legalType: "llc",
+    legalType: legalOrganizationTypes[0]?.code ?? "1001",
     taxId: "",
     registryNumber: "",
+    stateRegistrationDate: "",
     legalAddress: "",
     postalCode: "",
+    registrationCountryCode: countries[0]?.code ?? "1001",
+    registrationRegion: "",
+    registrationCity: "",
+    registrationStreet: "",
+    registrationBuilding: "",
+    registrationApartment: "",
+    activityCountryCode: countries[0]?.code ?? "1001",
+    activityRegion: "",
+    activityCity: "",
+    activityAddressType: "Գրասենյակ",
+    activityStreet: "",
+    activityBuilding: "",
+    activityApartment: "",
     businessAddress: "",
     phone: "",
     email: "",
     directorName: "",
   });
+
+
+
+  const emptyNewPartnerOwnershipForm = {
+    personType: "physical",
+    name: "",
+    identifier: "",
+    sharePercent: "",
+    shareCount: "",
+    notes: "",
+  };
+
+  const [newPartnerOwnershipForm, setNewPartnerOwnershipForm] = useState(emptyNewPartnerOwnershipForm);
+  const [newPartnerOwnershipEntries, setNewPartnerOwnershipEntries] = useState<Array<{
+    id: string;
+    legalType: string;
+    personType: string;
+    name: string;
+    identifier: string;
+    sharePercent: string;
+    shareCount: string;
+    notes: string;
+  }>>([]);
+  const [newPartnerOwnershipError, setNewPartnerOwnershipError] = useState("");
+
+  const getNewPartnerOwnershipMode = () => {
+    if (newPartnerMainForm.legalType === "1002") return "individual";
+    if (newPartnerMainForm.legalType === "1001") return "llc";
+    if (newPartnerMainForm.legalType === "1003" || newPartnerMainForm.legalType === "1004") return "shares";
+    return "placeholder";
+  };
+
+  const handleNewPartnerOwnershipFieldChange = (
+    field: "personType" | "name" | "identifier" | "sharePercent" | "shareCount" | "notes",
+    value: string,
+  ) => {
+    setNewPartnerOwnershipForm((current) => ({ ...current, [field]: value }));
+    setNewPartnerOwnershipError("");
+  };
+
+  const handleAddNewPartnerOwnershipEntry = () => {
+    const ownershipMode = getNewPartnerOwnershipMode();
+
+    if (ownershipMode !== "llc" && ownershipMode !== "shares") {
+      return;
+    }
+
+    const name = newPartnerOwnershipForm.name.trim();
+    const identifier = newPartnerOwnershipForm.identifier.trim();
+    const sharePercentText = newPartnerOwnershipForm.sharePercent.trim();
+    const shareCountText = newPartnerOwnershipForm.shareCount.trim();
+    const notes = newPartnerOwnershipForm.notes.trim();
+
+    if (!name) {
+      setNewPartnerOwnershipError("Անունը / անվանումը պարտադիր է։");
+      return;
+    }
+
+    let parsedSharePercent = 0;
+
+    if (sharePercentText) {
+      parsedSharePercent = Number(sharePercentText);
+
+      if (!Number.isFinite(parsedSharePercent) || parsedSharePercent <= 0 || parsedSharePercent > 100) {
+        setNewPartnerOwnershipError(ownershipMode === "llc" ? "Բաժնեմասի տոկոսը պետք է լինի 0-ից մեծ և 100-ից ոչ ավել։" : "Փաթեթի բաժնեմասի տոկոսը պետք է լինի 0-ից մեծ և 100-ից ոչ ավել։");
+        return;
+      }
+    }
+
+    if (ownershipMode === "shares" && shareCountText) {
+      const parsedShareCount = Number(shareCountText);
+
+      if (!Number.isFinite(parsedShareCount) || parsedShareCount <= 0 || !Number.isInteger(parsedShareCount)) {
+        setNewPartnerOwnershipError("Բաժնետոմսերի քանակը պետք է լինի դրական ամբողջ թիվ։");
+        return;
+      }
+    }
+
+    if (ownershipMode === "llc" && sharePercentText) {
+      const currentTotal = newPartnerOwnershipEntries
+        .filter((entry) => entry.legalType === newPartnerMainForm.legalType)
+        .reduce((sum, entry) => sum + (Number.parseFloat(entry.sharePercent) || 0), 0);
+
+      if (currentTotal + parsedSharePercent > 100) {
+        setNewPartnerOwnershipError("Բաժնեմասերի ընդհանուր տոկոսը չի կարող գերազանցել 100%-ը։");
+        return;
+      }
+    }
+
+    setNewPartnerOwnershipEntries((current) => [
+      ...current,
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        legalType: newPartnerMainForm.legalType,
+        personType: newPartnerOwnershipForm.personType,
+        name,
+        identifier,
+        sharePercent: sharePercentText,
+        shareCount: ownershipMode === "shares" ? shareCountText : "",
+        notes,
+      },
+    ]);
+
+    setNewPartnerOwnershipForm(emptyNewPartnerOwnershipForm);
+    setNewPartnerOwnershipError("");
+  };
+
+  const handleRemoveNewPartnerOwnershipEntry = (entryId: string) => {
+    setNewPartnerOwnershipEntries((current) => current.filter((entry) => entry.id !== entryId));
+    setNewPartnerOwnershipError("");
+  };
+
+  const [newPartnerActivityAddresses, setNewPartnerActivityAddresses] = useState<
+    Array<{
+      id: string;
+      code: string;
+      countryCode: string;
+      region: string;
+      city: string;
+      street: string;
+      building: string;
+      apartment: string;
+      note: string;
+      departments: Array<{
+        code: string;
+        type: string;
+        name: string;
+        note: string;
+      }>;
+    }>
+  >([]);
+
+  const [newPartnerDepartmentFormsByAddress, setNewPartnerDepartmentFormsByAddress] = useState<
+    Record<string, { type: string; name: string; note: string }>
+  >({});
+
+  const [newPartnerAddressModalOpen, setNewPartnerAddressModalOpen] = useState(false);
+  const [newPartnerDepartmentModalOpen, setNewPartnerDepartmentModalOpen] = useState(false);
+  const [newPartnerDepartmentAddressId, setNewPartnerDepartmentAddressId] = useState("");
+
+  function getNewPartnerCountryLabel(countryCode: string) {
+    const country = countries.find((item) => item.code === countryCode);
+    return country ? `${country.nameHy} — ${country.isoAlpha2}` : "—";
+  }
+
+  function addNewPartnerActivityAddress() {
+    const hasAddressDetails = [
+      newPartnerMainForm.activityRegion,
+      newPartnerMainForm.activityCity,
+      newPartnerMainForm.activityStreet,
+      newPartnerMainForm.activityBuilding,
+      newPartnerMainForm.activityApartment,
+    ].some((value) => value.trim());
+
+    if (!hasAddressDetails) {
+      setNewPartnerMessage("Լրացրու գործունեության հասցեի առնվազն մեկ դաշտ։");
+      window.alert("Գրանցումը հաջողությամբ չի կատարվել։");
+      return;
+    }
+
+    const nextNumber = newPartnerActivityAddresses.length + 1;
+    const nextAddressId = `activity-address-${nextNumber}`;
+
+    setNewPartnerActivityAddresses((current) => [
+      ...current,
+      {
+        id: nextAddressId,
+        code: `ADDR-${String(nextNumber).padStart(4, "0")}`,
+        countryCode: newPartnerMainForm.activityCountryCode,
+        region: newPartnerMainForm.activityRegion,
+        city: newPartnerMainForm.activityCity,
+        street: newPartnerMainForm.activityStreet,
+        building: newPartnerMainForm.activityBuilding,
+        apartment: newPartnerMainForm.activityApartment,
+        note: newPartnerMainForm.businessAddress,
+        departments: [],
+      },
+    ]);
+
+    setNewPartnerDepartmentFormsByAddress((current) => ({
+      ...current,
+      [nextAddressId]: { type: "Գրասենյակ", name: "", note: "" },
+    }));
+
+    setNewPartnerMainForm((current) => ({
+      ...current,
+      activityRegion: "",
+      activityCity: "",
+      activityStreet: "",
+      activityBuilding: "",
+      activityApartment: "",
+      businessAddress: "",
+    }));
+
+    setNewPartnerAddressModalOpen(false);
+    setNewPartnerDepartmentAddressId(nextAddressId);
+    setNewPartnerDepartmentModalOpen(true);
+    setNewPartnerMessage("Հասցեն գրանցվեց։ Այժմ ավելացրու այդ հասցեի առնվազն մեկ ստորաբաժանում։");
+    window.alert("Ձեր գրանցումը կատարվեց հաջողությամբ։");
+  }
+
+  function updateNewPartnerDepartmentForm(
+    addressId: string,
+    patch: Partial<{ type: string; name: string; note: string }>,
+  ) {
+    setNewPartnerDepartmentFormsByAddress((current) => ({
+      ...current,
+      [addressId]: {
+        type: current[addressId]?.type ?? "Գրասենյակ",
+        name: current[addressId]?.name ?? "",
+        note: current[addressId]?.note ?? "",
+        ...patch,
+      },
+    }));
+  }
+
+  function addNewPartnerDepartment(addressId: string) {
+    if (!addressId) {
+      setNewPartnerMessage("Ընտրիր հասցեն, որի տակ պետք է ավելացվի ստորաբաժանումը։");
+      window.alert("Գրանցումը հաջողությամբ չի կատարվել։");
+      return;
+    }
+
+    const form = newPartnerDepartmentFormsByAddress[addressId] ?? {
+      type: "Գրասենյակ",
+      name: "",
+      note: "",
+    };
+
+    const departmentNumber =
+      newPartnerActivityAddresses.reduce((total, address) => total + address.departments.length, 0) + 1;
+
+    setNewPartnerActivityAddresses((current) =>
+      current.map((address) =>
+        address.id === addressId
+          ? {
+              ...address,
+              departments: [
+                ...address.departments,
+                {
+                  code: `DEP-${String(departmentNumber).padStart(4, "0")}`,
+                  type: form.type,
+                  name: form.name.trim() || form.type,
+                  note: form.note.trim(),
+                },
+              ],
+            }
+          : address,
+      ),
+    );
+
+    setNewPartnerDepartmentFormsByAddress((current) => ({
+      ...current,
+      [addressId]: { type: "Գրասենյակ", name: "", note: "" },
+    }));
+
+    setNewPartnerDepartmentModalOpen(false);
+    setNewPartnerDepartmentAddressId("");
+    setNewPartnerMessage("Ստորաբաժանումը գրանցվեց ընտրված գործունեության հասցեի տակ։");
+    window.alert("Ձեր գրանցումը կատարվեց հաջողությամբ։");
+  }
   const [newPartnerActivities, setNewPartnerActivities] = useState<AppOrganizationActivity[]>([]);
   const [newPartnerActivityForm, setNewPartnerActivityForm] = useState({
     title: "",
     code: "",
     isPrimary: true,
-    notes: "",
-  });
-  const [newPartnerDepartments, setNewPartnerDepartments] = useState<AppDepartment[]>([]);
-  const [newPartnerDepartmentForm, setNewPartnerDepartmentForm] = useState({
-    name: "",
     notes: "",
   });
   const taxIdInputRef = useRef<HTMLInputElement | null>(null);
@@ -580,12 +853,6 @@ export default function Home() {
 
                 return;
 
-              }
-
-
-              if (item.label === "Չափման միավորներ") {
-                router.push("/master-data/measurement-units");
-                return;
               }
               if (hasChildren) {
                 setActiveMenuPath((current) => [...current, item]);
@@ -1121,6 +1388,7 @@ export default function Home() {
 
       if (!response.ok || !data.organization) {
         setOrganizationSaveStatus(data.error ?? "Չհաջողվեց պահպանել կազմակերպությունը։");
+        window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
         return;
       }
 
@@ -1192,6 +1460,7 @@ export default function Home() {
       setNewPartnerActivities(data.activities ?? []);
     } catch {
       setNewPartnerMessage("Չհաջողվեց բեռնել գործունեության տեսակները։");
+        window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
     }
   }
 
@@ -1255,71 +1524,7 @@ export default function Home() {
     }
   }
 
-  async function loadWizardDepartments(organizationId: string) {
-    try {
-      const response = await fetch(
-        `/api/departments?scope=organization&organizationId=${encodeURIComponent(organizationId)}`,
-        { cache: "no-store" }
-      );
 
-      if (!response.ok) {
-        return;
-      }
-
-      const data = (await response.json()) as { departments?: AppDepartment[] };
-      setNewPartnerDepartments(data.departments ?? []);
-    } catch {
-      setNewPartnerMessage("Չհաջողվեց բեռնել ստորաբաժանումները։");
-    }
-  }
-
-  async function handleCreateWizardDepartment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!newPartnerDraft) {
-      setNewPartnerMessage("Նախ պահպանիր հիմնական տեղեկությունները։");
-      setNewPartnerRegistrationTab("Ընդհանուր");
-      return;
-    }
-
-    if (!newPartnerDepartmentForm.name.trim()) {
-      setNewPartnerMessage("Ստորաբաժանման անվանումը պարտադիր է։");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/departments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: newPartnerDepartmentForm.name,
-          notes: newPartnerDepartmentForm.notes,
-          scope: "organization",
-          organizationId: newPartnerDraft.id,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        department?: AppDepartment;
-        error?: string;
-      };
-
-      if (!response.ok || !data.department) {
-        setNewPartnerMessage(data.error ?? "Չհաջողվեց ավելացնել ստորաբաժանումը։");
-        return;
-      }
-
-      setNewPartnerDepartments((current) =>
-        [...current, data.department as AppDepartment].sort((a, b) => a.name.localeCompare(b.name))
-      );
-      setNewPartnerDepartmentForm({ name: "", notes: "" });
-      setNewPartnerMessage(`Ստորաբաժանումը ավելացվեց՝ ${data.department.name}`);
-    } catch {
-      setNewPartnerMessage("Չհաջողվեց կապ հաստատել departments API-ի հետ։");
-    }
-  }
 
   async function handleCreateWizardOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1338,12 +1543,59 @@ export default function Home() {
     setNewPartnerMessage("Պահպանում ենք հիմնական տեղեկությունները DEV DB-ում...");
 
     try {
+      const isEditingOrganization = Boolean(newPartnerDraft?.id);
+      const composedLegalAddress = [
+        newPartnerMainForm.registrationRegion,
+        newPartnerMainForm.registrationCity,
+        newPartnerMainForm.registrationStreet,
+        newPartnerMainForm.registrationBuilding,
+        newPartnerMainForm.registrationApartment,
+      ]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      const firstAddedActivityAddress = newPartnerActivityAddresses[0];
+      const composedBusinessAddress = [
+        newPartnerMainForm.activityRegion,
+        newPartnerMainForm.activityCity,
+        newPartnerMainForm.activityStreet,
+        newPartnerMainForm.activityBuilding,
+        newPartnerMainForm.activityApartment,
+      ]
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .join(", ");
+
+      const composedAddedBusinessAddress = firstAddedActivityAddress
+        ? [
+            firstAddedActivityAddress.region,
+            firstAddedActivityAddress.city,
+            firstAddedActivityAddress.street,
+            firstAddedActivityAddress.building,
+            firstAddedActivityAddress.apartment,
+          ]
+            .map((value) => value.trim())
+            .filter(Boolean)
+            .join(", ")
+        : "";
+
+      const organizationPayload = {
+        ...newPartnerMainForm,
+        legalAddress: newPartnerMainForm.legalAddress.trim() || composedLegalAddress,
+        businessAddress: newPartnerMainForm.businessAddress.trim() || composedBusinessAddress || composedAddedBusinessAddress,
+      };
+
       const response = await fetch("/api/organizations", {
-        method: "POST",
+        method: isEditingOrganization ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(newPartnerMainForm),
+        body: JSON.stringify(
+          isEditingOrganization
+            ? { ...organizationPayload, organizationId: newPartnerDraft?.id }
+            : organizationPayload
+        ),
       });
 
       const data = (await response.json()) as {
@@ -1356,25 +1608,82 @@ export default function Home() {
         return;
       }
 
-      setNewPartnerDraft(data.organization);
+      setNewPartnerDraft(isEditingOrganization ? data.organization : null);
       setSelectedOrganizationId(data.organization.id);
-      setOrganizations((current) => [data.organization as AppOrganization, ...current]);
-      setNewPartnerMessage("Ընդհանուր տվյալները պահպանվեցին։ Կարող ես անցնել գործունեության տեսակներին։");
-      setNewPartnerRegistrationTab("Գործունեություն");
-      void loadWizardActivities(data.organization.id);
-      void loadWizardDepartments(data.organization.id);
+      setOrganizations((current) =>
+        isEditingOrganization
+          ? current.map((item) => (item.id === data.organization?.id ? (data.organization as AppOrganization) : item))
+          : [data.organization as AppOrganization, ...current]
+      );
+      setNewPartnerMessage("Գրանցումը հաջողությամբ պահպանվեց DEV DB-ում։");
+
+      // reset-main-registration-after-success
+      if (!isEditingOrganization) {
+        setNewPartnerMainForm({
+          name: "",
+          residency: residencyStatuses[0]?.code ?? "resident",
+          legalType: legalOrganizationTypes[0]?.code ?? "1001",
+          taxId: "",
+          registryNumber: "",
+          stateRegistrationDate: "",
+          legalAddress: "",
+          postalCode: "",
+          registrationCountryCode: countries[0]?.code ?? "1001",
+          registrationRegion: "",
+          registrationCity: "",
+          registrationStreet: "",
+          registrationBuilding: "",
+          registrationApartment: "",
+          activityCountryCode: countries[0]?.code ?? "1001",
+          activityRegion: "",
+          activityCity: "",
+          activityAddressType: "\u0533\u0580\u0561\u057d\u0565\u0576\u0575\u0561\u056f",
+          activityStreet: "",
+          activityBuilding: "",
+          activityApartment: "",
+          businessAddress: "",
+          phone: "",
+          email: "",
+          directorName: "",
+        });
+        setNewPartnerActivityAddresses([]);
+        setNewPartnerDepartmentFormsByAddress({});
+        setNewPartnerAddressModalOpen(false);
+        setNewPartnerDepartmentModalOpen(false);
+        setNewPartnerDepartmentAddressId("");
+        setNewPartnerActivities([]);
+        setNewPartnerActivityForm({
+          title: "",
+          code: "",
+          isPrimary: true,
+          notes: "",
+        });
+      }
+
+      window.alert(isEditingOrganization ? "Բոլոր փոփոխությունները կատարվեցին հաջողությամբՉ" : "Ղեր գրանցումը կատարվեց հաջողությամբՉ");
+
+      if (isEditingOrganization) {
+        setActiveDemoPage("Կազմակերպության պրոֆիլ");
+        setOrganizationProfileTab("Անդհանուր տվյալներ");
+      } else {
+        setNewPartnerRegistrationTab("Գործունեություն");
+        void loadWizardActivities(data.organization.id);
+      }
     } catch {
       setNewPartnerMessage("Չհաջողվեց կապ հաստատել organizations API-ի հետ։");
+      window.alert("Ձեր գործողությունները հաջողությամբ չեն գրանցվել։ Խնդրում ենք կրկին փորձել։");
     } finally {
       setIsSavingNewPartner(false);
     }
   }
 
-  function renderNewPartnerRegistrationWizard() {
+  
+function renderNewPartnerRegistrationWizard() {
     const tabs = [
       "Ընդհանուր",
-      "Գործունեություն",
-      "Ստորաբաժանումներ",
+    "Հիմնադիրներ",
+    "Գործունեության հասցեներ և ստորաբաժանումներ",
+    "Գործունեություն",
     ];
 
     const suggestedActivityCode = suggestActivityCode(newPartnerActivityForm.title);
@@ -1382,7 +1691,7 @@ export default function Home() {
     return (
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գրանցում</p>
-        <h2>Նոր գործընկեր գրանցել</h2>
+        <h2>{newPartnerEditingOrganizationName ?? "\u0546\u0578\u0580 \u0563\u0578\u0580\u056e\u0568\u0576\u056f\u0565\u0580 \u0563\u0580\u0561\u0576\u0581\u0565\u056c"}</h2>
         <p>
           Գրանցումը բաժանում ենք փուլերի՝ հիմնական տվյալներ, գործունեության տեսակներ,
           հետո տվյալ կազմակերպության կառուցվածքային ստորաբաժանումներ։
@@ -1451,14 +1760,24 @@ export default function Home() {
                 <label style={styles.label}>
                   Ռեզիդենտություն
                   <select
-                    style={styles.select}
+                    style={styles.input}
                     value={newPartnerMainForm.residency}
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const nextResidency = event.target.value;
+                      const firstNonResidentCountry =
+                        countries.find((country) => country.isActive && country.code !== "1001")?.code ?? "";
+
                       setNewPartnerMainForm((current) => ({
                         ...current,
-                        residency: event.target.value,
-                      }))
-                    }
+                        residency: nextResidency,
+                        registrationCountryCode:
+                          nextResidency === "resident"
+                            ? "1001"
+                            : current.registrationCountryCode !== "1001"
+                              ? current.registrationCountryCode
+                              : firstNonResidentCountry,
+                      }));
+                    }}
                   >
                     {residencyStatuses
                       .filter((status) => status.isActive)
@@ -1531,6 +1850,21 @@ export default function Home() {
                   />
                 </label>
 
+                <label style={styles.label}>
+                  Պետական գրանցման ամսաթիվ
+                  <input
+                    style={styles.input}
+                    type="date"
+                    value={newPartnerMainForm.stateRegistrationDate}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        stateRegistrationDate: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+
                 <div style={{ gridColumn: "1 / -1", border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
                   <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>2. Հասցեներ</h3>
                   <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>
@@ -1539,18 +1873,125 @@ export default function Home() {
                 </div>
 
                 <label style={styles.label}>
-                  Գրանցման հասցե
-                  <input
+                  Գրանցման երկիր
+                  <select
                     style={styles.input}
-                    type="text"
-                    value={newPartnerMainForm.legalAddress}
+                    disabled={newPartnerMainForm.residency === "resident"}
+                    value={newPartnerMainForm.registrationCountryCode}
                     onChange={(event) =>
                       setNewPartnerMainForm((current) => ({
                         ...current,
-                        legalAddress: event.target.value,
+                        registrationCountryCode: event.target.value,
                       }))
                     }
-                    placeholder="Գրանցման հասցե"
+                  >
+                    {countries
+                      .filter(
+                        (country) =>
+                          country.isActive &&
+                          (newPartnerMainForm.residency === "resident"
+                            ? country.code === "1001"
+                            : country.code !== "1001"),
+                      )
+                      .map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.nameHy} — {country.isoAlpha2}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label style={styles.label}>
+                  Գրանցման մարզ / նահանգ / շրջան
+                  <select
+                    style={styles.input}
+                    value={newPartnerMainForm.registrationRegion}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registrationRegion: event.target.value,
+                        registrationCity: "",
+                      }))
+                    }
+                  >
+                    <option value="">Select region</option>
+                    {armenianRegions.map((region) => (
+                      <option key={region.code} value={region.code}>
+                        {region.nameHy}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={styles.label}>
+                  Գրանցման քաղաք / գյուղ / բնակավայր
+                  <select
+                    style={styles.input}
+                    value={newPartnerMainForm.registrationCity}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registrationCity: event.target.value,
+                      }))
+                    }
+                    disabled={!newPartnerMainForm.registrationRegion}
+                  >
+                    <option value="">Select city</option>
+                    {armenianSettlements
+                      .filter((settlement) => settlement.regionCode === newPartnerMainForm.registrationRegion)
+                      .map((settlement) => (
+                        <option key={settlement.code} value={settlement.code}>
+                          {settlement.nameHy}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label style={styles.label}>
+                  Գրանցման փողոց
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.registrationStreet}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registrationStreet: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ Նուբարաշեն 11 փողոց"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Շենք / տուն
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.registrationBuilding}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registrationBuilding: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ 16 շենք կամ 5 տուն"
+                  />
+                </label>
+
+                <label style={styles.label}>
+                  Բնակարան / գրասենյակ
+                  <input
+                    style={styles.input}
+                    type="text"
+                    value={newPartnerMainForm.registrationApartment}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        registrationApartment: event.target.value,
+                      }))
+                    }
+                    placeholder="Օրինակ՝ 30 բն․ կամ 12 գրասենյակ"
                   />
                 </label>
 
@@ -1570,20 +2011,6 @@ export default function Home() {
                   />
                 </label>
 
-                <label style={styles.label}>
-                  Գործունեության հասցեներ
-                  <textarea
-                    style={{ ...styles.input, minHeight: 86, resize: "vertical" }}
-                    value={newPartnerMainForm.businessAddress}
-                    onChange={(event) =>
-                      setNewPartnerMainForm((current) => ({
-                        ...current,
-                        businessAddress: event.target.value,
-                      }))
-                    }
-                    placeholder={"Օրինակ՝\\nԳրասենյակ — Երևան\\nՊահեստ — Կապան\\nԽանութ — Գյումրի\\nԱրտադրամաս — այլ հասցե"}
-                  />
-                </label>
 
                 <div style={{ gridColumn: "1 / -1", border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
                   <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>3. Կապ և պատասխանատու անձ</h3>
@@ -1621,29 +2048,298 @@ export default function Home() {
                   />
                 </label>
 
-                <label style={styles.label}>
-                  Տնօրեն / պատասխանատու անձ
-                  <input
-                    style={styles.input}
-                    type="text"
-                    value={newPartnerMainForm.directorName}
-                    onChange={(event) =>
-                      setNewPartnerMainForm((current) => ({
-                        ...current,
-                        directorName: event.target.value,
-                      }))
-                    }
-                    placeholder="Անուն ազգանուն"
-                  />
-                </label>
               </div>
 
-              <button type="submit" style={styles.primaryButton} disabled={isSavingNewPartner}>
-                {isSavingNewPartner ? "Պահպանվում է..." : "Պահպանել և անցնել հաջորդ քայլին"}
-              </button>
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", alignItems: "center", marginTop: 10 }}>
+                <button type="button" style={{ border: "1px solid #b91c1c", background: "#dc2626", color: "#ffffff", borderRadius: 12, padding: "12px 22px", cursor: "pointer", fontWeight: 700 }} onClick={() => setNewPartnerMessage("\u0533\u0580\u0561\u0576\u0581\u0578\u0582\u0574\u0568 \u0579\u0565\u0572\u0561\u0580\u056f\u057e\u0565\u0581\u0589")}>
+                  Չեղարկել
+                </button>
+                <button
+              type="submit"
+              disabled={isSavingNewPartner}
+              style={{
+                ...styles.primaryButton,
+                background: newPartnerDraft?.id ? "#f59e0b" : "#16a34a",
+                border: newPartnerDraft?.id ? "1px solid #d97706" : "1px solid #15803d",
+                color: "#ffffff",
+                width: "auto",
+                minWidth: 120,
+                padding: "12px 28px",
+                opacity: isSavingNewPartner ? 0.65 : 1,
+                cursor: isSavingNewPartner ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSavingNewPartner ? "Պահպանվում է..." : newPartnerDraft?.id ? "Խմբագրել" : "Գրանցել"}
+            </button>
+              </div>
             </form>
           </div>
         ) : null}
+
+        {newPartnerRegistrationTab === "Հիմնադիրներ" && (() => {
+            const ownershipMode = getNewPartnerOwnershipMode();
+            const currentOwnershipEntries = newPartnerOwnershipEntries.filter(
+              (entry) => entry.legalType === newPartnerMainForm.legalType,
+            );
+            const totalSharePercent = currentOwnershipEntries.reduce(
+              (sum, entry) => sum + (Number.parseFloat(entry.sharePercent) || 0),
+              0,
+            );
+            const ownershipHeading =
+              ownershipMode === "individual"
+                ? "ԱՁ տվյալներ"
+                : ownershipMode === "llc"
+                  ? "Մասնակիցներ"
+                  : ownershipMode === "shares"
+                    ? "Բաժնետերեր"
+                    : "Հիմնադիրներ";
+            const ownershipIntro =
+              ownershipMode === "llc"
+                ? "Մուտքագրեք մասնակիցներին միայն SAFE demo-ի համար։"
+                : ownershipMode === "shares"
+                  ? "Մուտքագրեք բաժնետերերին միայն SAFE demo-ի համար։"
+                  : "";
+
+            return (
+              <section
+                style={{
+                  border: "1px solid rgba(148, 163, 184, 0.32)",
+                  borderRadius: "18px",
+                  padding: "18px",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  display: "grid",
+                  gap: "16px",
+                }}
+              >
+                <div style={{ display: "grid", gap: "6px" }}>
+                  <h3 style={{ margin: 0, fontSize: "1.05rem" }}>{ownershipHeading}</h3>
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    SAFE demo փուլ․ տվյալները դեռ չեն պահպանվում բազայում։
+                  </p>
+                  {ownershipIntro ? (
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{ownershipIntro}</p>
+                  ) : null}
+                </div>
+
+                {ownershipMode === "individual" ? (
+                  <div
+                    style={{
+                      borderRadius: "14px",
+                      border: "1px solid rgba(14, 165, 233, 0.28)",
+                      background: "rgba(224, 242, 254, 0.5)",
+                      padding: "14px",
+                      color: "#075985",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    ԱՁ-ն հիմնադիրներ/մասնակիցներ/բաժնետերեր չունի, քանի որ անհատ ձեռնարկատերը առանձին իրավաբանական անձ չէ։ Սեփականատիրոջ տվյալները պահվելու են ընդհանուր տվյալների բաժնում։
+                  </div>
+                ) : null}
+
+                {ownershipMode === "placeholder" ? (
+                  <div
+                    style={{
+                      borderRadius: "14px",
+                      border: "1px solid rgba(245, 158, 11, 0.34)",
+                      background: "rgba(254, 243, 199, 0.5)",
+                      padding: "14px",
+                      color: "#92400e",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Այս իրավական ձևի հիմնադիրների/մասնակցության տրամաբանությունը դեռ SAFE փուլում է։ Կձևավորվի առանձին կանոններով՝ առանց ՍՊԸ/բաժնետիրական մոդելը կուրորեն կիրառելու։
+                  </div>
+                ) : null}
+
+                {(ownershipMode === "llc" || ownershipMode === "shares") ? (
+                  <>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: "12px",
+                      }}
+                    >
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Անձի տեսակ
+                        <select
+                          value={newPartnerOwnershipForm.personType}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("personType", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                            background: "white",
+                          }}
+                        >
+                          <option value="physical">Ֆիզիկական անձ</option>
+                          <option value="legal">Իրավաբանական անձ</option>
+                          <option value="state">Պետություն / համայնք</option>
+                        </select>
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Անուն / Անվանում
+                        <input
+                          value={newPartnerOwnershipForm.name}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("name", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        ՀՎՀՀ / անձնագիր / ՀԾՀ
+                        <input
+                          value={newPartnerOwnershipForm.identifier}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("identifier", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      {ownershipMode === "shares" ? (
+                        <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                          Բաժնետոմսերի քանակ
+                          <input
+                            value={newPartnerOwnershipForm.shareCount}
+                            onChange={(event) => handleNewPartnerOwnershipFieldChange("shareCount", event.target.value)}
+                            inputMode="numeric"
+                            style={{
+                              border: "1px solid rgba(148, 163, 184, 0.45)",
+                              borderRadius: "12px",
+                              padding: "10px 12px",
+                            }}
+                          />
+                        </label>
+                      ) : null}
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        {ownershipMode === "shares" ? "Փաթեթի բաժնեմաս %" : "Բաժնեմաս %"}
+                        <input
+                          value={newPartnerOwnershipForm.sharePercent}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("sharePercent", event.target.value)}
+                          inputMode="decimal"
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "0.9rem", color: "#475569" }}>
+                        Նշումներ
+                        <input
+                          value={newPartnerOwnershipForm.notes}
+                          onChange={(event) => handleNewPartnerOwnershipFieldChange("notes", event.target.value)}
+                          style={{
+                            border: "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {newPartnerOwnershipError ? (
+                      <div
+                        style={{
+                          borderRadius: "12px",
+                          border: "1px solid rgba(220, 38, 38, 0.28)",
+                          background: "rgba(254, 226, 226, 0.55)",
+                          color: "#991b1b",
+                          padding: "10px 12px",
+                        }}
+                      >
+                        {newPartnerOwnershipError}
+                      </div>
+                    ) : null}
+
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+                      <button
+                        type="button"
+                        onClick={handleAddNewPartnerOwnershipEntry}
+                        style={{
+                          border: "0",
+                          borderRadius: "999px",
+                          padding: "10px 16px",
+                          background: "#0f172a",
+                          color: "white",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {ownershipMode === "shares" ? "Ավելացնել բաժնետեր" : "Ավելացնել մասնակից"}
+                      </button>
+
+                      <span style={{ color: "#64748b", fontSize: "0.9rem" }}>
+                        Ընդհանուր բաժնեմաս: {totalSharePercent ? `${totalSharePercent}%` : "0%"}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "grid", gap: "10px" }}>
+                      {currentOwnershipEntries.length === 0 ? (
+                        <div style={{ color: "#64748b", fontSize: "0.92rem" }}>Դեռ գրառում չկա։</div>
+                      ) : (
+                        currentOwnershipEntries.map((entry) => (
+                          <div
+                            key={entry.id}
+                            style={{
+                              border: "1px solid rgba(148, 163, 184, 0.28)",
+                              borderRadius: "14px",
+                              padding: "12px",
+                              display: "grid",
+                              gap: "8px",
+                              background: "rgba(248, 250, 252, 0.8)",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px" }}>
+                              <strong>{entry.name}</strong>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveNewPartnerOwnershipEntry(entry.id)}
+                                style={{
+                                  border: "1px solid rgba(148, 163, 184, 0.45)",
+                                  borderRadius: "999px",
+                                  padding: "6px 10px",
+                                  background: "white",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Հեռացնել
+                              </button>
+                            </div>
+                            <div style={{ color: "#64748b", fontSize: "0.9rem", lineHeight: 1.6 }}>
+                              {entry.personType === "physical"
+                                ? "Ֆիզիկական անձ"
+                                : entry.personType === "legal"
+                                  ? "Իրավաբանական անձ"
+                                  : "Պետություն / համայնք"}
+                              {entry.identifier ? ` · ${entry.identifier}` : ""}
+                              {entry.shareCount ? ` · Բաժնետոմսերի քանակ: ${entry.shareCount}` : ""}
+                              {entry.sharePercent ? ` · ${ownershipMode === "shares" ? "Փաթեթի բաժնեմաս %" : "Բաժնեմաս %"}: ${entry.sharePercent}%` : ""}
+                              {entry.notes ? ` · ${entry.notes}` : ""}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div style={{ color: "#64748b", fontSize: "0.88rem", lineHeight: 1.6 }}>
+                      {ownershipMode === "llc" ? "ՍՊԸ մասնակիցների քանակային սահմանափակումը հետո կստուգվի հատուկ օրենքով․ այս փուլում չենք hardcode անում։" : newPartnerMainForm.legalType === "1003" ? "ՓԲԸ-ի համար նախատեսվում է փակ շրջանառության տրամաբանություն։" : "ԲԲԸ-ի համար նախատեսվում է բաց շրջանառության տրամաբանություն։"}
+                    </div>
+                  </>
+                ) : null}
+              </section>
+            );
+          })()}
 
         {newPartnerRegistrationTab === "Գործունեություն" ? (
           <div style={styles.tabPanel}>
@@ -1756,78 +2452,454 @@ export default function Home() {
           </div>
         ) : null}
 
-        {newPartnerRegistrationTab === "Ստորաբաժանումներ" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Կառուցվածքային ստորաբաժանումներ</h3>
-
-            <div style={styles.previewBox}>
-              <strong>Այս բաժինները պատկանում են հենց գրանցվող կազմակերպությանը</strong>
-              <p style={{ marginBottom: 0 }}>
-                Օրինակ՝ վարչակազմ, արտադրամաս, պահեստ, վաճառքի բաժին, առաքում։
-              </p>
-            </div>
-
-            <form noValidate onSubmit={handleCreateWizardDepartment} style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
-              <div style={styles.formGrid}>
-                <label style={styles.label}>
-                  Ստորաբաժանման անվանում
-                  <input
-                    style={styles.input}
-                    type="text"
-                    value={newPartnerDepartmentForm.name}
-                    onChange={(event) =>
-                      setNewPartnerDepartmentForm((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    placeholder="Օրինակ՝ Պահեստ"
-                  />
-                </label>
-
-                <label style={styles.label}>
-                  Նշումներ
-                  <input
-                    style={styles.input}
-                    type="text"
-                    value={newPartnerDepartmentForm.notes}
-                    onChange={(event) =>
-                      setNewPartnerDepartmentForm((current) => ({
-                        ...current,
-                        notes: event.target.value,
-                      }))
-                    }
-                    placeholder="Կարճ նկարագրություն"
-                  />
-                </label>
-              </div>
-
-              <button type="submit" style={styles.primaryButton}>
-                + Ավելացնել ստորաբաժանում
-              </button>
-            </form>
-
-            <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
-              {newPartnerDepartments.length > 0 ? (
-                newPartnerDepartments.map((department) => (
-                  <article key={department.id} style={styles.previewBox}>
-                    <strong>{department.name}</strong>
-                    <p style={{ margin: "6px 0 0" }}>
-                      {department.notes || "Նշումներ չկան"}
+              {newPartnerRegistrationTab === "Գործունեության հասցեներ և ստորաբաժանումներ" ? (
+                <section style={{ display: "grid", gap: 16 }}>
+                  <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#fffaf2" }}>
+                    <h3 style={{ margin: "0 0 6px", fontSize: 16 }}>Գործունեության հասցեներ և ստորաբաժանումներ</h3>
+                    <p style={{ margin: 0, color: "#6b7280", fontSize: 13, lineHeight: 1.6 }}>
+                      Սկզբում գրանցվում է գործունեության հասցեն, հետո այդ հասցեի տակ՝ առնվազն մեկ ստորաբաժանում։
+                      Հետագայում այս կառուցվածքը կօգնի ապրանքների տեղափոխության, պահեստի, արտադրության և տրանսպորտային փաստաթղթերի ավտոմատացման համար։
                     </p>
-                  </article>
-                ))
-              ) : (
-                <div style={styles.previewBox}>
-                  <strong>Ստորաբաժանում դեռ չկա</strong>
-                  <p style={{ marginBottom: 0 }}>
-                    Ավելացրու կազմակերպության առաջին կառուցվածքային ստորաբաժանումը։
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : null}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.primaryButton,
+                        width: "fit-content",
+                        alignSelf: "flex-start",
+                        padding: "9px 16px",
+                        background: "#16a34a",
+                        border: "1px solid #15803d",
+                        color: "#ffffff",
+                        fontSize: 14,
+                        lineHeight: 1.2,
+                      }}
+                      onClick={() => setNewPartnerAddressModalOpen(true)}
+                    >
+                      Գրանցում
+                    </button>
+
+                    <button
+                      type="button"
+                      style={{
+                        ...styles.primaryButton,
+                        width: "fit-content",
+                        alignSelf: "flex-start",
+                        padding: "9px 16px",
+                        background: "#16a34a",
+                        border: "1px solid #15803d",
+                        color: "#ffffff",
+                        fontSize: 14,
+                        lineHeight: 1.2,
+                        opacity: newPartnerActivityAddresses.length === 0 ? 0.55 : 1,
+                        cursor: newPartnerActivityAddresses.length === 0 ? "not-allowed" : "pointer",
+                      }}
+                      disabled={newPartnerActivityAddresses.length === 0}
+                      onClick={() => {
+                        if (newPartnerActivityAddresses.length === 0) {
+                          setNewPartnerMessage("Նախ ավելացրու գործունեության հասցե, հետո դրա տակ՝ ստորաբաժանում։");
+                          return;
+                        }
+
+                        const firstAddressId = newPartnerActivityAddresses[0]?.id ?? "";
+                        setNewPartnerDepartmentAddressId(firstAddressId);
+                        setNewPartnerDepartmentFormsByAddress((current) => ({
+                          ...current,
+                          [firstAddressId]: current[firstAddressId] ?? { type: "Գրասենյակ", name: "", note: "" },
+                        }));
+                        setNewPartnerDepartmentModalOpen(true);
+                      }}
+                    >
+                      Գրանցում
+                    </button>
+                  </div>
+
+                  {newPartnerMessage ? (
+                    <div style={{ border: "1px solid #dbeafe", borderRadius: 14, padding: 12, background: "#eff6ff", color: "#1e3a8a" }}>
+                      {newPartnerMessage}
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: "grid", gap: 14 }}>
+                    <div style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 14, background: "#f8fafc" }}>
+                      <strong>Գրանցված հասցեներ և ստորաբաժանումներ</strong>
+                      <p style={{ margin: "6px 0 0", color: "#6b7280", fontSize: 13 }}>
+                        Այստեղ կերևան գործունեության հասցեները և դրանց տակ գործող ստորաբաժանումները։
+                      </p>
+                    </div>
+
+                    {newPartnerActivityAddresses.length === 0 ? (
+                      <div style={{ border: "1px dashed #d1d5db", borderRadius: 14, padding: 18, background: "#ffffff" }}>
+                        <strong>Հասցե դեռ չկա</strong>
+                        <p style={{ margin: "6px 0 0", color: "#6b7280" }}>
+                          Սեղմիր «+ Ավելացնել գործունեության հասցե» կոճակը։
+                        </p>
+                      </div>
+                    ) : (
+                      newPartnerActivityAddresses.map((address) => (
+                        <article
+                          key={address.id}
+                          style={{
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 16,
+                            padding: 16,
+                            background: "#ffffff",
+                            display: "grid",
+                            gap: 12,
+                          }}
+                        >
+                          <div>
+                            <strong>{address.code} · {getNewPartnerCountryLabel(address.countryCode)}</strong>
+                            <p style={{ margin: "6px 0 0", color: "#374151", lineHeight: 1.5 }}>
+                              {[address.region, address.city, address.street, address.building, address.apartment]
+                                .filter(Boolean)
+                                .join(", ") || "Հասցեն ամբողջությամբ լրացված չէ"}
+                            </p>
+                            {address.note ? (
+                              <p style={{ margin: "6px 0 0", color: "#6b7280" }}>{address.note}</p>
+                            ) : null}
+                          </div>
+
+                          <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+                              <thead>
+                                <tr>
+                                  <th style={styles.tableHeader}>Կոդ</th>
+                                  <th style={styles.tableHeader}>Տեսակ</th>
+                                  <th style={styles.tableHeader}>Անվանում</th>
+                                  <th style={styles.tableHeader}>Նշում</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {address.departments.length === 0 ? (
+                                  <tr>
+                                    <td style={styles.tableCell} colSpan={4}>
+                                      Այս հասցեի տակ ստորաբաժանում դեռ չկա։ Սեղմիր «+ Ավելացնել ստորաբաժանում»։
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  address.departments.map((department) => (
+                                    <tr key={department.code}>
+                                      <td style={styles.tableCell}>{department.code}</td>
+                                      <td style={styles.tableCell}>{department.type}</td>
+                                      <td style={styles.tableCell}><strong>{department.name}</strong></td>
+                                      <td style={styles.tableCell}>{department.note || "—"}</td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+
+                  {newPartnerAddressModalOpen ? (
+                    <div
+                      style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(15, 23, 42, 0.45)",
+                        display: "grid",
+                        placeItems: "center",
+                        padding: 24,
+                        zIndex: 50,
+                      }}
+                    >
+                      <section
+                        style={{
+                          width: "min(920px, 100%)",
+                          maxHeight: "90vh",
+                          overflowY: "auto",
+                          background: "#fffaf2",
+                          borderRadius: 18,
+                          padding: 20,
+                          border: "1px solid #d6c7ad",
+                          boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                        }}
+                      >
+                        <h3 style={{ margin: "0 0 8px", fontSize: 20 }}>Ավելացնել գործունեության հասցե</h3>
+                        <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: 13 }}>
+                          Լրացրու հասցեն և սեղմիր «Գրանցել հասցեն»։ Դրանից հետո կբացվի ստորաբաժանման գրանցման պատուհանը։
+                        </p>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 14 }}>
+                          <label style={styles.label}>
+                            Երկիր
+                            <select
+                              style={styles.input}
+                              value={newPartnerMainForm.activityCountryCode}
+                              onChange={(event) =>
+                                setNewPartnerMainForm((current) => ({
+                                  ...current,
+                                  activityCountryCode: event.target.value,
+                                }))
+                              }
+                            >
+                              {countries
+                                .filter((country) => country.isActive)
+                                .map((country) => (
+                                  <option key={country.code} value={country.code}>
+                                    {country.nameHy} — {country.isoAlpha2}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
+
+                          <label style={styles.label}>
+                            Մարզ / նահանգ / շրջան
+                            <select
+                                style={styles.input}
+                                value={newPartnerMainForm.activityRegion}
+                                onChange={(event) =>
+                                  setNewPartnerMainForm((current) => ({
+                                    ...current,
+                                    activityRegion: event.target.value,
+                                    activityCity: "",
+                                  }))
+                                }
+                            >
+                              <option value="">Select region</option>
+                              {armenianRegions.map((region) => (
+                                <option key={region.code} value={region.code}>
+                                  {region.nameHy}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label style={styles.label}>
+                            Քաղաք / գյուղ / բնակավայր
+                            <select
+                                style={styles.input}
+                                value={newPartnerMainForm.activityCity}
+                                onChange={(event) =>
+                                  setNewPartnerMainForm((current) => ({
+                                    ...current,
+                                    activityCity: event.target.value,
+                                  }))
+                                }
+                                disabled={!newPartnerMainForm.activityRegion}
+                              >
+                                <option value="">Select city</option>
+                                {armenianSettlements
+                                  .filter((settlement) => settlement.regionCode === newPartnerMainForm.activityRegion)
+                                  .map((settlement) => (
+                                    <option key={settlement.code} value={settlement.code}>
+                                      {settlement.nameHy}
+                                    </option>
+                                  ))}
+                              </select>
+                          </label>
+
+                          <label style={styles.label}>
+                            Փողոց
+                            <input
+                              style={styles.input}
+                              type="text"
+                              value={newPartnerMainForm.activityStreet}
+                              onChange={(event) =>
+                                setNewPartnerMainForm((current) => ({
+                                  ...current,
+                                  activityStreet: event.target.value,
+                                }))
+                              }
+                              placeholder="Օրինակ՝ Արշակունյաց պողոտա"
+                            />
+                          </label>
+
+                          <label style={styles.label}>
+                            Շենք / տուն
+                            <input
+                              style={styles.input}
+                              type="text"
+                              value={newPartnerMainForm.activityBuilding}
+                              onChange={(event) =>
+                                setNewPartnerMainForm((current) => ({
+                                  ...current,
+                                  activityBuilding: event.target.value,
+                                }))
+                              }
+                              placeholder="Օրինակ՝ 25 շենք"
+                            />
+                          </label>
+
+                          <label style={styles.label}>
+                            Տարածք / գրասենյակ / բնակարան
+                            <input
+                              style={styles.input}
+                              type="text"
+                              value={newPartnerMainForm.activityApartment}
+                              onChange={(event) =>
+                                setNewPartnerMainForm((current) => ({
+                                  ...current,
+                                  activityApartment: event.target.value,
+                                }))
+                              }
+                              placeholder="Օրինակ՝ պահեստ 2"
+                            />
+                          </label>
+
+                          <label style={{ ...styles.label, gridColumn: "1 / -1" }}>
+                            Նշումներ
+                            <textarea
+                              style={{ ...styles.input, minHeight: 76, resize: "vertical" }}
+                              value={newPartnerMainForm.businessAddress}
+                              onChange={(event) =>
+                                setNewPartnerMainForm((current) => ({
+                                  ...current,
+                                  businessAddress: event.target.value,
+                                }))
+                              }
+                              placeholder="Օրինակ՝ այս հասցեում գործում են հումքի պահեստը և արտադրամաս 1-ը"
+                            />
+                          </label>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+                          <button type="button" style={styles.secondaryButton} onClick={() => setNewPartnerAddressModalOpen(false)}>
+                            Չեղարկել
+                          </button>
+                          <button type="button" style={styles.primaryButton} onClick={addNewPartnerActivityAddress}>
+                            Գրանցել հասցեն
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+                  ) : null}
+
+                  {newPartnerDepartmentModalOpen ? (
+                    <div
+                      style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(15, 23, 42, 0.45)",
+                        display: "grid",
+                        placeItems: "center",
+                        padding: 24,
+                        zIndex: 51,
+                      }}
+                    >
+                      <section
+                        style={{
+                          width: "min(820px, 100%)",
+                          maxHeight: "90vh",
+                          overflowY: "auto",
+                          background: "#fffaf2",
+                          borderRadius: 18,
+                          padding: 20,
+                          border: "1px solid #d6c7ad",
+                          boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                        }}
+                      >
+                        <h3 style={{ margin: "0 0 8px", fontSize: 20 }}>Ավելացնել ստորաբաժանում</h3>
+                        <p style={{ margin: "0 0 16px", color: "#6b7280", fontSize: 13 }}>
+                          Ընտրիր գրանցված հասցեն և ավելացրու այդ հասցեում գործող ստորաբաժանումը։
+                        </p>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 14 }}>
+                          <label style={{ ...styles.label, gridColumn: "1 / -1" }}>
+                            Հասցե
+                            <select
+                              style={styles.input}
+                              value={newPartnerDepartmentAddressId}
+                              onChange={(event) => {
+                                const addressId = event.target.value;
+                                setNewPartnerDepartmentAddressId(addressId);
+                                setNewPartnerDepartmentFormsByAddress((current) => ({
+                                  ...current,
+                                  [addressId]: current[addressId] ?? { type: "Գրասենյակ", name: "", note: "" },
+                                }));
+                              }}
+                            >
+                              {newPartnerActivityAddresses.map((address) => (
+                                <option key={address.id} value={address.id}>
+                                  {address.code} · {getNewPartnerCountryLabel(address.countryCode)} · {[address.region, address.city, address.street, address.building].filter(Boolean).join(", ")}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label style={styles.label}>
+                            Ստորաբաժանման տեսակ
+                            <select
+                              style={styles.input}
+                              value={newPartnerDepartmentFormsByAddress[newPartnerDepartmentAddressId]?.type ?? "Գրասենյակ"}
+                              onChange={(event) =>
+                                updateNewPartnerDepartmentForm(newPartnerDepartmentAddressId, { type: event.target.value })
+                              }
+                            >
+                              <option value="Գրասենյակ">Գրասենյակ</option>
+                              <option value="Պահեստ">Պահեստ</option>
+                              <option value="Արտադրամաս">Արտադրամաս</option>
+                              <option value="Խանութ / վաճառակետ">Խանութ / վաճառակետ</option>
+                              <option value="Մասնաճյուղ">Մասնաճյուղ</option>
+                              <option value="Այլ">Այլ</option>
+                            </select>
+                          </label>
+
+                          <label style={styles.label}>
+                            Անվանում / նկարագրություն
+                            <input
+                              style={styles.input}
+                              type="text"
+                              value={newPartnerDepartmentFormsByAddress[newPartnerDepartmentAddressId]?.name ?? ""}
+                              onChange={(event) =>
+                                updateNewPartnerDepartmentForm(newPartnerDepartmentAddressId, { name: event.target.value })
+                              }
+                              placeholder="Օրինակ՝ Կենտրոնական պահեստ"
+                            />
+                          </label>
+
+                          <label style={{ ...styles.label, gridColumn: "1 / -1" }}>
+                            Նշում
+                            <input
+                              style={styles.input}
+                              type="text"
+                              value={newPartnerDepartmentFormsByAddress[newPartnerDepartmentAddressId]?.note ?? ""}
+                              onChange={(event) =>
+                                updateNewPartnerDepartmentForm(newPartnerDepartmentAddressId, { note: event.target.value })
+                              }
+                              placeholder="Օրինակ՝ հումքի պահեստ"
+                            />
+                          </label>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
+                          <button
+                            type="button"
+                            style={styles.secondaryButton}
+                            onClick={() => {
+                              const selectedAddress = newPartnerActivityAddresses.find(
+                                (address) => address.id === newPartnerDepartmentAddressId,
+                              );
+
+                              if (selectedAddress && selectedAddress.departments.length === 0) {
+                                setNewPartnerMessage("Այս հասցեի համար պետք է գրանցել առնվազն մեկ ստորաբաժանում։");
+                                return;
+                              }
+
+                              setNewPartnerDepartmentModalOpen(false);
+                            }}
+                          >
+                            Փակել
+                          </button>
+                          <button
+                            type="button"
+                            style={styles.primaryButton}
+                            onClick={() => addNewPartnerDepartment(newPartnerDepartmentAddressId)}
+                          >
+                            Գրանցել ստորաբաժանումը
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
       </section>
     );
   }
@@ -1996,9 +3068,17 @@ export default function Home() {
             </div>
           ) : null}
 
-          <button type="submit" style={styles.primaryButton} disabled={isSavingOrganization}>
-            {isSavingOrganization ? "Պահպանվում է..." : "Գրանցել DEV DB-ում"}
-          </button>
+          <button
+                  type="submit"
+                  disabled={isSavingOrganization}
+                  style={{
+                    ...styles.primaryButton,
+                    opacity: isSavingOrganization ? 0.65 : 1,
+                    cursor: isSavingOrganization ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {isSavingOrganization ? "Պահպանվում է..." : "Պահպանել"}
+                </button>
         </form>
       </section>
     );
@@ -2008,6 +3088,39 @@ export default function Home() {
     setSelectedOrganizationId(organizationId);
     setOrganizationProfileTab("Ընդհանուր տվյալներ");
     setActiveDemoPage("Կազմակերպության պրոֆիլ");
+  }
+
+  function openOrganizationEditPage(organization: AppOrganization) {
+    const editableOrganization = organization as AppOrganization & Record<string, string | null | undefined>;
+    setSelectedOrganizationId(organization.id);
+    setNewPartnerDraft(organization);
+    setNewPartnerEditingOrganizationName(organization.name);
+    setNewPartnerRegistrationTab("\u0538\u0576\u0564\u0570\u0561\u0576\u0578\u0582\u0580 \u057f\u057e\u0575\u0561\u056c\u0576\u0565\u0580");
+    setNewPartnerMessage(null);
+    setNewPartnerMainForm((current) => ({
+      ...current,
+      name: editableOrganization.name ?? "",
+      shortName: editableOrganization.shortName ?? "",
+      residency: editableOrganization.residency ?? current.residency,
+      legalType: editableOrganization.legalType ?? current.legalType,
+      taxId: editableOrganization.taxId ?? "",
+      registryNumber: editableOrganization.registryNumber ?? "",
+      stateRegistrationDate: editableOrganization.stateRegistrationDate ?? "",
+      legalAddress: editableOrganization.legalAddress ?? "",
+      postalCode: editableOrganization.postalCode ?? "",
+      registrationCountryCode: editableOrganization.registrationCountryCode ?? current.registrationCountryCode,
+      registrationRegion: editableOrganization.registrationRegion ?? "",
+      registrationCommunity: editableOrganization.registrationCommunity ?? "",
+      registrationSettlement: editableOrganization.registrationSettlement ?? "",
+      registrationStreet: editableOrganization.registrationStreet ?? "",
+      registrationBuilding: editableOrganization.registrationBuilding ?? "",
+      registrationApartment: editableOrganization.registrationApartment ?? "",
+      businessAddress: editableOrganization.businessAddress ?? "",
+      phone: editableOrganization.phone ?? "",
+      email: editableOrganization.email ?? "",
+      directorName: editableOrganization.directorName ?? "",
+    }));
+    setActiveDemoPage("\u0546\u0578\u0580 \u0563\u0578\u0580\u056e\u0568\u0576\u056f\u0565\u0580 \u0563\u0580\u0561\u0576\u0581\u0565\u056c");
   }
 
   function openArchiveOrganizationDialog(organizationId: string) {
@@ -4211,6 +5324,20 @@ export default function Home() {
       <section style={styles.accountingArea}>
         <p style={styles.kicker}>Կազմակերպություններ · Պրոֆիլ</p>
         <h2>{organization.name}</h2>
+        <button
+          type="button"
+          style={{
+            ...styles.primaryButton,
+            width: "fit-content",
+            margin: "8px 0 12px",
+            background: "#16a34a",
+            border: "1px solid #15803d",
+            color: "#ffffff",
+          }}
+          onClick={() => openOrganizationEditPage(organization)}
+        >
+          {"\u053d\u0574\u0562\u0561\u0563\u0580\u0565\u056c"}
+        </button>
         <p>
           Սա կազմակերպության կենտրոնական էջն է։ Այստեղից պետք է կառավարվի տվյալ կազմակերպության
           ընդհանուր տվյալները, ստուգումը, սպասարկման վիճակը, պայմանագիրը և հաշվապահական տարածքը։
@@ -6607,6 +7734,10 @@ export default function Home() {
 
     if (activeDemoPage === "Իրավակազմակերպական տեսակներ") {
       return <LegalOrganizationTypesManager />;
+    }
+
+    if (activeDemoPage === "Չափման միավորներ") {
+      return <MeasurementUnitsManager />;
     }
 
     if (activeDemoPage) {

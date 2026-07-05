@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({
-    departments: departments.map(toApiDepartment),
+    departments: departments.map((department: Awaited<ReturnType<typeof prisma.department.findMany>>[number]) => toApiDepartment(department)),
   });
 }
 
