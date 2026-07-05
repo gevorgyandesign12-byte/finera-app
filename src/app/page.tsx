@@ -701,6 +701,7 @@ export default function Home() {
 
     setNewPartnerDepartmentModalOpen(false);
     setNewPartnerDepartmentAddressId("");
+    setNewPartnerRegistrationTab("Գործունեություն");
     setNewPartnerMessage("Ստորաբաժանումը գրանցվեց ընտրված գործունեության հասցեի տակ։");
     window.alert("Ձեր գրանցումը կատարվեց հաջողությամբ։");
   }
@@ -1552,6 +1553,7 @@ export default function Home() {
         isPrimary: false,
         notes: "",
       });
+      setNewPartnerRegistrationTab("Հիմնադիրներ");
       setNewPartnerMessage(`Գործունեության տեսակը ավելացվեց՝ ${data.activity.title}`);
     } catch {
       setNewPartnerMessage("Չհաջողվեց կապ հաստատել activities API-ի հետ։");
@@ -1700,7 +1702,7 @@ export default function Home() {
         setActiveDemoPage("Կազմակերպության պրոֆիլ");
         setOrganizationProfileTab("Անդհանուր տվյալներ");
       } else {
-        setNewPartnerRegistrationTab("Գործունեություն");
+        setNewPartnerRegistrationTab("Գործունեության հասցեներ և ստորաբաժանումներ");
         void loadWizardActivities(data.organization.id);
       }
     } catch {
@@ -1715,10 +1717,35 @@ export default function Home() {
 function renderNewPartnerRegistrationWizard() {
     const tabs = [
       "Ընդհանուր",
-    "Հիմնադիրներ",
-    "Գործունեության հասցեներ և ստորաբաժանումներ",
-    "Գործունեություն",
+      "Գործունեության հասցեներ և ստորաբաժանումներ",
+      "Գործունեություն",
+      "Հիմնադիրներ",
     ];
+
+    const hasSavedMainDetails = Boolean(newPartnerDraft?.id);
+    const hasActivityAddressWithDepartment = newPartnerActivityAddresses.some(
+      (address) => address.departments.length > 0,
+    );
+    const hasActivityType = newPartnerActivities.length > 0;
+    const isNewPartnerWizardTabEnabled = (tab: string) => {
+      if (tab === "Ընդհանուր") {
+        return true;
+      }
+
+      if (tab === "Գործունեության հասցեներ և ստորաբաժանումներ") {
+        return hasSavedMainDetails;
+      }
+
+      if (tab === "Գործունեություն") {
+        return hasSavedMainDetails && hasActivityAddressWithDepartment;
+      }
+
+      if (tab === "Հիմնադիրներ") {
+        return hasSavedMainDetails && hasActivityAddressWithDepartment && hasActivityType;
+      }
+
+      return false;
+    };
 
     const suggestedActivityCode = suggestActivityCode(newPartnerActivityForm.title);
 
@@ -1739,7 +1766,11 @@ function renderNewPartnerRegistrationWizard() {
               style={{
                 ...styles.tabButton,
                 ...(newPartnerRegistrationTab === tab ? styles.tabButtonActive : {}),
+                ...(!isNewPartnerWizardTabEnabled(tab)
+                  ? { opacity: 0.45, cursor: "not-allowed" }
+                  : {}),
               }}
+              disabled={!isNewPartnerWizardTabEnabled(tab)}
               onClick={() => setNewPartnerRegistrationTab(tab)}
             >
               {tab}
