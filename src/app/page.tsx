@@ -210,6 +210,8 @@ function getTodayInputDate() {
 function getAllowedDemoOrganizations(user: DemoUser, organizations: AppOrganization[]) {
   if (user.organizations.includes("System / Infrastructure")) {
     return [];
+
+
   }
 
   const employee = demoEmployees.find((item) => item.id === user.fineraEmployeeId);
@@ -279,6 +281,34 @@ function getAllowedAccountingDemoOrganizations(user: DemoUser, organizations: Ap
       allowedOrganizationIds.has(organization.id) || allowedOrganizationNames.has(organization.name),
   );
 }
+
+const partnerDepartmentCapabilityOptions = [
+  {
+    value: "inventoryAssets",
+    label: "\u0546\u0575\u0578\u0582\u0569\u0565\u0580 / \u0563\u0578\u0582\u0575\u0584 / \u0540\u0544",
+    note: "\u0532\u0578\u056c\u0578\u0580 \u057d\u057f\u0578\u0580\u0561\u0562\u0561\u056a\u0561\u0576\u0578\u0582\u0574\u0576\u0565\u0580\u0568 \u056f\u0561\u0580\u0578\u0572 \u0565\u0576 \u0578\u0582\u0576\u0565\u0576\u0561\u056c \u0576\u0575\u0578\u0582\u0569\u0565\u0580, \u0563\u0578\u0582\u0575\u0584 \u056f\u0561\u0574 \u0570\u056b\u0574\u0576\u0561\u056f\u0561\u0576 \u0574\u056b\u057b\u0578\u0581\u0576\u0565\u0580:",
+  },
+  {
+    value: "cashBank",
+    label: "\u0534\u0580\u0561\u0574\u0561\u0580\u056f\u0572 / \u0532\u0561\u0576\u056f",
+    note: "\u0544\u056b\u0561\u0575\u0576 \u0561\u0575\u0576 \u057d\u057f\u0578\u0580\u0561\u0562\u0561\u056a\u0561\u0576\u0578\u0582\u0574\u0576\u0565\u0580\u056b \u0570\u0561\u0574\u0561\u0580, \u0578\u0580\u057f\u0565\u0572 \u056f\u0561 \u0564\u0580\u0561\u0574\u0561\u056f\u0561\u0576 \u056f\u0561\u0574 \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0577\u0561\u0580\u056a:",
+  },
+  {
+    value: "salesHdm",
+    label: "\u054e\u0561\u0573\u0561\u057c\u0584 / \u0540\u0534\u0544",
+    note: "\u054e\u0561\u0573\u0561\u057c\u0561\u056f\u0565\u057f, \u056d\u0561\u0576\u0578\u0582\u0569 \u056f\u0561\u0574 \u057d\u0580\u0561\u0570, \u0578\u0580\u057f\u0565\u0572 \u056f\u0561\u0580\u0578\u0572 \u0567 \u056c\u056b\u0576\u0565\u056c \u0570\u0561\u057d\u0578\u0582\u0575\u0569 \u056f\u0561\u0574 \u0540\u0534\u0544:",
+  },
+  {
+    value: "warehouse",
+    label: "\u054a\u0561\u0570\u0565\u057d\u057f\u0561\u0575\u056b\u0576 \u0577\u0561\u0580\u056a",
+    note: "\u0531\u057a\u0580\u0561\u0576\u0584\u0576\u0565\u0580\u056b, \u0576\u0575\u0578\u0582\u0569\u0565\u0580\u056b \u056f\u0561\u0574 \u057a\u0561\u057f\u0580\u0561\u057d\u057f\u056b \u0561\u0580\u057f\u0561\u0564\u0580\u0561\u0576\u0584\u056b \u0574\u0578\u0582\u057f\u0584, \u0565\u056c\u0584 \u056f\u0561\u0574 \u057f\u0565\u0572\u0561\u0583\u0578\u056d\u0578\u0582\u0569\u0575\u0578\u0582\u0576:",
+  },
+  {
+    value: "production",
+    label: "\u0531\u0580\u057f\u0561\u0564\u0580\u0578\u0582\u0569\u0575\u0578\u0582\u0576",
+    note: "\u0531\u0580\u057f\u0561\u0564\u0580\u0561\u0574\u0561\u057d, \u0561\u0577\u056d\u0561\u057f\u0561\u0576\u0584\u0561\u0575\u056b\u0576 \u057f\u0565\u0572\u0561\u0574\u0561\u057d \u056f\u0561\u0574 \u056e\u0561\u056d\u057d\u0561\u0575\u056b\u0576 \u056f\u0565\u0576\u057f\u0580\u0578\u0576:",
+  },
+];
 
 export default function Home() {
   const router = useRouter();
@@ -537,12 +567,13 @@ export default function Home() {
         type: string;
         name: string;
         note: string;
+        capabilityScopes: string[];
       }>;
     }>
   >([]);
 
   const [newPartnerDepartmentFormsByAddress, setNewPartnerDepartmentFormsByAddress] = useState<
-    Record<string, { type: string; name: string; note: string }>
+    Record<string, { type: string; name: string; note: string; capabilityScopes: string[] }>
   >({});
 
   const [newPartnerAddressModalOpen, setNewPartnerAddressModalOpen] = useState(false);
@@ -590,7 +621,7 @@ export default function Home() {
 
     setNewPartnerDepartmentFormsByAddress((current) => ({
       ...current,
-      [nextAddressId]: { type: "Գրասենյակ", name: "", note: "" },
+      [nextAddressId]: { type: "Գրասենյակ", name: "", note: "", capabilityScopes: ["inventoryAssets"] },
     }));
 
     setNewPartnerMainForm((current) => ({
@@ -612,7 +643,7 @@ export default function Home() {
 
   function updateNewPartnerDepartmentForm(
     addressId: string,
-    patch: Partial<{ type: string; name: string; note: string }>,
+    patch: Partial<{ type: string; name: string; note: string; capabilityScopes: string[] }>,
   ) {
     setNewPartnerDepartmentFormsByAddress((current) => ({
       ...current,
@@ -620,6 +651,7 @@ export default function Home() {
         type: current[addressId]?.type ?? "Գրասենյակ",
         name: current[addressId]?.name ?? "",
         note: current[addressId]?.note ?? "",
+        capabilityScopes: current[addressId]?.capabilityScopes ?? ["inventoryAssets"],
         ...patch,
       },
     }));
@@ -636,6 +668,7 @@ export default function Home() {
       type: "Գրասենյակ",
       name: "",
       note: "",
+      capabilityScopes: ["inventoryAssets"],
     };
 
     const departmentNumber =
@@ -653,6 +686,7 @@ export default function Home() {
                   type: form.type,
                   name: form.name.trim() || form.type,
                   note: form.note.trim(),
+                  capabilityScopes: form.capabilityScopes,
                 },
               ],
             }
@@ -662,7 +696,7 @@ export default function Home() {
 
     setNewPartnerDepartmentFormsByAddress((current) => ({
       ...current,
-      [addressId]: { type: "Գրասենյակ", name: "", note: "" },
+      [addressId]: { type: "Գրասենյակ", name: "", note: "", capabilityScopes: ["inventoryAssets"] },
     }));
 
     setNewPartnerDepartmentModalOpen(false);
@@ -2811,7 +2845,7 @@ function renderNewPartnerRegistrationWizard() {
                                 setNewPartnerDepartmentAddressId(addressId);
                                 setNewPartnerDepartmentFormsByAddress((current) => ({
                                   ...current,
-                                  [addressId]: current[addressId] ?? { type: "Գրասենյակ", name: "", note: "" },
+                                  [addressId]: current[addressId] ?? { type: "Գրասենյակ", name: "", note: "", capabilityScopes: ["inventoryAssets"] },
                                 }));
                               }}
                             >
@@ -2866,6 +2900,58 @@ function renderNewPartnerRegistrationWizard() {
                               placeholder="Օրինակ՝ հումքի պահեստ"
                             />
                           </label>
+
+                          <div style={{ gridColumn: "1 / -1", display: "grid", gap: 10 }}>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <strong style={{ fontSize: 13, color: "#374151" }}>
+                                {"\u054d\u057f\u0578\u0580\u0561\u0562\u0561\u056a\u0561\u0576\u0574\u0561\u0576 \u0570\u0576\u0561\u0580\u0561\u057e\u0578\u0580\u0578\u0582\u0569\u0575\u0578\u0582\u0576\u0576\u0565\u0580"}
+                              </strong>
+                              <span style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+                                {"\u0546\u0575\u0578\u0582\u0569\u0565\u0580 / \u0563\u0578\u0582\u0575\u0584 / \u0540\u0544 \u0570\u0576\u0561\u0580\u0561\u057e\u0578\u0580\u0578\u0582\u0569\u0575\u0578\u0582\u0576\u0568 \u056c\u057c\u0565\u056c\u0575\u0561\u0575\u0576 \u0574\u056b\u0561\u0581\u057e\u0561\u056e \u0567\u0589 \u0574\u0575\u0578\u0582\u057d\u0576\u0565\u0580\u0568 \u0574\u056b\u0561\u0581\u0580\u0578\u0582 \u0574\u056b\u0561\u0575\u0576 \u0561\u0575\u0576 \u057f\u0565\u0572\u0565\u0580\u056b \u0570\u0561\u0574\u0561\u0580, \u0578\u0580\u057f\u0565\u0572 \u056b\u0580\u0578\u0584 \u056f\u0561 \u0561\u0575\u0564 \u0563\u0578\u0580\u056e\u0561\u057c\u0578\u0582\u0575\u0569\u0568:"}
+                              </span>
+                            </div>
+                            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                              {partnerDepartmentCapabilityOptions.map((capability) => {
+                                const selectedScopes =
+                                  newPartnerDepartmentFormsByAddress[newPartnerDepartmentAddressId]?.capabilityScopes ?? ["inventoryAssets"];
+                                const isChecked = selectedScopes.includes(capability.value);
+
+                                return (
+                                  <label
+                                    key={capability.value}
+                                    style={{
+                                      display: "grid",
+                                      gap: 4,
+                                      border: "1px solid #e5e7eb",
+                                      borderRadius: 12,
+                                      padding: 10,
+                                      background: "#ffffff",
+                                    }}
+                                  >
+                                    <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: "#374151" }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={(event) => {
+                                          const nextScopes = event.target.checked
+                                            ? Array.from(new Set([...selectedScopes, capability.value]))
+                                            : selectedScopes.filter((scope) => scope !== capability.value);
+
+                                          updateNewPartnerDepartmentForm(newPartnerDepartmentAddressId, {
+                                            capabilityScopes: nextScopes.length > 0 ? nextScopes : ["inventoryAssets"],
+                                          });
+                                        }}
+                                      />
+                                      {capability.label}
+                                    </span>
+                                    <span style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5 }}>
+                                      {capability.note}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
 
                         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 18 }}>
