@@ -2158,11 +2158,11 @@ function renderNewPartnerRegistrationWizard() {
                   : ownershipMode === "shares"
                     ? "Բաժնետերեր"
                     : "Հիմնադիրներ";
-            const ownershipIntro =
+                        const ownershipIntro =
               ownershipMode === "llc"
-                ? "Մուտքագրեք մասնակիցներին միայն SAFE demo-ի համար։"
+                ? "Մուտքագրեք մասնակիցներին tenant DB կառուցվածքի նախապատրաստման համար։"
                 : ownershipMode === "shares"
-                  ? "Մուտքագրեք բաժնետերերին միայն SAFE demo-ի համար։"
+                  ? "Մուտքագրեք բաժնետերերին tenant DB կառուցվածքի նախապատրաստման համար։"
                   : "";
 
             return (
@@ -2179,7 +2179,7 @@ function renderNewPartnerRegistrationWizard() {
                 <div style={{ display: "grid", gap: "6px" }}>
                   <h3 style={{ margin: 0, fontSize: "1.05rem" }}>{ownershipHeading}</h3>
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    SAFE demo փուլ․ տվյալները դեռ չեն պահպանվում բազայում։
+                    SAFE demo փուլ․ հիմնադիրները չեն պահվելու Master DB-ում․ ապագայում դրանք կպահվեն տվյալ կազմակերպության առանձին tenant DB-ում։
                   </p>
                   {ownershipIntro ? (
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>{ownershipIntro}</p>
