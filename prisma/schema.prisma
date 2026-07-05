@@ -8,32 +8,35 @@ datasource db {
 }
 
 model Organization {
-  id                 String  @id @default(cuid())
-  name               String
-  shortName          String?
-  legalType          String
-  taxId              String? @unique
-  status             String  @default("draft")
-  shortDescription   String?
-  legalAddress       String?
-  businessAddress    String?
-  tenantDatabaseName String?
-  organizationKind   String  @default("serviced_partner")
+  id                      String    @id @default(cuid())
+  name                    String
+  shortName               String?
+  legalType               String
+  taxId                   String?   @unique
+  status                  String    @default("draft")
+  shortDescription        String?
+  legalAddress            String?
+  businessAddress         String?
+  tenantDatabaseName      String?
+  tenantDatabaseStatus    String    @default("planned")
+  tenantDatabaseCreatedAt DateTime?
+  tenantDatabaseError     String?
+  organizationKind        String    @default("serviced_partner")
 
   serviceStatus     String    @default("servicing")
   serviceStoppedAt  DateTime?
   serviceStopReason String?
   archivedAt        DateTime?
 
-  registryCheckStatus  String    @default("not_checked")
-  registryCheckedAt    DateTime?
-  registryCheckedBy    String?
-  registryName         String?
-  registryTaxId        String?
-  registryLegalAddress String?
-  registryStatus       String?
-  registrySource       String?
-  registryNotes        String?
+  registryCheckStatus   String    @default("not_checked")
+  registryCheckedAt     DateTime?
+  registryCheckedBy     String?
+  registryName          String?
+  registryTaxId         String?
+  registryLegalAddress  String?
+  registryStatus        String?
+  registrySource        String?
+  registryNotes         String?
   stateRegistrationDate String?
 
   contracts             ServiceContract[]
