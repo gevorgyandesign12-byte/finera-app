@@ -3442,7 +3442,7 @@ function renderNewPartnerRegistrationWizard() {
             Ստուգման կարգավիճակ՝ {getRegistryCheckLabel(organization.registryCheckStatus)}
           </p>
           <small>
-            ՀՎՀՀ՝ {organization.taxId ?? "—"} · tenant DB demo՝{" "}
+            ՀՎՀՀ՝ {organization.taxId ?? "—"} · ապագա tenant DB՝{" "}
             {organization.tenantDatabaseName ?? "—"}
           </small>
         </div>
@@ -3618,7 +3618,7 @@ function renderNewPartnerRegistrationWizard() {
                   {organization.shortDescription}
                 </span>
                 <small>
-                  ՀՎՀՀ demo: {organization.taxId} · tenant DB demo:{" "}
+                  ՀՎՀՀ demo: {organization.taxId} · ապագա tenant DB:{" "}
                   {organization.tenantDatabaseName}
                 </small>
               </button>
@@ -3731,7 +3731,7 @@ function renderNewPartnerRegistrationWizard() {
                         {organization.name}
                       </span>
                       <small style={{ color: "#475569" }}>
-                        ՀՎՀՀ demo: {organization.taxId} · tenant DB demo:{" "}
+                        ՀՎՀՀ demo: {organization.taxId} · ապագա tenant DB:{" "}
                         {organization.tenantDatabaseName}
                       </small>
                     </button>
@@ -5595,7 +5595,7 @@ function renderNewPartnerRegistrationWizard() {
           <div style={styles.tabPanel}>
             <h3 style={styles.sectionTitle}>Հաշվապահական տարածք</h3>
             <div style={styles.previewBox}>
-              <strong>Tenant DB demo</strong>
+              <strong>Ապագա tenant DB</strong>
               <p style={{ marginBottom: 0 }}>{organization.tenantDatabaseName ?? "—"}</p>
             </div>
             <p>
@@ -5879,7 +5879,7 @@ function renderNewPartnerRegistrationWizard() {
                 {getOrganizationServiceLabel(ownOrganization)}
               </small>
               <small>
-                <strong>Tenant DB demo</strong>
+                <strong>Ապագա tenant DB</strong>
                 <br />
                 {ownOrganization.tenantDatabaseName ?? "—"}
               </small>
@@ -5989,7 +5989,7 @@ function renderNewPartnerRegistrationWizard() {
                     {getRegistryCheckLabel(organization.registryCheckStatus)}
                   </small>
                   <small>
-                    <strong>Tenant DB demo</strong>
+                    <strong>Ապագա tenant DB</strong>
                     <br />
                     {organization.tenantDatabaseName ?? "—"}
                   </small>
@@ -7970,7 +7970,7 @@ function renderNewPartnerRegistrationWizard() {
                   <strong>{selectedOrganization.name}</strong>
                   <p style={{ marginBottom: "8px" }}>{selectedOrganization.shortDescription}</p>
                   <small>
-                    ՀՎՀՀ demo: {selectedOrganization.taxId} · tenant DB demo:{" "}
+                    ՀՎՀՀ demo: {selectedOrganization.taxId} · ապագա tenant DB:{" "}
                     {selectedOrganization.tenantDatabaseName}
                   </small>
                 </div>
@@ -8001,7 +8001,7 @@ function renderNewPartnerRegistrationWizard() {
                 <strong>{organization.name}</strong>
                 <p style={{ margin: "8px 0" }}>{organization.shortDescription}</p>
                 <small>
-                  ՀՎՀՀ demo: {organization.taxId} · status: {organization.status} · tenant DB demo:{" "}
+                  ՀՎՀՀ demo: {organization.taxId} · status: {organization.status} · ապագա tenant DB:{" "}
                   {organization.tenantDatabaseName}
                 </small>
               </div>
