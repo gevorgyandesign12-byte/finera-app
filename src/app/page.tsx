@@ -5608,6 +5608,14 @@ function renderNewPartnerRegistrationWizard() {
                     ? "սխալ"
                     : "նախատեսված"}
               </small>
+              <div style={{ marginTop: 8 }}>
+                <button disabled style={{ opacity: 0.55, cursor: "not-allowed" }}>
+                  Ստեղծել հաշվապահական բազա
+                </button>
+                <small style={{ display: "block", marginTop: 6, color: "#64748b" }}>
+                  {"ՍAFE demo․ իրական tenant DB-ն կստեղծվի միայն production փուլում՝ բազայի անունը այս փուլում միայն ամրագրված է։"}
+                </small>
+              </div>
             </div>
             <p>
               Այս բաժնից բացվելու է հենց այս կազմակերպության հաշվապահական աշխատանքային տարածքը։
