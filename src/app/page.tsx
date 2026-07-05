@@ -5600,6 +5600,14 @@ function renderNewPartnerRegistrationWizard() {
             <div style={styles.previewBox}>
               <strong>Ապագա tenant DB</strong>
               <p style={{ marginBottom: 0 }}>{organization.tenantDatabaseName ?? "—"}</p>
+              <small style={{ color: "#64748b" }}>
+                Կարգավիճակ՝{" "}
+                {organization.tenantDatabaseStatus === "created"
+                  ? "ստեղծված"
+                  : organization.tenantDatabaseStatus === "failed"
+                    ? "սխալ"
+                    : "նախատեսված"}
+              </small>
             </div>
             <p>
               Այս բաժնից բացվելու է հենց այս կազմակերպության հաշվապահական աշխատանքային տարածքը։
