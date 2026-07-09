@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { demoUsers, type DemoUser } from "@/lib/demo-data";
 import { demoOrganizations, masterDatabaseNote } from "@/lib/demo-organizations";
@@ -12,6 +12,40 @@ import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
 import { MeasurementUnitsManager } from "@/components/MeasurementUnitsManager";
+
+type MasterExchangeRateRow = {
+  id: string;
+  rateDate: string;
+  isoCode: string;
+  armenianName: string | null;
+  englishName: string | null;
+  nominal: number;
+  rate: string;
+  change: string | null;
+  source: string;
+  sourcePublishedAt: string | null;
+  sourceFetchedAt: string | null;
+};
+
+type MasterExchangeRateFetchLog = {
+  id: string;
+  source: string;
+  fetchType: string;
+  requestedDate: string | null;
+  status: string;
+  ratesCount: number;
+  errorMessage: string | null;
+  fetchedAt: string;
+  completedAt: string | null;
+};
+
+type MasterExchangeRatesApiResponse = {
+  exchangeRates?: MasterExchangeRateRow[];
+  fetchLogs?: MasterExchangeRateFetchLog[];
+  error?: string;
+  detail?: string;
+};
+
 type ServiceContract = {
   id: string;
   organizationId: string;
@@ -298,6 +332,76 @@ const partnerDepartmentCapabilityOptions = [
 ];
 
 export default function Home() {
+
+  const [masterExchangeRateRows, setMasterExchangeRateRows] = useState<MasterExchangeRateRow[]>([]);
+  const [masterExchangeRateLogs, setMasterExchangeRateLogs] = useState<MasterExchangeRateFetchLog[]>([]);
+  const [masterExchangeRatesLoading, setMasterExchangeRatesLoading] = useState(false);
+  const [masterExchangeRatesRefreshing, setMasterExchangeRatesRefreshing] = useState(false);
+  const [masterExchangeRatesError, setMasterExchangeRatesError] = useState("");
+  const [masterExchangeRatesLoadedAt, setMasterExchangeRatesLoadedAt] = useState("");
+
+  const loadMasterExchangeRates = useCallback(async () => {
+    setMasterExchangeRatesLoading(true);
+    setMasterExchangeRatesError("");
+
+    try {
+      const response = await fetch("/api/master-data/exchange-rates?limit=50", { cache: "no-store" });
+      const payload = (await response.json()) as MasterExchangeRatesApiResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.detail ?? payload.error ?? "\u0553\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580\u0568 \u0579\u0562\u0565\u057c\u0576\u057e\u0565\u0581\u056b\u0576\u0589");
+      }
+
+      setMasterExchangeRateRows(payload.exchangeRates ?? []);
+      setMasterExchangeRateLogs(payload.fetchLogs ?? []);
+      setMasterExchangeRatesLoadedAt(new Date().toLocaleString("hy-AM"));
+    } catch (error) {
+      setMasterExchangeRatesError(error instanceof Error ? error.message : "\u054d\u056d\u0561\u056c \u057f\u0565\u0572\u056b \u0578\u0582\u0576\u0565\u0581\u0561\u057e\u0589");
+    } finally {
+      setMasterExchangeRatesLoading(false);
+    }
+  }, []);
+
+  const refreshLatestMasterExchangeRates = useCallback(async () => {
+    setMasterExchangeRatesRefreshing(true);
+    setMasterExchangeRatesError("");
+
+    try {
+      const response = await fetch("/api/master-data/exchange-rates/fetch-latest", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string; detail?: string };
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.detail ?? payload.error ?? "\u053f\u0532-\u056b\u0581 \u0569\u0561\u0580\u0574\u0561\u0581\u0578\u0582\u0574\u0568 \u0579\u0570\u0561\u057b\u0578\u0572\u057e\u0565\u0581\u0589");
+      }
+
+      await loadMasterExchangeRates();
+    } catch (error) {
+      setMasterExchangeRatesError(error instanceof Error ? error.message : "\u054d\u056d\u0561\u056c \u057f\u0565\u0572\u056b \u0578\u0582\u0576\u0565\u0581\u0561\u057e\u0589");
+    } finally {
+      setMasterExchangeRatesRefreshing(false);
+    }
+  }, [loadMasterExchangeRates]);
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void loadMasterExchangeRates();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [loadMasterExchangeRates]);
+
+  function formatMasterExchangeRateDateTime(value: string | null | undefined) {
+    if (!value) {
+      return "\u2014";
+    }
+
+    return value.replace("T", " ").slice(0, 16);
+  }
+
   const router = useRouter();
   const [selectedUserId, setSelectedUserId] = useState(demoUsers[0].id);
   const [loggedInUserId, setLoggedInUserId] = useState<string | null>(null);
@@ -6782,24 +6886,71 @@ function renderNewPartnerRegistrationWizard() {
   }
 
   function renderCurrencyRatesPage() {
-    const rows = [
-      ["2026-01-01", "USD", "Demo", "ԿԲ պաշտոնական կուրս"],
-      ["2026-01-01", "EUR", "Demo", "ԿԲ պաշտոնական կուրս"],
-      ["2026-01-01", "RUB", "Demo", "ԿԲ պաշտոնական կուրս"],
-    ];
-
     return (
       <section style={styles.card}>
-        {renderDemoPageTitle("Արժույթային կուրսեր")}
+        {renderDemoPageTitle("\u0553\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580")}
+        <p style={styles.kicker}>
+          {"\u053f\u0561\u057c\u0561\u057e\u0561\u0580\u0578\u0582\u0574 \u00b7 \u053f\u0561\u0580\u0563\u0561\u057e\u0578\u0580\u0578\u0582\u0574\u0576\u0565\u0580 \u00b7 \u0556\u056b\u0576\u0561\u0576\u057d\u0561\u056f\u0561\u0576 \u00b7 \u0553\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580"}
+        </p>
         <p style={styles.sectionText}>
-          Demo բաժին է․ իրական կուրսերը հետագայում կբեռնվեն պաշտոնական աղբյուրներից Master DB։
+          {"\u053f\u0532 \u057a\u0561\u0577\u057f\u0578\u0576\u0561\u056f\u0561\u0576 \u0583\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580\u0568 \u0562\u0565\u057c\u0576\u057e\u0578\u0582\u0574 \u0565\u0576 Master DB \u0587 \u0561\u0575\u057d\u057f\u0565\u0572 \u057f\u0565\u057d\u0561\u0576\u0565\u056c\u056b \u0565\u0576 \u056e\u0580\u0561\u0563\u0580\u056b \u0586\u056b\u0576\u0561\u0576\u057d\u0561\u056f\u0561\u0576 \u056f\u0561\u0580\u0563\u0561\u057e\u0578\u0580\u0578\u0582\u0574\u0576\u0565\u0580\u0578\u0582\u0574\u0589"}
         </p>
 
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 16 }}>
+          <button
+            type="button"
+            style={styles.secondaryButton}
+            onClick={() => void loadMasterExchangeRates()}
+            disabled={masterExchangeRatesLoading || masterExchangeRatesRefreshing}
+          >
+            {masterExchangeRatesLoading ? "\u0532\u0565\u057c\u0576\u057e\u0578\u0582\u0574 \u0567..." : "\u0532\u0565\u057c\u0576\u0565\u056c Master DB-\u056b\u0581"}
+          </button>
+          <button
+            type="button"
+            style={styles.primaryButton}
+            onClick={() => void refreshLatestMasterExchangeRates()}
+            disabled={masterExchangeRatesLoading || masterExchangeRatesRefreshing}
+          >
+            {masterExchangeRatesRefreshing ? "\u0539\u0561\u0580\u0574\u0561\u0581\u057e\u0578\u0582\u0574 \u0567..." : "\u0539\u0561\u0580\u0574\u0561\u0581\u0576\u0565\u056c \u053f\u0532-\u056b\u0581"}
+          </button>
+        </div>
+
+        <div
+          style={{
+            marginTop: 14,
+            padding: "12px 14px",
+            border: "1px solid #bfdbfe",
+            borderRadius: 14,
+            background: "#eff6ff",
+            color: "#1e3a8a",
+            fontWeight: 700,
+          }}
+        >
+          {"\u053a\u0561\u0574\u0561\u0576\u0561\u056f\u0561\u056f\u0561\u057e\u0578\u0580 SAFE \u057e\u056b\u0573\u0561\u056f\u0589 "}
+          {masterExchangeRatesLoadedAt
+            ? "\u054e\u0565\u0580\u057b\u056b\u0576 \u0562\u0565\u057c\u0576\u0578\u0582\u0574\u055d " + masterExchangeRatesLoadedAt
+            : "\u054f\u057e\u0575\u0561\u056c\u0576\u0565\u0580\u0568 \u0564\u0565\u057c \u0579\u0565\u0576 \u0562\u0565\u057c\u0576\u057e\u0565\u056c\u0589"}
+        </div>
+
+        {masterExchangeRatesError ? (
+          <p style={{ ...styles.mutedNotice, borderColor: "#fecaca", background: "#fef2f2", color: "#991b1b" }}>
+            {masterExchangeRatesError}
+          </p>
+        ) : null}
+
         <div style={{ overflowX: "auto", marginTop: 16 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 880 }}>
             <thead>
               <tr>
-                {["Ամսաթիվ", "Արժույթ", "Կուրս", "Աղբյուր"].map((title) => (
+                {[
+                  "\u0531\u0574\u057d\u0561\u0569\u056b\u057e",
+                  "\u0531\u0580\u056a\u0578\u0582\u0575\u0569",
+                  "\u0531\u0576\u057e\u0561\u0576\u0578\u0582\u0574",
+                  "\u053f\u0578\u0582\u0580\u057d",
+                  "\u0553\u0578\u0583\u0578\u056d\u0578\u0582\u0569\u0575\u0578\u0582\u0576",
+                  "\u0531\u0572\u0562\u0575\u0578\u0582\u0580",
+                  "\u053f\u0532 \u0570\u0580\u0561\u057a\u0561\u0580\u0561\u056f\u0578\u0582\u0574",
+                ].map((title) => (
                   <th
                     key={title}
                     style={{
@@ -6809,7 +6960,6 @@ function renderNewPartnerRegistrationWizard() {
                       background: "#f8fafc",
                       color: "#0f172a",
                       fontSize: 13,
-                      fontWeight: 800,
                     }}
                   >
                     {title}
@@ -6818,29 +6968,52 @@ function renderNewPartnerRegistrationWizard() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={`${row[0]}-${row[1]}`}>
-                  {row.map((cell) => (
-                    <td
-                      key={`${row[0]}-${row[1]}-${cell}`}
-                      style={{
-                        padding: "10px 14px",
-                        border: "1px solid #e2e8f0",
-                        color: "#0f172a",
-                        fontSize: 13,
-                      }}
-                    >
-                      {cell}
+              {masterExchangeRateRows.length > 0 ? (
+                masterExchangeRateRows.map((row) => (
+                  <tr key={row.id}>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0" }}>{row.rateDate}</td>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0", fontWeight: 800 }}>{row.isoCode}</td>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0" }}>
+                      {row.armenianName ?? row.englishName ?? "\u2014"}
                     </td>
-                  ))}
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0", fontWeight: 800 }}>{row.rate}</td>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0" }}>{row.change ?? "\u2014"}</td>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0" }}>{row.source}</td>
+                    <td style={{ padding: "12px 14px", border: "1px solid #e2e8f0" }}>
+                      {formatMasterExchangeRateDateTime(row.sourcePublishedAt)}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} style={{ padding: "16px", border: "1px solid #e2e8f0", color: "#64748b" }}>
+                    {"\u0553\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580 \u0579\u0565\u0576 \u0563\u057f\u0576\u057e\u0565\u056c\u0589 \u054d\u0565\u0572\u0574\u0565\u0584 \u00ab\u0539\u0561\u0580\u0574\u0561\u0581\u0576\u0565\u056c \u053f\u0532-\u056b\u0581\u00bb\u0589"}
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <h3 style={{ margin: "0 0 10px", color: "#0f172a" }}>{"\u054e\u0565\u0580\u057b\u056b\u0576 \u0569\u0561\u0580\u0574\u0561\u0581\u0578\u0582\u0574\u0576\u0565\u0580\u056b log"}</h3>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", lineHeight: 1.8 }}>
+            {masterExchangeRateLogs.length > 0 ? (
+              masterExchangeRateLogs.slice(0, 5).map((log) => (
+                <li key={log.id}>
+                  {log.status} · {log.ratesCount} · {log.requestedDate ?? "\u2014"} · {log.source} ·{" "}
+                  {formatMasterExchangeRateDateTime(log.fetchedAt)}
+                </li>
+              ))
+            ) : (
+              <li>{"Log \u0563\u0580\u0561\u057c\u0578\u0582\u0574 \u0564\u0565\u057c \u0579\u056f\u0561\u0589"}</li>
+            )}
+          </ul>
         </div>
       </section>
     );
   }
+
 
   function renderBanksDirectoryPage() {
     const rows = [
@@ -7428,6 +7601,14 @@ function renderNewPartnerRegistrationWizard() {
       financeSettingsMenuLabels.includes("Ֆինանսներ")
     ) {
       return renderCurrenciesPage();
+    }
+
+    if (
+      financeSettingsPageLabel === "\u0553\u0578\u056d\u0561\u0580\u056a\u0565\u0584\u0576\u0565\u0580" &&
+      financeSettingsMenuLabels.includes("\u053f\u0561\u0580\u0563\u0561\u057e\u0578\u0580\u0578\u0582\u0574\u0576\u0565\u0580") &&
+      financeSettingsMenuLabels.includes("\u0556\u056b\u0576\u0561\u0576\u057d\u0561\u056f\u0561\u0576")
+    ) {
+      return renderCurrencyRatesPage();
     }
 
     if (
