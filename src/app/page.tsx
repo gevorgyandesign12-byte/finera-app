@@ -108,6 +108,7 @@ type AppOrganization = {
   legalType?: string | null;
   residency?: string | null;
   taxId?: string | null;
+  serviceCode?: string | null;
   status?: string | null;
   shortDescription?: string | null;
   legalAddress?: string | null;
@@ -5047,6 +5048,10 @@ function renderNewPartnerRegistrationWizard() {
             margin: "18px 0",
           }}
         >
+          <div style={styles.previewBox}>
+            <strong>{organization.serviceCode ?? "—"}</strong>
+            <p style={{ margin: "6px 0 0" }}>Finera կոդ</p>
+          </div>
           <div style={styles.previewBox}>
             <strong>{organization.taxId ?? "—"}</strong>
             <p style={{ margin: "6px 0 0" }}>ՀՎՀՀ</p>

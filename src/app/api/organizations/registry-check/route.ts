@@ -26,6 +26,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     shortName: organization.shortName,
     legalType: organization.legalType,
     taxId: organization.taxId,
+    serviceCode: organization.serviceCode,
     status: organization.status,
     shortDescription: organization.shortDescription,
     legalAddress: organization.legalAddress,

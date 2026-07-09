@@ -16,6 +16,29 @@ function makeTenantDatabaseName(name: string, taxId: string) {
     .replace(/^_+|_+$/g, "")}_demo`;
 }
 
+function formatServiceCode(sequence: number) {
+  return `FIN-${String(sequence).padStart(4, "0")}`;
+}
+
+async function makeNextServiceCode() {
+  const organizations = await prisma.organization.findMany({
+    select: { serviceCode: true },
+  });
+
+  const maxFromCodes = organizations.reduce((max, organization) => {
+    const match = organization.serviceCode?.match(/^FIN-(\d+)$/);
+    const value = match ? Number.parseInt(match[1] ?? "0", 10) : 0;
+
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, 0);
+
+  const fallbackCount = await prisma.organization.count({
+    where: { organizationKind: { not: "own_company" } },
+  });
+
+  return formatServiceCode(Math.max(maxFromCodes, fallbackCount) + 1);
+}
+
 function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organization.findFirst>>) {
   if (!organization) {
     return null;
@@ -27,6 +50,7 @@ function toApiOrganization(organization: Awaited<ReturnType<typeof prisma.organi
     shortName: organization.shortName,
     legalType: organization.legalType,
     taxId: organization.taxId,
+    serviceCode: organization.serviceCode,
     status: organization.status,
     shortDescription: organization.shortDescription,
     legalAddress: organization.legalAddress,
@@ -104,12 +128,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const serviceCode = organizationKind === "own_company" ? null : await makeNextServiceCode();
+
     const organization = await prisma.organization.create({
       data: {
         name,
         shortName: shortName || null,
         legalType,
         taxId,
+        serviceCode,
         status,
         shortDescription: shortDescription || null,
         legalAddress: legalAddress || null,
