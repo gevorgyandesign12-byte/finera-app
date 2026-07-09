@@ -13,6 +13,7 @@ model Organization {
   shortName               String?
   legalType               String
   taxId                   String?   @unique
+  serviceCode             String?   @unique
   status                  String    @default("draft")
   shortDescription        String?
   legalAddress            String?
@@ -39,14 +40,117 @@ model Organization {
   registryNotes         String?
   stateRegistrationDate String?
 
-  contracts             ServiceContract[]
-  organizationEmployees OrganizationEmployee[]
-  serviceAssignments    ServiceAssignment[]
+  contracts               ServiceContract[]
+  organizationEmployees   OrganizationEmployee[]
+  serviceAssignments      ServiceAssignment[]
+  representatives         OrganizationRepresentative[]
+  businessAddresses       OrganizationBusinessAddress[]
+  subdivisions            OrganizationSubdivision[]
+  subdivisionResponsibles OrganizationSubdivisionResponsible[]
 
   postalCode String?
   activities OrganizationActivity[]
   createdAt  DateTime               @default(now())
   updatedAt  DateTime               @updatedAt
+}
+
+model OrganizationRepresentative {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  fullName           String
+  roleTitle          String
+  representativeType String  @default("legal_head")
+  employeeId         String?
+  isCurrent          Boolean @default(true)
+  startsAt           String?
+  endsAt             String?
+  authorityBasis     String?
+  notes              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([representativeType])
+}
+
+model OrganizationBusinessAddress {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  code      String  @unique
+  address   String
+  isPrimary Boolean @default(false)
+  status    String  @default("active")
+  notes     String?
+
+  subdivisions OrganizationSubdivision[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model OrganizationSubdivision {
+  id                String                      @id @default(cuid())
+  organizationId    String
+  organization      Organization                @relation(fields: [organizationId], references: [id])
+  businessAddressId String
+  businessAddress   OrganizationBusinessAddress @relation(fields: [businessAddressId], references: [id])
+
+  code   String  @unique
+  name   String
+  type   String  @default("other")
+  status String  @default("active")
+  notes  String?
+
+  capabilityMaterialsFixedAssets Boolean @default(true)
+  capabilityCashBank             Boolean @default(false)
+  capabilitySalesHdm             Boolean @default(false)
+  capabilityWarehouse            Boolean @default(false)
+  capabilityProduction           Boolean @default(false)
+
+  responsibles OrganizationSubdivisionResponsible[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([businessAddressId])
+  @@index([type])
+  @@index([status])
+}
+
+model OrganizationSubdivisionResponsible {
+  id             String                  @id @default(cuid())
+  organizationId String
+  organization   Organization            @relation(fields: [organizationId], references: [id])
+  subdivisionId  String
+  subdivision    OrganizationSubdivision @relation(fields: [subdivisionId], references: [id])
+
+  employeeId         String?
+  employeeFullName   String
+  employeePosition   String?
+  responsibilityRole String
+  isPrimary          Boolean @default(true)
+  startsAt           String?
+  endsAt             String?
+  status             String  @default("active")
+  notes              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([subdivisionId])
+  @@index([employeeId])
+  @@index([responsibilityRole])
 }
 
 model ServiceContract {
