@@ -426,3 +426,81 @@ model ArmenianBank {
   @@index([source])
   @@index([sourceFetchedAt])
 }
+
+model ImportSession {
+  id String @id @default(cuid())
+
+  importType   String
+  fileName     String
+  fileMimeType String?
+  fileSize     Int?
+  status       String  @default("draft")
+
+  totalRows Int @default(0)
+  validRows Int @default(0)
+  errorRows Int @default(0)
+
+  createdBy String?
+  notes     String?
+
+  createdAt   DateTime  @default(now())
+  validatedAt DateTime?
+  importedAt  DateTime?
+
+  rows   ImportRow[]
+  errors ImportError[]
+
+  @@index([importType])
+  @@index([status])
+  @@index([createdBy])
+  @@index([createdAt])
+}
+
+model ImportRow {
+  id String @id @default(cuid())
+
+  sessionId String
+  session   ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowNumber Int
+  status    String @default("draft")
+
+  rawPayload        String
+  normalizedPayload String?
+  targetKey         String?
+
+  createdAt DateTime @default(now())
+
+  errors ImportError[]
+
+  @@index([sessionId])
+  @@index([rowNumber])
+  @@index([status])
+  @@index([targetKey])
+  @@unique([sessionId, rowNumber])
+}
+
+model ImportError {
+  id String @id @default(cuid())
+
+  sessionId String
+  session   ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  rowId String?
+  row   ImportRow? @relation(fields: [rowId], references: [id], onDelete: Cascade)
+
+  rowNumber Int?
+  fieldName String?
+  errorCode String
+  message   String
+  severity  String @default("error")
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([rowId])
+  @@index([rowNumber])
+  @@index([fieldName])
+  @@index([errorCode])
+  @@index([severity])
+}
