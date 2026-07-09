@@ -7362,13 +7362,13 @@ function renderNewPartnerRegistrationWizard() {
     if (
       activeLeafLabel === "Հաշվային պլան" &&
       activeMenuLabels.includes("Կառավարում") &&
-      activeMenuLabels.includes("Հիմնական կարգավորումներ") &&
+      activeMenuLabels.includes("Կարգավորումներ") &&
       activeMenuLabels.includes("Հաշվապահական")
     ) {
       return (
         <section style={styles.accountingArea}>
           <p style={styles.kicker}>
-            Կառավարում · Հիմնական կարգավորումներ · Հաշվապահական
+            Կառավարում · Կարգավորումներ · Հաշվապահական
           </p>
           <ChartOfAccountsPreview />
         </section>
