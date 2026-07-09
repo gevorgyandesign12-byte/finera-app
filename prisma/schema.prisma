@@ -314,3 +314,68 @@ model OrganizationActivity {
 
   @@index([organizationId])
 }
+
+model Currency {
+  id           String @id @default(cuid())
+  isoCode      String @unique
+  numericCode  String?
+  name         String
+  armenianName String?
+  englishName  String?
+  nominal      Int    @default(1)
+  isBase       Boolean @default(false)
+  isActive     Boolean @default(true)
+  source       String @default("CBA")
+
+  exchangeRates ExchangeRate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([source])
+}
+
+model ExchangeRate {
+  id         String   @id @default(cuid())
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  rateDate String
+  rate     String
+  change   String?
+
+  source            String   @default("CBA")
+  sourcePublishedAt String?
+  sourceFetchedAt   DateTime @default(now())
+  rawPayloadHash    String?
+  rawPayload        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([currencyId, rateDate, source])
+  @@index([rateDate])
+  @@index([source])
+  @@index([sourceFetchedAt])
+}
+
+model ExchangeRateFetchLog {
+  id String @id @default(cuid())
+
+  source        String   @default("CBA")
+  fetchType     String   @default("daily")
+  requestedDate String?
+  status        String
+  ratesCount    Int      @default(0)
+  errorMessage  String?
+  rawPayloadHash String?
+
+  fetchedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([source])
+  @@index([status])
+  @@index([requestedDate])
+  @@index([fetchedAt])
+}
