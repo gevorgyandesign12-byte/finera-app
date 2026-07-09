@@ -41,23 +41,6 @@ type ServiceContract = {
 };
 
 
-type OrganizationEmployee = {
-  id: string;
-  organizationId: string;
-  fullName: string;
-  taxId?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  positionTitle?: string | null;
-  departmentName?: string | null;
-  employmentType?: string | null;
-  employmentStatus?: string | null;
-  hireDate?: string | null;
-  salaryAmount?: string | null;
-  notes?: string | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
-};
 
 type AppDepartment = {
   id: string;
@@ -381,21 +364,6 @@ export default function Home() {
     employmentType: "full_time",
     hireDate: getTodayInputDate(),
     capabilityScopes: ["accountant"],
-    notes: "",
-  });
-  const [organizationEmployees, setOrganizationEmployees] = useState<OrganizationEmployee[]>([]);
-  const [organizationEmployeeMessage, setOrganizationEmployeeMessage] = useState<string | null>(null);
-  const [isSavingOrganizationEmployee, setIsSavingOrganizationEmployee] = useState(false);
-  const [organizationEmployeeForm, setOrganizationEmployeeForm] = useState({
-    fullName: "",
-    taxId: "",
-    phone: "",
-    email: "",
-    positionTitle: "",
-    departmentName: "",
-    employmentType: "full_time",
-    hireDate: getTodayInputDate(),
-    salaryAmount: "",
     notes: "",
   });
   const [appPositions, setAppPositions] = useState<AppPosition[]>([]);
@@ -5011,415 +4979,19 @@ function renderNewPartnerRegistrationWizard() {
     );
   }
 
-  function resetOrganizationEmployeeForm() {
-    setOrganizationEmployeeForm({
-      fullName: "",
-      taxId: "",
-      phone: "",
-      email: "",
-      positionTitle: "",
-      departmentName: "",
-      employmentType: "full_time",
-      hireDate: getTodayInputDate(),
-      salaryAmount: "",
-      notes: "",
-    });
-  }
-
-  async function loadOrganizationEmployees(organizationId: string) {
-    setOrganizationEmployeeMessage("Բեռնում ենք կազմակերպության աշխատակիցներին...");
-
-    try {
-      const response = await fetch(
-        `/api/organizations/employees?organizationId=${encodeURIComponent(organizationId)}`,
-        { cache: "no-store" }
-      );
-
-      if (!response.ok) {
-        setOrganizationEmployeeMessage("Չհաջողվեց բեռնել կազմակերպության աշխատակիցների ցուցակը։");
-        return;
-      }
-
-      const data = (await response.json()) as { employees?: OrganizationEmployee[] };
-      setOrganizationEmployees(data.employees ?? []);
-      setOrganizationEmployeeMessage(
-        (data.employees ?? []).length > 0
-          ? `Բեռնվեց աշխատակիցների քանակ՝ ${(data.employees ?? []).length}`
-          : "Այս կազմակերպության աշխատակիցներ դեռ գրանցված չեն։"
-      );
-    } catch {
-      setOrganizationEmployeeMessage("Չհաջողվեց կապ հաստատել organization employees API-ի հետ։");
-    }
-  }
-
-  async function handleCreateOrganizationEmployee(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedOrganization) {
-      setOrganizationEmployeeMessage("Կազմակերպությունը ընտրված չէ։");
-      return;
-    }
-
-    if (!organizationEmployeeForm.fullName.trim()) {
-      setOrganizationEmployeeMessage("Աշխատակցի անուն ազգանունը պարտադիր է։");
-      return;
-    }
-
-    if (!organizationEmployeeForm.positionTitle.trim()) {
-      setOrganizationEmployeeMessage("Պաշտոնը պարտադիր է։");
-      return;
-    }
-
-    if (
-      organizationEmployeeForm.taxId.trim() &&
-      !/^\d{8}$/.test(organizationEmployeeForm.taxId.trim())
-    ) {
-      setOrganizationEmployeeMessage("Աշխատակցի ՀՎՀՀ-ն պետք է լինի 8 թվանշան կամ դատարկ թողնվի։");
-      return;
-    }
-
-    setIsSavingOrganizationEmployee(true);
-    setOrganizationEmployeeMessage("Պահպանում ենք աշխատակցին կազմակերպության DEV տվյալներում...");
-
-    try {
-      const response = await fetch("/api/organizations/employees", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          organizationId: selectedOrganization.id,
-          ...organizationEmployeeForm,
-        }),
-      });
-
-      const data = (await response.json()) as {
-        employee?: OrganizationEmployee;
-        error?: string;
-      };
-
-      if (!response.ok || !data.employee) {
-        setOrganizationEmployeeMessage(data.error ?? "Չհաջողվեց գրանցել աշխատակցին։");
-        return;
-      }
-
-      setOrganizationEmployees((current) => [data.employee as OrganizationEmployee, ...current]);
-      setOrganizationEmployeeMessage(`Գրանցվեց աշխատակից՝ ${data.employee.fullName}`);
-      resetOrganizationEmployeeForm();
-    } catch {
-      setOrganizationEmployeeMessage("Չհաջողվեց կապ հաստատել organization employees API-ի հետ։");
-    } finally {
-      setIsSavingOrganizationEmployee(false);
-    }
-  }
-
-  function renderOrganizationEmployeesTab(organization: AppOrganization) {
-    return (
-      <div style={styles.tabPanel}>
-        <h3 style={styles.sectionTitle}>Կազմակերպության աշխատակիցներ</h3>
-
-        <div style={styles.previewBox}>
-          <strong>{organization.name}</strong>
-          <p style={{ marginBottom: 0 }}>
-            Սա սպասարկվող կազմակերպության աշխատակիցների ցուցակն է։ Չի խառնվում Finera/Sose-ի
-            ներքին աշխատակիցների հետ։
-          </p>
-        </div>
-
-        {organizationEmployeeMessage ? (
-          <div style={{ ...styles.previewBox, marginTop: "14px" }}>
-            <strong>{organizationEmployeeMessage}</strong>
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          style={{ ...styles.primaryButton, marginTop: "14px" }}
-          onClick={() => void loadOrganizationEmployees(organization.id)}
-        >
-          Թարմացնել աշխատակիցների ցուցակը
-        </button>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "12px",
-            margin: "18px 0",
-          }}
-        >
-          <div style={styles.previewBox}>
-            <strong>{organizationEmployees.length}</strong>
-            <p style={{ margin: "6px 0 0" }}>Գրանցված աշխատակիցներ</p>
-          </div>
-          <div style={styles.previewBox}>
-            <strong>
-              {
-                organizationEmployees.filter(
-                  (employee) => employee.employmentStatus === "active"
-                ).length
-              }
-            </strong>
-            <p style={{ margin: "6px 0 0" }}>Գործող</p>
-          </div>
-        </div>
-
-        <form
-          noValidate
-          onSubmit={handleCreateOrganizationEmployee}
-          style={{ display: "grid", gap: "18px", marginTop: "18px" }}
-        >
-          <h3 style={styles.sectionTitle}>Աշխատանքի ընդունում այս կազմակերպությունում</h3>
-
-          <div style={styles.formGrid}>
-            <label style={styles.label}>
-              Անուն ազգանուն
-              <input
-                style={styles.input}
-                type="text"
-                value={organizationEmployeeForm.fullName}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    fullName: event.target.value,
-                  }))
-                }
-                placeholder="Օրինակ՝ Կարեն Սարգսյան"
-              />
-            </label>
-
-            <label style={styles.label}>
-              ՀՎՀՀ
-              <input
-                style={styles.input}
-                type="text"
-                inputMode="numeric"
-                maxLength={8}
-                value={organizationEmployeeForm.taxId}
-                onInput={(event) => {
-                  event.currentTarget.value = event.currentTarget.value
-                    .replace(/\D/g, "")
-                    .slice(0, 8);
-                }}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    taxId: event.target.value,
-                  }))
-                }
-                placeholder="Եթե պետք է՝ 8 թվանշան"
-              />
-            </label>
-
-            <label style={styles.label}>
-              Պաշտոն
-              <input
-                style={styles.input}
-                type="text"
-                value={organizationEmployeeForm.positionTitle}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    positionTitle: event.target.value,
-                  }))
-                }
-                placeholder="Օրինակ՝ Վաճառող, պահեստապետ, տնօրեն"
-              />
-            </label>
-
-            <label style={styles.label}>
-              Ստորաբաժանում
-              <input
-                style={styles.input}
-                type="text"
-                value={organizationEmployeeForm.departmentName}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    departmentName: event.target.value,
-                  }))
-                }
-                placeholder="Օրինակ՝ Վաճառք, պահեստ, վարչակազմ"
-              />
-            </label>
-
-            <CalendarDateField
-              label="Աշխատանքի ընդունման ամսաթիվ"
-              value={organizationEmployeeForm.hireDate}
-              onChange={(value) =>
-                setOrganizationEmployeeForm((current) => ({
-                  ...current,
-                  hireDate: value,
-                }))
-              }
-            />
-
-            <label style={styles.label}>
-              Աշխատանքի տեսակ
-              <select
-                style={styles.select}
-                value={organizationEmployeeForm.employmentType}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    employmentType: event.target.value,
-                  }))
-                }
-              >
-                <option value="full_time">Լրիվ դրույք</option>
-                <option value="part_time">Կես դրույք</option>
-                <option value="civil_contract">Քաղ․ իրավական</option>
-                <option value="temporary">Ժամանակավոր</option>
-              </select>
-            </label>
-
-            <label style={styles.label}>
-              Աշխատավարձ
-              <input
-                style={styles.input}
-                type="text"
-                inputMode="numeric"
-                value={organizationEmployeeForm.salaryAmount}
-                onInput={(event) => {
-                  event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
-                }}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    salaryAmount: event.target.value,
-                  }))
-                }
-                placeholder="Օրինակ՝ 180000"
-              />
-            </label>
-
-            <label style={styles.label}>
-              Հեռախոս
-              <input
-                style={styles.input}
-                type="text"
-                value={organizationEmployeeForm.phone}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    phone: event.target.value,
-                  }))
-                }
-                placeholder="+374..."
-              />
-            </label>
-
-            <label style={styles.label}>
-              Email
-              <input
-                style={styles.input}
-                type="email"
-                value={organizationEmployeeForm.email}
-                onChange={(event) =>
-                  setOrganizationEmployeeForm((current) => ({
-                    ...current,
-                    email: event.target.value,
-                  }))
-                }
-                placeholder="employee@example.am"
-              />
-            </label>
-          </div>
-
-          <label style={styles.label}>
-            Նշումներ
-            <textarea
-              style={{
-                ...styles.input,
-                minHeight: "90px",
-                resize: "vertical",
-              }}
-              value={organizationEmployeeForm.notes}
-              onChange={(event) =>
-                setOrganizationEmployeeForm((current) => ({
-                  ...current,
-                  notes: event.target.value,
-                }))
-              }
-              placeholder="Փորձաշրջան, պայմաններ, ներքին նշումներ"
-            />
-          </label>
-
-          <button
-            type="submit"
-            style={styles.primaryButton}
-            disabled={isSavingOrganizationEmployee}
-          >
-            {isSavingOrganizationEmployee
-              ? "Պահպանվում է..."
-              : "Ընդունել աշխատանքի այս կազմակերպությունում"}
-          </button>
-        </form>
-
-        {organizationEmployees.length > 0 ? (
-          <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
-            {organizationEmployees.map((employee) => (
-              <article key={employee.id} style={{ ...styles.previewBox, display: "grid", gap: "10px" }}>
-                <div>
-                  <strong style={{ fontSize: "18px" }}>{employee.fullName}</strong>
-                  <p style={{ margin: "8px 0" }}>
-                    {employee.positionTitle ?? "Պաշտոն նշված չէ"} · {employee.departmentName ?? "Ստորաբաժանում չկա"}
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                    gap: "10px",
-                  }}
-                >
-                  <small>
-                    <strong>ՀՎՀՀ</strong>
-                    <br />
-                    {employee.taxId ?? "—"}
-                  </small>
-                  <small>
-                    <strong>Աշխատանքի սկիզբ</strong>
-                    <br />
-                    {employee.hireDate ?? "—"}
-                  </small>
-                  <small>
-                    <strong>Աշխատավարձ</strong>
-                    <br />
-                    {employee.salaryAmount
-                      ? `${Number(employee.salaryAmount).toLocaleString("hy-AM")} AMD`
-                      : "—"}
-                  </small>
-                  <small>
-                    <strong>Կարգավիճակ</strong>
-                    <br />
-                    {employee.employmentStatus === "active" ? "Գործող" : employee.employmentStatus ?? "—"}
-                  </small>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
   function renderOrganizationProfilePage() {
     const organization = selectedOrganization;
     const profileTabs = organization && isOwnOrganization(organization)
       ? [
           "Ընդհանուր տվյալներ",
-          "Աշխատակիցներ",
+          "Հիմնադիրներ",
           "Ստուգում",
-          "Հաշվապահական տարածք",
         ]
       : [
           "Ընդհանուր տվյալներ",
-          "Աշխատակիցներ",
+          "Հիմնադիրներ",
           "Ստուգում",
           "Սպասարկում",
-          "Հաշվապահական տարածք",
           "Պայմանագիր",
         ];
 
@@ -5439,6 +5011,10 @@ function renderNewPartnerRegistrationWizard() {
         </section>
       );
     }
+
+    const activeOrganizationProfileTab = profileTabs.includes(organizationProfileTab)
+      ? organizationProfileTab
+      : "Ընդհանուր տվյալներ";
 
     return (
       <section style={styles.accountingArea}>
@@ -5460,7 +5036,7 @@ function renderNewPartnerRegistrationWizard() {
         </button>
         <p>
           Սա կազմակերպության կենտրոնական էջն է։ Այստեղից պետք է կառավարվի տվյալ կազմակերպության
-          ընդհանուր տվյալները, ստուգումը, սպասարկման վիճակը, պայմանագիրը և հաշվապահական տարածքը։
+          ընդհանուր տվյալները, հիմնադիրները, ստուգումը, սպասարկման վիճակը և պայմանագիրը։
         </p>
 
         <div
@@ -5492,7 +5068,7 @@ function renderNewPartnerRegistrationWizard() {
               type="button"
               style={{
                 ...styles.tabButton,
-                ...(organizationProfileTab === tab ? styles.tabButtonActive : {}),
+                ...(activeOrganizationProfileTab === tab ? styles.tabButtonActive : {}),
               }}
               onClick={() => {
                 setOrganizationProfileTab(tab);
@@ -5507,7 +5083,7 @@ function renderNewPartnerRegistrationWizard() {
           ))}
         </div>
 
-        {organizationProfileTab === "Ընդհանուր տվյալներ" ? (
+        {activeOrganizationProfileTab === "Ընդհանուր տվյալներ" ? (
           <div style={styles.tabPanel}>
             <h3 style={styles.sectionTitle}>Ընդհանուր տվյալներ</h3>
             <div style={styles.formGrid}>
@@ -5537,17 +5113,31 @@ function renderNewPartnerRegistrationWizard() {
               </div>
               <div style={styles.previewBox}>
                 <strong>Գործունեության հասցե</strong>
-                <p style={{ marginBottom: 0 }}>{organization.businessAddress ?? "—"}</p>
+                <p style={{ marginBottom: 0 }}>{organization.businessAddress ?? organization.legalAddress ?? "Առանձին լրացված չէ"}</p>
               </div>
             </div>
           </div>
         ) : null}
 
-        {organizationProfileTab === "Աշխատակիցներ"
-          ? renderOrganizationEmployeesTab(organization)
-          : null}
+        {activeOrganizationProfileTab === "Հիմնադիրներ" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Հիմնադիրներ</h3>
+            <div style={styles.previewBox}>
+              <strong>SAFE demo</strong>
+              <p>
+                Հիմնադիրները, մասնակիցները և բաժնետերերը չեն պահվելու Master DB-ում։
+              </p>
+              <p>
+                Ապագայում այս տվյալները կբացվեն տվյալ սպասարկվող գործընկերոջ tenant DB-ում։
+              </p>
+              <p style={{ marginBottom: 0 }}>
+                Այս profile-ում հիմա մնում է միայն կարդացվող SAFE բաժին։
+              </p>
+            </div>
+          </div>
+        ) : null}
 
-        {organizationProfileTab === "Ստուգում" ? (
+        {activeOrganizationProfileTab === "Ստուգում" ? (
           <div style={styles.tabPanel}>
             <h3 style={styles.sectionTitle}>Տվյալների ստուգում</h3>
             <div style={styles.previewBox}>
@@ -5569,7 +5159,7 @@ function renderNewPartnerRegistrationWizard() {
           </div>
         ) : null}
 
-        {organizationProfileTab === "Սպասարկում" ? (
+        {activeOrganizationProfileTab === "Սպասարկում" ? (
           <div style={styles.tabPanel}>
             <h3 style={styles.sectionTitle}>Սպասարկման վիճակ</h3>
             <div style={styles.previewBox}>
@@ -5594,43 +5184,8 @@ function renderNewPartnerRegistrationWizard() {
           </div>
         ) : null}
 
-        {organizationProfileTab === "Հաշվապահական տարածք" ? (
-          <div style={styles.tabPanel}>
-            <h3 style={styles.sectionTitle}>Հաշվապահական տարածք</h3>
-            <div style={styles.previewBox}>
-              <strong>Ապագա tenant DB</strong>
-              <p style={{ marginBottom: 0 }}>{organization.tenantDatabaseName ?? "—"}</p>
-              <small style={{ color: "#64748b" }}>
-                Կարգավիճակ՝{" "}
-                {organization.tenantDatabaseStatus === "created"
-                  ? "ստեղծված"
-                  : organization.tenantDatabaseStatus === "failed"
-                    ? "սխալ"
-                    : "նախատեսված"}
-              </small>
-              <div style={{ marginTop: 8 }}>
-                <button disabled style={{ opacity: 0.55, cursor: "not-allowed" }}>
-                  Ստեղծել հաշվապահական բազա
-                </button>
-                <small style={{ display: "block", marginTop: 6, color: "#64748b" }}>
-                  {"ՍAFE demo․ իրական tenant DB-ն կստեղծվի միայն production փուլում՝ բազայի անունը այս փուլում միայն ամրագրված է։"}
-                </small>
-              </div>
-            </div>
-            <p>
-              Այս բաժնից բացվելու է հենց այս կազմակերպության հաշվապահական աշխատանքային տարածքը։
-            </p>
-            <button
-              type="button"
-              style={styles.primaryButton}
-              onClick={() => openAccountingWorkspaceForOrganization(organization.id)}
-            >
-              Բացել հաշվապահական տարածքը
-            </button>
-          </div>
-        ) : null}
 
-        {organizationProfileTab === "Պայմանագիր" ? renderContractTabContent(organization) : null}
+        {activeOrganizationProfileTab === "Պայմանագիր" ? renderContractTabContent(organization) : null}
 
         <button
           type="button"
