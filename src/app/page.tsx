@@ -941,7 +941,7 @@ export default function Home() {
   function renderOrganizationForm() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Գլխավոր մենյու · Կարգավորումներ</p>
+        <p style={styles.kicker}>Կառավարում · Կարգավորումներ · Ընդհանուր · Մեր կազմակերպությունը</p>
         <h2>Կազմակերպության տվյալներ</h2>
         <p>
           Սա demo ձև է կազմակերպության հիմնական տվյալները պատկերացնելու համար։
@@ -1005,7 +1005,7 @@ export default function Home() {
   function renderStructuralUnitsForm() {
     return (
       <section style={styles.accountingArea}>
-        <p style={styles.kicker}>Գլխավոր մենյու · Կարգավորումներ</p>
+        <p style={styles.kicker}>Կառավարում · Կազմակերպություններ · Կառուցվածքային ստորաբաժանումներ</p>
         <h2>Կառուցվածքային ստորաբաժանումներ</h2>
         <p>
           Սա demo ձև է կազմակերպության ներքին բաժինները պատկերացնելու համար։
@@ -1689,6 +1689,7 @@ export default function Home() {
 function renderNewPartnerRegistrationWizard() {
     const tabs = [
       "Ընդհանուր",
+      "Կառավարում",
       "Գործունեության հասցեներ և ստորաբաժանումներ",
       "Գործունեություն",
       "Հիմնադիրներ",
@@ -1702,6 +1703,10 @@ function renderNewPartnerRegistrationWizard() {
     const isNewPartnerWizardTabEnabled = (tab: string) => {
       if (tab === "Ընդհանուր") {
         return true;
+      }
+
+      if (tab === "Կառավարում") {
+        return hasSavedMainDetails;
       }
 
       if (tab === "Գործունեության հասցեներ և ստորաբաժանումներ") {
@@ -1726,8 +1731,8 @@ function renderNewPartnerRegistrationWizard() {
         <p style={styles.kicker}>Սպասարկվող գործընկերներ · Գրանցում</p>
         <h2>{newPartnerEditingOrganizationName ?? "\u0546\u0578\u0580 \u0563\u0578\u0580\u056e\u0568\u0576\u056f\u0565\u0580 \u0563\u0580\u0561\u0576\u0581\u0565\u056c"}</h2>
         <p>
-          Գրանցումը բաժանում ենք փուլերի՝ հիմնական տվյալներ, գործունեության տեսակներ,
-          հետո տվյալ կազմակերպության կառուցվածքային ստորաբաժանումներ։
+          Գրանցումը բաժանում ենք փուլերի՝ հիմնական տվյալներ, կառավարման կազմ,
+          գործունեության հասցեներ ու ստորաբաժանումներ, գործունեության տեսակներ և հիմնադիրներ։
         </p>
 
         <div style={styles.tabBar}>
@@ -2110,6 +2115,37 @@ function renderNewPartnerRegistrationWizard() {
             </button>
               </div>
             </form>
+          </div>
+        ) : null}
+
+        {newPartnerRegistrationTab === "Կառավարում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Կառավարում</h3>
+            <div style={styles.previewBox}>
+              <strong>Կազմակերպության ղեկավար կազմ</strong>
+              <p style={{ marginBottom: 0 }}>
+                Այս բաժնում կներկայացվեն այն անձինք, որոնք իրավական կամ գործնական մակարդակով ղեկավարում և ներկայացնում են կազմակերպությունը։
+              </p>
+            </div>
+
+            <div style={styles.formGrid}>
+              <div style={styles.previewBox}>
+                <strong>Տնօրեն / գործադիր տնօրեն</strong>
+                <p style={{ marginBottom: 0 }}>Կլրացվի կառավարման անձանց գրանցման քայլում։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Գլխավոր հաշվապահ / հաշվառման պատասխանատու</strong>
+                <p style={{ marginBottom: 0 }}>Կկապվի կազմակերպության պատասխանատու անձանց և Finera սպասարկման քարտի հետ։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Ստորագրելու իրավունք ունեցող անձինք</strong>
+                <p style={{ marginBottom: 0 }}>Հետո այստեղ կավելացնենք լիազորությունների և ստորագրության իրավունքի նշումները։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Finera-ի հետ կապի պատասխանատու</strong>
+                <p style={{ marginBottom: 0 }}>Այստեղ կերևա կազմակերպության կողմից նշանակված աշխատանքային կապի անձը։</p>
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -4985,11 +5021,15 @@ function renderNewPartnerRegistrationWizard() {
     const profileTabs = organization && isOwnOrganization(organization)
       ? [
           "Ընդհանուր տվյալներ",
+          "Կառավարում",
+          "Գործունեություն",
           "Հիմնադիրներ",
           "Ստուգում",
         ]
       : [
           "Ընդհանուր տվյալներ",
+          "Կառավարում",
+          "Գործունեություն",
           "Հիմնադիրներ",
           "Ստուգում",
           "Սպասարկում",
@@ -5119,6 +5159,75 @@ function renderNewPartnerRegistrationWizard() {
               <div style={styles.previewBox}>
                 <strong>Գործունեության հասցե</strong>
                 <p style={{ marginBottom: 0 }}>{organization.businessAddress ?? organization.legalAddress ?? "Առանձին լրացված չէ"}</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeOrganizationProfileTab === "Կառավարում" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Կառավարում</h3>
+            <div style={styles.previewBox}>
+              <strong>Կազմակերպության ղեկավար կազմ</strong>
+              <p style={{ marginBottom: 0 }}>
+                Այս բաժնում կներկայացվեն այն անձինք, որոնք իրավական կամ գործնական մակարդակով ղեկավարում և ներկայացնում են կազմակերպությունը։
+              </p>
+            </div>
+
+            <div style={styles.formGrid}>
+              <div style={styles.previewBox}>
+                <strong>Տնօրեն / գործադիր տնօրեն</strong>
+                <p style={{ marginBottom: 0 }}>Այստեղ կերևա կազմակերպության ղեկավար անձը։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Գլխավոր հաշվապահ / հաշվառման պատասխանատու</strong>
+                <p style={{ marginBottom: 0 }}>Այստեղ կերևա հաշվապահական ու հաշվառման պատասխանատու անձը։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Ստորագրելու իրավունք ունեցող անձինք</strong>
+                <p style={{ marginBottom: 0 }}>Այստեղ հետագայում կարող ենք երևալ լիազորված անձանց և ստորագրության իրավունքը։</p>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>Finera-ի հետ կապի պատասխանատու</strong>
+                <p style={{ marginBottom: 0 }}>Այստեղ կերևա աշխատանքային կապի պատասխանատու անձը։</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeOrganizationProfileTab === "Գործունեություն" ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>Գործունեություն</h3>
+            <div style={styles.previewBox}>
+              <strong>Գործունեության հասցեներ և ստորաբաժանումներ</strong>
+              <p style={{ marginBottom: 0 }}>
+                Կազմակերպության գործունեության հասցեները պետք է երևան իրենց տակ գրանցված ստորաբաժանումներով։
+              </p>
+            </div>
+
+            <div style={styles.formGrid}>
+              <div style={styles.previewBox}>
+                <strong>Հասցե 1</strong>
+                <p>{organization.businessAddress ?? organization.legalAddress ?? "Առանձին լրացված չէ"}</p>
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "12px",
+                    borderRadius: "12px",
+                    background: "rgba(15, 23, 42, 0.04)",
+                  }}
+                >
+                  <strong>Այս հասցեի ստորաբաժանումներ</strong>
+                  <p style={{ marginBottom: 0 }}>
+                    Ստորաբաժանումները կերևան այստեղ, երբ նոր OrganizationSubdivision API կապը միացնենք profile էջին։
+                  </p>
+                </div>
+              </div>
+              <div style={styles.previewBox}>
+                <strong>SAFE demo</strong>
+                <p style={{ marginBottom: 0 }}>
+                  Առայժմ օգտագործվում է հին Organization.businessAddress դաշտը որպես կարդացվող SAFE preview։
+                </p>
               </div>
             </div>
           </div>
