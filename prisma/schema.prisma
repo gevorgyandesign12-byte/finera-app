@@ -379,3 +379,41 @@ model ExchangeRateFetchLog {
   @@index([requestedDate])
   @@index([fetchedAt])
 }
+
+model ArmenianBank {
+  id String @id @default(cuid())
+
+  bankCode      String  @unique
+  swiftCode     String?
+  name          String
+  legalName     String?
+  shortName     String?
+  taxId         String?
+  licenseNumber String?
+  licenseDate   String?
+
+  headName String?
+  address  String?
+  phone    String?
+  email    String?
+  website  String?
+
+  status   String  @default("active")
+  isActive Boolean @default(true)
+
+  source          String   @default("CBA")
+  sourceUrl       String?
+  sourceFetchedAt DateTime?
+  rawPayloadHash  String?
+  rawPayload      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([swiftCode])
+  @@index([taxId])
+  @@index([status])
+  @@index([isActive])
+  @@index([source])
+  @@index([sourceFetchedAt])
+}

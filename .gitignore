@@ -47,3 +47,4 @@ prisma/dev.db-shm
 
 # Local Prisma database backups
 prisma/db_backups/
+prisma/backups/
