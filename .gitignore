@@ -44,3 +44,6 @@ prisma/dev.db-journal
 prisma/dev.db-wal
 prisma/dev.db-shm
 .env
+
+# Local Prisma database backups
+prisma/db_backups/
