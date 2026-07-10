@@ -45,6 +45,12 @@ const text = {
   headOffices: "\u0533\u056c\u056d\u0561\u0574\u0561\u057d\u0565\u0580",
   branches: "\u0544\u0561\u057d\u0576\u0561\u0573\u0575\u0578\u0582\u0572\u0565\u0580",
   includeInactive: "\u0551\u0578\u0582\u0575\u0581 \u057f\u0561\u056c \u0576\u0561\u0587 \u0578\u0579 \u0561\u056f\u057f\u056b\u057e\u0576\u0565\u0580\u0568",
+  typeFilter: "\u054f\u0565\u057d\u0561\u056f",
+  rowFilter: "\u053f\u0561\u057c\u0578\u0582\u0581\u057e\u0561\u056e\u0584",
+  importDemoMessage: "SAFE demo\u2024 \u0562\u0561\u0576\u056f\u0565\u0580\u056b \u0576\u0565\u0580\u0574\u0578\u0582\u056e\u0578\u0582\u0574\u0568 \u057a\u0565\u057f\u0584 \u0567 \u0561\u0580\u057e\u056b \u0574\u056b\u0561\u0575\u0576 \u057e\u0565\u0580\u0561\u0570\u057d\u056f\u057e\u0578\u0572 script-\u0578\u057e\u055d backup-\u0578\u057e \u0587 \u057d\u057f\u0578\u0582\u0563\u0578\u0582\u0574\u0578\u057e\u0589",
+  exportEmptyMessage: "\u0531\u0580\u057f\u0561\u0570\u0561\u0576\u0574\u0561\u0576 \u0570\u0561\u0574\u0561\u0580 \u057f\u0578\u0572\u0565\u0580 \u0579\u056f\u0561\u0576\u0589",
+  import: "\u0546\u0565\u0580\u0574\u0578\u0582\u056e\u0565\u056c",
+  export: "\u0531\u0580\u057f\u0561\u0570\u0561\u0576\u0565\u056c",
   refresh: "\u0539\u0561\u0580\u0574\u0561\u0581\u0576\u0565\u056c",
   loading: "\u0532\u0565\u057c\u0576\u057e\u0578\u0582\u0574 \u0567\u2026",
   empty: "\u054f\u057e\u0575\u0561\u056c \u0579\u056f\u0561\u0589",
@@ -109,6 +115,57 @@ function buildApiUrl({
   return "/api/master-data/armenian-banks?" + params.toString();
 }
 
+function escapeCsvCell(value: string | number | boolean | null) {
+  const textValue = value === null ? "" : String(value);
+  return '"' + textValue.replaceAll('"', '""') + '"';
+}
+
+function downloadCsv(filename: string, rows: ArmenianBankRow[]) {
+  const headers = [
+    text.code,
+    text.name,
+    text.swift,
+    text.type,
+    text.parent,
+    text.headOffices,
+    text.branches,
+    text.status,
+  ];
+
+  const csvRows = [
+    headers.map(escapeCsvCell).join(","),
+    ...rows.map((bank) =>
+      [
+        bank.bankCode,
+        bank.name,
+        bank.swiftCode,
+        directoryTypeLabels[bank.directoryType],
+        bank.parentBankCode,
+        bank.isHeadOffice ? text.yes : text.no,
+        bank.isBranch ? text.yes : text.no,
+        bank.isActive ? text.active : text.inactive,
+      ]
+        .map(escapeCsvCell)
+        .join(","),
+    ),
+  ];
+
+  const blob = new Blob(["\ufeff" + csvRows.join("\r\n")], {
+    type: "text/csv;charset=utf-8",
+  });
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.URL.revokeObjectURL(url);
+}
+
 export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManagerProps) {
   const [banks, setBanks] = useState<ArmenianBankRow[]>([]);
   const [query, setQuery] = useState("");
@@ -159,6 +216,19 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
     return () => window.clearTimeout(timer);
   }, [loadBanks]);
 
+  function handleImportClick() {
+    window.alert(text.importDemoMessage);
+  }
+
+  function handleExportClick() {
+    if (banks.length === 0) {
+      window.alert(text.exportEmptyMessage);
+      return;
+    }
+
+    downloadCsv("armenian-banks.csv", banks);
+  }
+
   const cards = useMemo(() => {
     const headCount = banks.filter((bank) => bank.isHeadOffice).length;
     const branchCount = banks.filter((bank) => bank.isBranch).length;
@@ -182,9 +252,17 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
             <h1 style={styles.title}>{text.title}</h1>
             <p style={styles.description}>{text.description}</p>
           </div>
-          <button type="button" style={styles.primaryButton} onClick={() => void loadBanks()}>
-            {text.refresh}
-          </button>
+          <div style={styles.headerActions}>
+            <button type="button" style={styles.secondaryButton} onClick={handleImportClick}>
+              {text.import}
+            </button>
+            <button type="button" style={styles.secondaryButton} onClick={handleExportClick}>
+              {text.export}
+            </button>
+            <button type="button" style={styles.primaryButton} onClick={() => void loadBanks()}>
+              {text.refresh}
+            </button>
+          </div>
         </section>
 
         <section style={styles.statsGrid}>
@@ -204,26 +282,32 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
             placeholder={text.searchPlaceholder}
           />
 
-          <select
-            style={styles.select}
-            value={directoryType}
-            onChange={(event) => setDirectoryType(event.target.value as "all" | BankDirectoryType)}
-          >
-            <option value="all">{text.allTypes}</option>
-            <option value="bank">{text.banks}</option>
-            <option value="central_bank">{text.centralBank}</option>
-            <option value="treasury">{text.treasury}</option>
-          </select>
+          <label style={styles.selectLabel}>
+            {text.typeFilter}
+            <select
+              style={styles.select}
+              value={directoryType}
+              onChange={(event) => setDirectoryType(event.target.value as "all" | BankDirectoryType)}
+            >
+              <option style={styles.option} value="all">{text.allTypes}</option>
+              <option style={styles.option} value="bank">{text.banks}</option>
+              <option style={styles.option} value="central_bank">{text.centralBank}</option>
+              <option style={styles.option} value="treasury">{text.treasury}</option>
+            </select>
+          </label>
 
-          <select
-            style={styles.select}
-            value={rowKind}
-            onChange={(event) => setRowKind(event.target.value as "all" | "head" | "branch")}
-          >
-            <option value="all">{text.allRows}</option>
-            <option value="head">{text.headOffices}</option>
-            <option value="branch">{text.branches}</option>
-          </select>
+          <label style={styles.selectLabel}>
+            {text.rowFilter}
+            <select
+              style={styles.select}
+              value={rowKind}
+              onChange={(event) => setRowKind(event.target.value as "all" | "head" | "branch")}
+            >
+              <option style={styles.option} value="all">{text.allRows}</option>
+              <option style={styles.option} value="head">{text.headOffices}</option>
+              <option style={styles.option} value="branch">{text.branches}</option>
+            </select>
+          </label>
 
           <label style={styles.checkboxLabel}>
             <input
@@ -324,6 +408,12 @@ const styles = {
   kicker: { margin: 0, color: "#64748b", fontSize: 13, fontWeight: 900 },
   title: { margin: "6px 0 8px", fontSize: 28 },
   description: { margin: 0, color: "#475569", lineHeight: 1.6, maxWidth: 960 },
+  headerActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    alignSelf: "flex-start",
+  },
   primaryButton: {
     border: "none",
     borderRadius: 12,
@@ -334,6 +424,15 @@ const styles = {
     cursor: "pointer",
     boxShadow: "0 10px 24px rgba(29, 78, 216, 0.18)",
     alignSelf: "flex-start",
+  },
+  secondaryButton: {
+    border: "1px solid #bfdbfe",
+    borderRadius: 12,
+    padding: "11px 14px",
+    background: "#ffffff",
+    color: "#1d4ed8",
+    fontWeight: 900,
+    cursor: "pointer",
   },
   statsGrid: {
     display: "grid",
@@ -366,12 +465,28 @@ const styles = {
     outline: "none",
     background: "#ffffff",
   },
+  selectLabel: {
+    display: "grid",
+    gap: 6,
+    color: "#1e3a8a",
+    fontSize: 12,
+    fontWeight: 900,
+  },
   select: {
+    width: "100%",
     border: "1px solid #bfdbfe",
     borderRadius: 12,
     padding: "11px 12px",
     fontSize: 14,
+    fontWeight: 800,
+    color: "#0f172a",
+    WebkitTextFillColor: "#0f172a",
+    colorScheme: "light",
     outline: "none",
+    background: "#ffffff",
+  },
+  option: {
+    color: "#0f172a",
     background: "#ffffff",
   },
   checkboxLabel: {
