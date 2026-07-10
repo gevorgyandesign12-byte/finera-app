@@ -12,6 +12,7 @@ import { CalendarDateField } from "@/components/CalendarDateField";
 import { ChartOfAccountsPreview } from "@/components/ChartOfAccountsPreview";
 import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTypesManager";
 import { MeasurementUnitsManager } from "@/components/MeasurementUnitsManager";
+import { ArmenianBanksManager } from "@/components/ArmenianBanksManager";
 
 type MasterExchangeRateRow = {
   id: string;
@@ -7647,6 +7648,15 @@ function renderNewPartnerRegistrationWizard() {
       activeMenuLabels.includes("Հաշվապահություն")
     ) {
       return renderAccountingJournalEntriesPage();
+    }
+
+    if (
+      activeLeafLabel === "ՀՀ բանկեր" &&
+      activeMenuLabels.includes("Կառավարում") &&
+      activeMenuLabels.includes("Կարգավորումներ") &&
+      activeMenuLabels.includes("Ֆինանսական")
+    ) {
+      return <ArmenianBanksManager />;
     }
 
     if (
