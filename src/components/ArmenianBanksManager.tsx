@@ -16,8 +16,21 @@ type ArmenianBankRow = {
   isActive: boolean;
 };
 
+type ArmenianBankEditForm = {
+  id: string;
+  bankCode: string;
+  name: string;
+  swiftCode: string;
+  directoryType: BankDirectoryType;
+  parentBankCode: string;
+  isHeadOffice: boolean;
+  isBranch: boolean;
+  isActive: boolean;
+};
+
 type ArmenianBanksApiResponse = {
   banks?: ArmenianBankRow[];
+  bank?: ArmenianBankRow;
   meta?: {
     total: number;
     limit: number;
@@ -69,12 +82,22 @@ const text = {
   no: "\u0548\u0579",
   dbNote: "Read-only API \u00b7 DEV Master DB",
   errorFallback: "\u0532\u0561\u0576\u056f\u0565\u0580\u056b \u057f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u0576 \u0579\u0562\u0565\u057c\u0576\u057e\u0565\u0581\u0589",
+  actions: "\u0533\u0578\u0580\u056e\u0578\u0572\u0578\u0582\u0569\u0575\u0578\u0582\u0576",
+  edit: "\u053d\u0574\u0562\u0561\u0563\u0580\u0565\u056c",
+  editTitle: "\u053d\u0574\u0562\u0561\u0563\u0580\u0565\u056c \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0563\u0580\u0561\u057c\u0578\u0582\u0574\u0568",
+  save: "\u054a\u0561\u0570\u057a\u0561\u0576\u0565\u056c",
+  saving: "\u054a\u0561\u0570\u057a\u0561\u0576\u057e\u0578\u0582\u0574 \u0567\u2026",
+  cancel: "\u0549\u0565\u0572\u0561\u0580\u056f\u0565\u056c",
+  saveErrorFallback: "\u054f\u057e\u0575\u0561\u056c\u0576\u0565\u0580\u0568 \u0579\u0570\u0561\u057b\u0578\u0572\u057e\u0565\u0581 \u057a\u0561\u0570\u057a\u0561\u0576\u0565\u056c\u0589",
+  requiredFields: "\u053f\u0578\u0564\u0568 \u0587 \u0561\u0576\u057e\u0561\u0576\u0578\u0582\u0574\u0568 \u057a\u0561\u0580\u057f\u0561\u0564\u056b\u0580 \u0565\u0576\u0589",
 };
 
 const directoryTypeLabels: Record<BankDirectoryType, string> = {
   bank: text.banks,
   central_bank: text.centralBank,
   treasury: text.treasury,
+
+
 };
 
 function buildApiUrl({
@@ -176,6 +199,9 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
   const [returned, setReturned] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingBank, setEditingBank] = useState<ArmenianBankEditForm | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const url = useMemo(
     () => buildApiUrl({ query, directoryType, rowKind, includeInactive }),
@@ -215,6 +241,80 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
 
     return () => window.clearTimeout(timer);
   }, [loadBanks]);
+
+  function openEditDialog(bank: ArmenianBankRow) {
+    setSaveError(null);
+    setEditingBank({
+      id: bank.id,
+      bankCode: bank.bankCode,
+      name: bank.name,
+      swiftCode: bank.swiftCode ?? "",
+      directoryType: bank.directoryType,
+      parentBankCode: bank.parentBankCode ?? "",
+      isHeadOffice: bank.isHeadOffice,
+      isBranch: bank.isBranch,
+      isActive: bank.isActive,
+    });
+  }
+
+  function closeEditDialog() {
+    if (saving) {
+      return;
+    }
+
+    setSaveError(null);
+    setEditingBank(null);
+  }
+
+  async function saveEditedBank(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingBank) {
+      return;
+    }
+
+    if (!editingBank.bankCode.trim() || !editingBank.name.trim()) {
+      setSaveError(text.requiredFields);
+      return;
+    }
+
+    setSaving(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch("/api/master-data/armenian-banks", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...editingBank,
+          bankCode: editingBank.bankCode.trim(),
+          name: editingBank.name.trim(),
+          swiftCode: editingBank.swiftCode.trim() || null,
+          parentBankCode: editingBank.parentBankCode.trim() || null,
+        }),
+      });
+
+      const payload = (await response.json()) as ArmenianBanksApiResponse;
+
+      if (!response.ok || payload.error) {
+        throw new Error(payload.error || payload.detail || text.saveErrorFallback);
+      }
+
+      if (!payload.bank) {
+        throw new Error(text.saveErrorFallback);
+      }
+
+      setEditingBank(null);
+      await loadBanks();
+    } catch (nextError) {
+      const message = nextError instanceof Error ? nextError.message : text.saveErrorFallback;
+      setSaveError(message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function handleImportClick() {
     window.alert(text.importDemoMessage);
@@ -342,6 +442,7 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
                   <th style={styles.th}>{text.headOffices}</th>
                   <th style={styles.th}>{text.branches}</th>
                   <th style={styles.th}>{text.status}</th>
+                  <th style={styles.th}>{text.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,12 +460,21 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
                         {bank.isActive ? text.active : text.inactive}
                       </span>
                     </td>
+                    <td style={styles.td}>
+                      <button
+                        type="button"
+                        style={styles.editButton}
+                        onClick={() => openEditDialog(bank)}
+                      >
+                        {text.edit}
+                      </button>
+                    </td>
                   </tr>
                 ))}
 
                 {!loading && banks.length === 0 ? (
                   <tr>
-                    <td style={styles.emptyCell} colSpan={8}>
+                    <td style={styles.emptyCell} colSpan={9}>
                       {text.empty}
                     </td>
                   </tr>
@@ -373,6 +483,153 @@ export function ArmenianBanksManager({ standalone = false }: ArmenianBanksManage
             </table>
           </div>
         </section>
+
+        {editingBank ? (
+          <div style={styles.modalOverlay} role="presentation">
+            <form style={styles.modalCard} onSubmit={(event) => void saveEditedBank(event)}>
+              <div style={styles.modalHeader}>
+                <div>
+                  <h2 style={styles.modalTitle}>{text.editTitle}</h2>
+                  <p style={styles.smallText}>{editingBank.name}</p>
+                </div>
+
+                <button
+                  type="button"
+                  style={styles.closeButton}
+                  onClick={closeEditDialog}
+                  disabled={saving}
+                  aria-label={text.cancel}
+                >
+                  ×
+                </button>
+              </div>
+
+              {saveError ? <div style={styles.errorBox}>{saveError}</div> : null}
+
+              <div style={styles.formGrid}>
+                <label style={styles.formLabel}>
+                  {text.code}
+                  <input
+                    style={styles.formInput}
+                    value={editingBank.bankCode}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, bankCode: event.target.value })
+                    }
+                    disabled={saving}
+                  />
+                </label>
+
+                <label style={styles.formLabel}>
+                  {text.name}
+                  <input
+                    style={styles.formInput}
+                    value={editingBank.name}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, name: event.target.value })
+                    }
+                    disabled={saving}
+                  />
+                </label>
+
+                <label style={styles.formLabel}>
+                  {text.swift}
+                  <input
+                    style={styles.formInput}
+                    value={editingBank.swiftCode}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, swiftCode: event.target.value })
+                    }
+                    disabled={saving}
+                  />
+                </label>
+
+                <label style={styles.formLabel}>
+                  {text.type}
+                  <select
+                    style={styles.formInput}
+                    value={editingBank.directoryType}
+                    onChange={(event) =>
+                      setEditingBank({
+                        ...editingBank,
+                        directoryType: event.target.value as BankDirectoryType,
+                      })
+                    }
+                    disabled={saving}
+                  >
+                    <option style={styles.option} value="bank">{text.banks}</option>
+                    <option style={styles.option} value="central_bank">{text.centralBank}</option>
+                    <option style={styles.option} value="treasury">{text.treasury}</option>
+                  </select>
+                </label>
+
+                <label style={styles.formLabel}>
+                  {text.parent}
+                  <input
+                    style={styles.formInput}
+                    value={editingBank.parentBankCode}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, parentBankCode: event.target.value })
+                    }
+                    disabled={saving}
+                  />
+                </label>
+              </div>
+
+              <div style={styles.booleanGrid}>
+                <label style={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={editingBank.isHeadOffice}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, isHeadOffice: event.target.checked })
+                    }
+                    disabled={saving}
+                  />
+                  {text.headOffices}
+                </label>
+
+                <label style={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={editingBank.isBranch}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, isBranch: event.target.checked })
+                    }
+                    disabled={saving}
+                  />
+                  {text.branches}
+                </label>
+
+                <label style={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={editingBank.isActive}
+                    onChange={(event) =>
+                      setEditingBank({ ...editingBank, isActive: event.target.checked })
+                    }
+                    disabled={saving}
+                  />
+                  {text.active}
+                </label>
+              </div>
+
+              <div style={styles.modalActions}>
+                <button
+                  type="button"
+                  style={styles.secondaryButton}
+                  onClick={closeEditDialog}
+                  disabled={saving}
+                >
+                  {text.cancel}
+                </button>
+
+                <button type="submit" style={styles.primaryButton} disabled={saving}>
+                  {saving ? text.saving : text.save}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -462,6 +719,10 @@ const styles = {
     borderRadius: 12,
     padding: "11px 12px",
     fontSize: 14,
+    color: "#0f172a",
+    WebkitTextFillColor: "#0f172a",
+    caretColor: "#0f172a",
+    colorScheme: "light",
     outline: "none",
     background: "#ffffff",
   },
@@ -581,5 +842,93 @@ const styles = {
     textAlign: "center",
     color: "#64748b",
     borderBottom: "1px solid #f1f5f9",
+  },
+  editButton: {
+    border: "1px solid #bfdbfe",
+    borderRadius: 10,
+    padding: "7px 10px",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontWeight: 900,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1000,
+    display: "grid",
+    placeItems: "center",
+    padding: 20,
+    background: "rgba(15, 23, 42, 0.58)",
+  },
+  modalCard: {
+    width: "min(760px, 100%)",
+    maxHeight: "90vh",
+    overflowY: "auto",
+    background: "#ffffff",
+    borderRadius: 20,
+    padding: 20,
+    boxShadow: "0 24px 70px rgba(15, 23, 42, 0.3)",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start",
+    marginBottom: 18,
+  },
+  modalTitle: {
+    margin: 0,
+    color: "#0f172a",
+    fontSize: 22,
+  },
+  closeButton: {
+    border: "none",
+    background: "transparent",
+    color: "#475569",
+    fontSize: 30,
+    lineHeight: 1,
+    cursor: "pointer",
+  },
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 14,
+  },
+  formLabel: {
+    display: "grid",
+    gap: 7,
+    color: "#334155",
+    fontSize: 13,
+    fontWeight: 900,
+  },
+  formInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid #cbd5e1",
+    borderRadius: 11,
+    padding: "10px 12px",
+    background: "#ffffff",
+    color: "#0f172a",
+    WebkitTextFillColor: "#0f172a",
+    colorScheme: "light",
+    fontSize: 14,
+    outline: "none",
+  },
+  booleanGrid: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 18,
+    marginTop: 18,
+    padding: 14,
+    borderRadius: 12,
+    background: "#f8fafc",
+  },
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 20,
   },
 } as const;
