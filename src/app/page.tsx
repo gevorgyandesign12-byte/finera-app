@@ -14,6 +14,115 @@ import { LegalOrganizationTypesManager } from "@/components/LegalOrganizationTyp
 import { MeasurementUnitsManager } from "@/components/MeasurementUnitsManager";
 import { ArmenianBanksManager } from "@/components/ArmenianBanksManager";
 
+
+type NewPartnerBankOption = {
+  id: string;
+  bankCode: string;
+  name: string;
+  swiftCode: string | null;
+  isHeadOffice: boolean;
+  isBranch: boolean;
+  isActive: boolean;
+};
+
+type NewPartnerBankAccountDraft = {
+  id: string;
+  armenianBankId: string;
+  bankCode: string;
+  bankName: string;
+  swiftCode: string | null;
+  accountNumber: string;
+  currencyCode: string;
+  isPrimary: boolean;
+  status: string;
+  openedAt: string | null;
+  closedAt: string | null;
+  notes: string;
+};
+
+type NewPartnerBanksApiResponse = {
+  banks?: NewPartnerBankOption[];
+  error?: string;
+  detail?: string;
+};
+
+type OrganizationBankAccountApiItem = {
+  id: string;
+  organizationId: string;
+  armenianBankId: string;
+  currencyId: string;
+  accountNumber: string;
+  accountName: string | null;
+  bankCodeSnapshot: string;
+  bankNameSnapshot: string;
+  swiftCodeSnapshot: string | null;
+  currencyCodeSnapshot: string;
+  isPrimary: boolean;
+  status: string;
+  openedAt: string | null;
+  closedAt: string | null;
+  notes: string | null;
+  bank: {
+    id: string;
+    bankCode: string;
+    name: string;
+    swiftCode: string | null;
+    isHeadOffice: boolean;
+    isBranch: boolean;
+    isActive: boolean;
+  };
+  currency: {
+    id: string;
+    isoCode: string;
+    armenianName: string | null;
+    englishName: string | null;
+    isBase: boolean;
+    isActive: boolean;
+  };
+};
+
+type OrganizationBankAccountsApiResponse = {
+  bankAccounts?: OrganizationBankAccountApiItem[];
+  bankAccount?: OrganizationBankAccountApiItem;
+  error?: string;
+};
+
+const organizationBankAccountsProfileTab =
+  "Բանկային հաշիվներ";
+
+const newPartnerBankCurrencies = ["AMD", "USD", "EUR", "RUB"] as const;
+
+const newPartnerBankText = {
+  tab: "\u0532\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u057f\u057e\u0575\u0561\u056c\u0576\u0565\u0580",
+  title: "\u0532\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u057f\u057e\u0575\u0561\u056c\u0576\u0565\u0580",
+  introTitle: "\u053f\u0561\u0566\u0574\u0561\u056f\u0565\u0580\u057a\u0578\u0582\u0569\u0575\u0561\u0576 \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0570\u0561\u0577\u056b\u057e\u0576\u0565\u0580",
+  intro: "\u0538\u0576\u057f\u0580\u0565\u0584 \u0562\u0561\u0576\u056f\u0568 \u056f\u0561\u0574 \u0574\u0561\u057d\u0576\u0561\u0573\u0575\u0578\u0582\u0572\u0568 \u0540\u0540 \u0562\u0561\u0576\u056f\u0565\u0580\u056b Master DB \u057f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u056b\u0581, \u0561\u057a\u0561 \u0576\u0577\u0565\u0584 \u0570\u0561\u0577\u057e\u0565\u0570\u0561\u0574\u0561\u0580\u0568 \u0587 \u0561\u0580\u056a\u0578\u0582\u0575\u0569\u0568\u0589",
+  bank: "\u0532\u0561\u0576\u056f / \u0574\u0561\u057d\u0576\u0561\u0573\u0575\u0578\u0582\u0572",
+  chooseBank: "\u0538\u0576\u057f\u0580\u0565\u056c \u0562\u0561\u0576\u056f\u0568 \u056f\u0561\u0574 \u0574\u0561\u057d\u0576\u0561\u0573\u0575\u0578\u0582\u0572\u0568",
+  accountNumber: "\u0532\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0570\u0561\u0577\u057e\u0565\u0570\u0561\u0574\u0561\u0580",
+  accountPlaceholder: "\u0555\u0580\u056b\u0576\u0561\u056f\u055d 15700...",
+  currency: "\u0531\u0580\u056a\u0578\u0582\u0575\u0569",
+  primary: "\u0540\u056b\u0574\u0576\u0561\u056f\u0561\u0576 \u0570\u0561\u0577\u056b\u057e",
+  notes: "\u0546\u0577\u0578\u0582\u0574\u0576\u0565\u0580",
+  notesPlaceholder: "\u053c\u0580\u0561\u0581\u0578\u0582\u0581\u056b\u0579 \u057f\u0565\u0572\u0565\u056f\u0578\u0582\u0569\u0575\u0578\u0582\u0576",
+  add: "\u0531\u057e\u0565\u056c\u0561\u0581\u0576\u0565\u056c \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0570\u0561\u0577\u056b\u057e",
+  empty: "\u0534\u0565\u057c \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0570\u0561\u0577\u056b\u057e \u0561\u057e\u0565\u056c\u0561\u0581\u057e\u0561\u056e \u0579\u0567\u0589",
+  remove: "\u0540\u0565\u057c\u0561\u0581\u0576\u0565\u056c",
+  primaryBadge: "\u0540\u056b\u0574\u0576\u0561\u056f\u0561\u0576",
+  loading: "\u0532\u0561\u0576\u056f\u0565\u0580\u056b \u057f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u0576 \u0562\u0565\u057c\u0576\u057e\u0578\u0582\u0574 \u0567...",
+  loadError: "\u0549\u0570\u0561\u057b\u0578\u0572\u057e\u0565\u0581 \u0562\u0565\u057c\u0576\u0565\u056c \u0540\u0540 \u0562\u0561\u0576\u056f\u0565\u0580\u056b \u057f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u0576\u0589",
+  emptyDirectory: "\u054f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u056b\u0581 \u057e\u0565\u0580\u0561\u0564\u0561\u0580\u0571\u057e\u0561\u056e \u0562\u0561\u0576\u056f\u0565\u0580\u056b \u0581\u0561\u0576\u056f\u0568 \u0564\u0561\u057f\u0561\u0580\u056f \u0567\u0589",
+  required: "\u0538\u0576\u057f\u0580\u0565\u0584 \u0562\u0561\u0576\u056f\u0568 \u0587 \u056c\u0580\u0561\u0581\u0580\u0565\u0584 \u0562\u0561\u0576\u056f\u0561\u0575\u056b\u0576 \u0570\u0561\u0577\u057e\u0565\u0570\u0561\u0574\u0561\u0580\u0568\u0589",
+  notFound: "\u0538\u0576\u057f\u0580\u057e\u0561\u056e \u0562\u0561\u0576\u056f\u0568 \u057f\u0565\u0572\u0565\u056f\u0561\u057f\u0578\u0582\u0578\u0582\u0574 \u0579\u056b \u0563\u057f\u0576\u057e\u0565\u056c\u0589",
+  duplicate: "\u0531\u0575\u057d \u0570\u0561\u0577\u057e\u0565\u0570\u0561\u0574\u0561\u0580\u0576 \u0561\u0580\u0564\u0565\u0576 \u0561\u057e\u0565\u056c\u0561\u0581\u057e\u0561\u056e \u0567\u0589",
+  safeNote: "SAFE demo \u0583\u0578\u0582\u056c\u2024 \u0561\u0575\u057d \u0584\u0561\u0575\u056c\u0578\u0582\u0574 \u0563\u0580\u0561\u057c\u0578\u0582\u0574\u0576\u0565\u0580\u0568 \u057f\u0565\u057d\u0561\u0576\u0565\u056c\u056b \u0565\u0576 \u0571\u0587\u0578\u0582\u0574, \u056b\u057d\u056f \u0570\u0561\u057b\u0578\u0580\u0564 \u0584\u0561\u0575\u056c\u0578\u057e \u0564\u0580\u0561\u0576\u0584 \u056f\u057a\u0561\u0570\u057a\u0561\u0576\u0565\u0576\u0584 DEV DB-\u0578\u0582\u0574\u0589",
+  account: "\u0540\u0561\u0577\u056b\u057e",
+  swift: "SWIFT",
+  branch: "\u0544\u0561\u057d\u0576\u0561\u0573\u0575\u0578\u0582\u0572",
+  headOffice: "\u0533\u056c\u056d\u0561\u0574\u0561\u057d",
+};
+
+
 type MasterExchangeRateRow = {
   id: string;
   rateDate: string;
@@ -485,7 +594,161 @@ export default function Home() {
   const [departmentInlineName, setDepartmentInlineName] = useState("");
   const [departmentInlineMessage, setDepartmentInlineMessage] = useState<string | null>(null);
   const [isSavingDepartment, setIsSavingDepartment] = useState(false);
+
+  const [newPartnerBankOptions, setNewPartnerBankOptions] = useState<NewPartnerBankOption[]>([]);
+  const [newPartnerBankOptionsLoading, setNewPartnerBankOptionsLoading] = useState(false);
+  const [newPartnerBankOptionsError, setNewPartnerBankOptionsError] = useState<string | null>(null);
+  const [newPartnerBankAccounts, setNewPartnerBankAccounts] = useState<NewPartnerBankAccountDraft[]>([]);
+  const [newPartnerBankAccountError, setNewPartnerBankAccountError] = useState<string | null>(null);
+  const [newPartnerBankAccountsLoading, setNewPartnerBankAccountsLoading] = useState(false);
+  const [newPartnerBankAccountSaving, setNewPartnerBankAccountSaving] = useState(false);
+  const [newPartnerBankAccountForm, setNewPartnerBankAccountForm] = useState({
+    armenianBankId: "",
+    accountNumber: "",
+    currencyCode: "AMD",
+    isPrimary: true,
+    notes: "",
+  });
+
+  const loadOrganizationBankAccounts = useCallback(
+    async (organizationId: string, includeClosed = true) => {
+      setNewPartnerBankAccountsLoading(true);
+      setNewPartnerBankAccountError(null);
+      setNewPartnerBankAccounts([]);
+
+      try {
+        const response = await fetch(
+          "/api/organizations/bank-accounts?organizationId=" +
+            encodeURIComponent(organizationId) +
+            "&includeClosed=" +
+            (includeClosed ? "true" : "false"),
+          {
+            cache: "no-store",
+          }
+        );
+
+        const payload =
+          (await response.json()) as OrganizationBankAccountsApiResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            payload.error ??
+              "Չհաջողվեց բեռնել բանկային հաշիվները։"
+          );
+        }
+
+        setNewPartnerBankAccounts(
+          (payload.bankAccounts ?? []).map((account) => ({
+            id: account.id,
+            armenianBankId: account.armenianBankId,
+            bankCode:
+              account.bankCodeSnapshot || account.bank.bankCode,
+            bankName:
+              account.bankNameSnapshot || account.bank.name,
+            swiftCode:
+              account.swiftCodeSnapshot ?? account.bank.swiftCode,
+            accountNumber: account.accountNumber,
+            currencyCode:
+              account.currencyCodeSnapshot ||
+              account.currency.isoCode,
+            isPrimary: account.isPrimary,
+            status: account.status,
+            openedAt: account.openedAt,
+            closedAt: account.closedAt,
+            notes: account.notes ?? "",
+          }))
+        );
+      } catch (error) {
+        setNewPartnerBankAccountError(
+          error instanceof Error
+            ? error.message
+            : "Չհաջողվեց բեռնել բանկային հաշիվները։"
+        );
+      } finally {
+        setNewPartnerBankAccountsLoading(false);
+      }
+    },
+    []
+  );
+
   const [newPartnerRegistrationTab, setNewPartnerRegistrationTab] = useState("Ընդհանուր");
+
+  useEffect(() => {
+    if (
+      newPartnerRegistrationTab !== newPartnerBankText.tab ||
+      newPartnerBankOptions.length > 0
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    let isActive = true;
+
+    async function loadNewPartnerBankOptions() {
+      setNewPartnerBankOptionsLoading(true);
+      setNewPartnerBankOptionsError(null);
+
+      try {
+        const response = await fetch(
+          "/api/master-data/armenian-banks?limit=1000&directoryType=bank",
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          }
+        );
+
+        const payload = (await response.json()) as NewPartnerBanksApiResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            payload.detail ?? payload.error ?? newPartnerBankText.loadError
+          );
+        }
+
+        const banks = (payload.banks ?? []).filter((bank) => bank.isActive);
+
+        if (!isActive) {
+          return;
+        }
+
+        setNewPartnerBankOptions(banks);
+
+        if (banks.length === 0) {
+          setNewPartnerBankOptionsError(newPartnerBankText.emptyDirectory);
+          return;
+        }
+
+        setNewPartnerBankAccountForm((current) =>
+          current.armenianBankId
+            ? current
+            : {
+                ...current,
+                armenianBankId: banks[0].id,
+              }
+        );
+      } catch (error) {
+        if (!isActive || (error instanceof Error && error.name === "AbortError")) {
+          return;
+        }
+
+        setNewPartnerBankOptionsError(
+          error instanceof Error ? error.message : newPartnerBankText.loadError
+        );
+      } finally {
+        if (isActive) {
+          setNewPartnerBankOptionsLoading(false);
+        }
+      }
+    }
+
+    void loadNewPartnerBankOptions();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, [newPartnerRegistrationTab, newPartnerBankOptions.length]);
+
   const [newPartnerDraft, setNewPartnerDraft] = useState<AppOrganization | null>(null);
   const [newPartnerMessage, setNewPartnerMessage] = useState<string | null>(null);
   const [isSavingNewPartner, setIsSavingNewPartner] = useState(false);
@@ -807,9 +1070,13 @@ export default function Home() {
       ]
     : [];
   const menuItems = loggedInUser ? demoMenuByRole[loggedInUser.id] ?? [] : [];
-  const selectedOrganization = organizations.find(
-    (organization) => organization.id === selectedOrganizationId
-  );
+  const selectedOrganization =
+    organizations.find(
+      (organization) => organization.id === selectedOrganizationId
+    ) ??
+    archivedOrganizations.find(
+      (organization) => organization.id === selectedOrganizationId
+    );
   const archiveTargetOrganization = organizations.find(
     (organization) => organization.id === archiveTargetOrganizationId
   );
@@ -1557,6 +1824,150 @@ export default function Home() {
     return "";
   }
 
+  async function handleAddNewPartnerBankAccount() {
+    const organizationId = newPartnerDraft?.id ?? "";
+
+    const accountNumber =
+      newPartnerBankAccountForm.accountNumber
+        .replace(/\s+/g, "")
+        .trim();
+
+    if (!organizationId) {
+      setNewPartnerBankAccountError(
+        "Նախ պահպանեք գործընկերոջ ընդհանուր տվյալները։"
+      );
+      return;
+    }
+
+    if (
+      !newPartnerBankAccountForm.armenianBankId ||
+      !accountNumber
+    ) {
+      setNewPartnerBankAccountError(
+        newPartnerBankText.required
+      );
+      return;
+    }
+
+    setNewPartnerBankAccountSaving(true);
+    setNewPartnerBankAccountError(null);
+
+    try {
+      const response = await fetch(
+        "/api/organizations/bank-accounts",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            organizationId,
+            armenianBankId:
+              newPartnerBankAccountForm.armenianBankId,
+            accountNumber,
+            currencyCode:
+              newPartnerBankAccountForm.currencyCode,
+            isPrimary:
+              newPartnerBankAccountForm.isPrimary,
+            status: "active",
+            notes:
+              newPartnerBankAccountForm.notes.trim(),
+          }),
+        }
+      );
+
+      const payload =
+        (await response.json()) as OrganizationBankAccountsApiResponse;
+
+      if (!response.ok || !payload.bankAccount) {
+        throw new Error(
+          payload.error ??
+            "Չհաջողվեց պահպանել բանկային հաշիվը։"
+        );
+      }
+
+      await loadOrganizationBankAccounts(
+        organizationId,
+        true
+      );
+
+      setNewPartnerBankAccountForm((current) => ({
+        ...current,
+        accountNumber: "",
+        isPrimary: false,
+        notes: "",
+      }));
+    } catch (error) {
+      setNewPartnerBankAccountError(
+        error instanceof Error
+          ? error.message
+          : "Չհաջողվեց պահպանել բանկային հաշիվը։"
+      );
+    } finally {
+      setNewPartnerBankAccountSaving(false);
+    }
+  }
+
+  async function handleCloseNewPartnerBankAccount(
+    accountId: string
+  ) {
+    const organizationId = newPartnerDraft?.id ?? "";
+
+    if (!organizationId) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Փակե՞լ այս բանկային հաշիվը։ Տվյալները չեն ջնջվի։"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setNewPartnerBankAccountSaving(true);
+    setNewPartnerBankAccountError(null);
+
+    try {
+      const response = await fetch(
+        "/api/organizations/bank-accounts",
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            accountId,
+            status: "closed",
+          }),
+        }
+      );
+
+      const payload =
+        (await response.json()) as OrganizationBankAccountsApiResponse;
+
+      if (!response.ok || !payload.bankAccount) {
+        throw new Error(
+          payload.error ??
+            "Չհաջողվեց փակել բանկային հաշիվը։"
+        );
+      }
+
+      await loadOrganizationBankAccounts(
+        organizationId,
+        true
+      );
+    } catch (error) {
+      setNewPartnerBankAccountError(
+        error instanceof Error
+          ? error.message
+          : "Չհաջողվեց փակել բանկային հաշիվը։"
+      );
+    } finally {
+      setNewPartnerBankAccountSaving(false);
+    }
+  }
+
   async function loadWizardActivities(organizationId: string) {
     try {
       const response = await fetch(
@@ -1765,6 +2176,15 @@ export default function Home() {
         setNewPartnerDepartmentModalOpen(false);
         setNewPartnerDepartmentAddressId("");
         setNewPartnerActivities([]);
+        setNewPartnerBankAccounts([]);
+        setNewPartnerBankAccountError(null);
+        setNewPartnerBankAccountForm({
+          armenianBankId: "",
+          accountNumber: "",
+          currencyCode: "AMD",
+          isPrimary: true,
+          notes: "",
+        });
         setNewPartnerActivityForm({
           title: "",
           code: "",
@@ -1798,6 +2218,7 @@ function renderNewPartnerRegistrationWizard() {
       "Գործունեության հասցեներ և ստորաբաժանումներ",
       "Գործունեություն",
       "Հիմնադիրներ",
+      newPartnerBankText.tab,
     ];
 
     const hasSavedMainDetails = Boolean(newPartnerDraft?.id);
@@ -1826,10 +2247,15 @@ function renderNewPartnerRegistrationWizard() {
         return hasSavedMainDetails && hasActivityAddressWithDepartment && hasActivityType;
       }
 
+      if (tab === newPartnerBankText.tab) {
+        return hasSavedMainDetails && hasActivityAddressWithDepartment && hasActivityType;
+      }
+
       return false;
     };
 
     const suggestedActivityCode = suggestActivityCode(newPartnerActivityForm.title);
+    const isSoleProprietor = newPartnerMainForm.legalType === "1002";
 
     return (
       <section style={styles.accountingArea}>
@@ -1853,7 +2279,19 @@ function renderNewPartnerRegistrationWizard() {
                   : {}),
               }}
               disabled={!isNewPartnerWizardTabEnabled(tab)}
-              onClick={() => setNewPartnerRegistrationTab(tab)}
+              onClick={() => {
+                  setNewPartnerRegistrationTab(tab);
+
+                  if (
+                    tab === newPartnerBankText.tab &&
+                    newPartnerDraft?.id
+                  ) {
+                    void loadOrganizationBankAccounts(
+                      newPartnerDraft.id,
+                      true
+                    );
+                  }
+                }}
             >
               {tab}
             </button>
@@ -1889,7 +2327,31 @@ function renderNewPartnerRegistrationWizard() {
                 </div>
 
                 <label style={styles.label}>
-                  Կազմակերպության անվանում
+                  Իրավակազմակերպական տեսակ
+                  <select
+                    style={styles.select}
+                    value={newPartnerMainForm.legalType}
+                    onChange={(event) =>
+                      setNewPartnerMainForm((current) => ({
+                        ...current,
+                        legalType: event.target.value,
+                      }))
+                    }
+                  >
+                    {legalOrganizationTypes
+                      .filter((type) => type.isActive)
+                      .map((type) => (
+                        <option key={type.code} value={type.code}>
+                          {type.label}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label style={styles.label}>
+                  {isSoleProprietor
+                    ? "Անհատ ձեռնարկատիրոջ անուն, ազգանուն, հայրանուն"
+                    : "Կազմակերպության անվանում"}
                   <input
                     style={styles.input}
                     type="text"
@@ -1931,28 +2393,6 @@ function renderNewPartnerRegistrationWizard() {
                       .map((status) => (
                         <option key={status.code} value={status.code}>
                           {status.label}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-
-                <label style={styles.label}>
-                  Իրավակազմակերպական տեսակ
-                  <select
-                    style={styles.select}
-                    value={newPartnerMainForm.legalType}
-                    onChange={(event) =>
-                      setNewPartnerMainForm((current) => ({
-                        ...current,
-                        legalType: event.target.value,
-                      }))
-                    }
-                  >
-                    {legalOrganizationTypes
-                      .filter((type) => type.isActive)
-                      .map((type) => (
-                        <option key={type.code} value={type.code}>
-                          {type.label}
                         </option>
                       ))}
                   </select>
@@ -2518,6 +2958,299 @@ function renderNewPartnerRegistrationWizard() {
               </section>
             );
           })()}
+
+
+        {newPartnerRegistrationTab === newPartnerBankText.tab ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>{newPartnerBankText.title}</h3>
+
+            <div style={styles.previewBox}>
+              <strong>{newPartnerBankText.introTitle}</strong>
+              <p style={{ marginBottom: 0 }}>{newPartnerBankText.intro}</p>
+            </div>
+
+            {newPartnerBankOptionsLoading ? (
+              <div style={{ ...styles.previewBox, marginTop: "14px" }}>
+                {newPartnerBankText.loading}
+              </div>
+            ) : null}
+
+            {newPartnerBankOptionsError ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                  color: "#991b1b",
+                  borderColor: "rgba(220, 38, 38, 0.3)",
+                  background: "rgba(254, 226, 226, 0.55)",
+                }}
+              >
+                {newPartnerBankOptionsError}
+              </div>
+            ) : null}
+
+            <div style={{ ...styles.formGrid, marginTop: "18px" }}>
+              <label style={styles.label}>
+                {newPartnerBankText.bank}
+                <select
+                  style={styles.select}
+                  value={newPartnerBankAccountForm.armenianBankId}
+                  disabled={
+                    newPartnerBankOptionsLoading ||
+                    newPartnerBankOptions.length === 0
+                  }
+                  onChange={(event) =>
+                    setNewPartnerBankAccountForm((current) => ({
+                      ...current,
+                      armenianBankId: event.target.value,
+                    }))
+                  }
+                >
+                  <option value="">{newPartnerBankText.chooseBank}</option>
+                  {newPartnerBankOptions.map((bank) => (
+                    <option key={bank.id} value={bank.id}>
+                      {bank.bankCode +
+                        " \u2014 " +
+                        bank.name +
+                        (bank.swiftCode ? " \u00b7 " + bank.swiftCode : "")}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                {newPartnerBankText.accountNumber}
+                <input
+                  style={styles.input}
+                  type="text"
+                  value={newPartnerBankAccountForm.accountNumber}
+                  placeholder={newPartnerBankText.accountPlaceholder}
+                  onChange={(event) =>
+                    setNewPartnerBankAccountForm((current) => ({
+                      ...current,
+                      accountNumber: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label style={styles.label}>
+                {newPartnerBankText.currency}
+                <select
+                  style={styles.select}
+                  value={newPartnerBankAccountForm.currencyCode}
+                  onChange={(event) =>
+                    setNewPartnerBankAccountForm((current) => ({
+                      ...current,
+                      currencyCode: event.target.value,
+                    }))
+                  }
+                >
+                  {newPartnerBankCurrencies.map((currencyCode) => (
+                    <option key={currencyCode} value={currencyCode}>
+                      {currencyCode}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label style={styles.label}>
+                {newPartnerBankText.notes}
+                <input
+                  style={styles.input}
+                  type="text"
+                  value={newPartnerBankAccountForm.notes}
+                  placeholder={newPartnerBankText.notesPlaceholder}
+                  onChange={(event) =>
+                    setNewPartnerBankAccountForm((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label
+                style={{
+                  ...styles.label,
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={newPartnerBankAccountForm.isPrimary}
+                  onChange={(event) =>
+                    setNewPartnerBankAccountForm((current) => ({
+                      ...current,
+                      isPrimary: event.target.checked,
+                    }))
+                  }
+                />
+                {newPartnerBankText.primary}
+              </label>
+            </div>
+
+            {newPartnerBankAccountError ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                  color: "#991b1b",
+                  borderColor: "rgba(220, 38, 38, 0.3)",
+                  background: "rgba(254, 226, 226, 0.55)",
+                }}
+              >
+                {newPartnerBankAccountError}
+              </div>
+            ) : null}
+
+            <div style={{ marginTop: "16px" }}>
+              <button
+                type="button"
+                style={styles.primaryButton}
+                onClick={handleAddNewPartnerBankAccount}
+                disabled={
+                  newPartnerBankOptionsLoading ||
+                  newPartnerBankAccountSaving ||
+                  newPartnerBankOptions.length === 0
+                }
+              >
+                {newPartnerBankAccountSaving
+                  ? "Պահպանվում է..."
+                  : newPartnerBankText.add}
+              </button>
+            </div>
+
+            {newPartnerBankAccountsLoading ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                }}
+              >
+                {"Պահպանված բանկային հաշիվները բեռնվում են..."}
+              </div>
+            ) : null}
+
+            <div style={{ display: "grid", gap: "10px", marginTop: "18px" }}>
+              {newPartnerBankAccounts.length === 0 ? (
+                <div style={styles.previewBox}>{newPartnerBankText.empty}</div>
+              ) : (
+                newPartnerBankAccounts.map((account) => (
+                  <div
+                    key={account.id}
+                    style={{
+                      border: "1px solid rgba(148, 163, 184, 0.32)",
+                      borderRadius: "14px",
+                      padding: "14px",
+                      background: "rgba(248, 250, 252, 0.82)",
+                      display: "grid",
+                      gap: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                      }}
+                    >
+                      <div>
+                        <strong>
+                          {account.bankCode + " \u2014 " + account.bankName}
+                        </strong>
+                        {account.isPrimary ? (
+                          <span
+                            style={{
+                              marginLeft: "8px",
+                              borderRadius: "999px",
+                              padding: "3px 8px",
+                              background: "#dcfce7",
+                              color: "#166534",
+                              fontSize: "0.78rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {newPartnerBankText.primaryBadge}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {account.status === "active" ? (
+                        <button
+                          type="button"
+                          disabled={newPartnerBankAccountSaving}
+                          onClick={() =>
+                            void handleCloseNewPartnerBankAccount(
+                              account.id
+                            )
+                          }
+                          style={{
+                            border:
+                              "1px solid rgba(148, 163, 184, 0.45)",
+                            borderRadius: "999px",
+                            padding: "6px 10px",
+                            background: "white",
+                            cursor:
+                              newPartnerBankAccountSaving
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          {"Փակել"}
+                        </button>
+                      ) : (
+                        <span
+                          style={{
+                            borderRadius: "999px",
+                            padding: "4px 9px",
+                            background: "#fee2e2",
+                            color: "#991b1b",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {"Փակված"}
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        color: "#475569",
+                        fontSize: "0.9rem",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      {newPartnerBankText.account +
+                        ": " +
+                        account.accountNumber +
+                        " \u00b7 " +
+                        newPartnerBankText.currency +
+                        ": " +
+                        account.currencyCode}
+                      {account.swiftCode
+                        ? " \u00b7 " +
+                          newPartnerBankText.swift +
+                          ": " +
+                          account.swiftCode
+                        : ""}
+                      {account.notes ? " \u00b7 " + account.notes : ""}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <p style={{ ...styles.mutedNotice, marginTop: "16px" }}>
+              {newPartnerBankText.safeNote}
+            </p>
+          </div>
+        ) : null}
 
         {newPartnerRegistrationTab === "Գործունեություն" ? (
           <div style={styles.tabPanel}>
@@ -5130,6 +5863,7 @@ function renderNewPartnerRegistrationWizard() {
           "Գործունեություն",
           "Հիմնադիրներ",
           "Ստուգում",
+          organizationBankAccountsProfileTab,
         ]
       : [
           "Ընդհանուր տվյալներ",
@@ -5139,6 +5873,7 @@ function renderNewPartnerRegistrationWizard() {
           "Ստուգում",
           "Սպասարկում",
           "Պայմանագիր",
+          organizationBankAccountsProfileTab,
         ];
 
     if (!organization) {
@@ -5224,7 +5959,18 @@ function renderNewPartnerRegistrationWizard() {
                 setOrganizationProfileTab(tab);
 
                 if (tab === "Պայմանագիր") {
-                  void loadContractForOrganization(organization.id);
+                  void loadContractForOrganization(
+                    organization.id
+                  );
+                }
+
+                if (
+                  tab === organizationBankAccountsProfileTab
+                ) {
+                  void loadOrganizationBankAccounts(
+                    organization.id,
+                    true
+                  );
                 }
               }}
             >
@@ -5406,6 +6152,182 @@ function renderNewPartnerRegistrationWizard() {
 
         {activeOrganizationProfileTab === "Պայմանագիր" ? renderContractTabContent(organization) : null}
 
+        {activeOrganizationProfileTab ===
+        organizationBankAccountsProfileTab ? (
+          <div style={styles.tabPanel}>
+            <h3 style={styles.sectionTitle}>
+              {organizationBankAccountsProfileTab}
+            </h3>
+
+            <div style={styles.previewBox}>
+              <strong>
+                {"Կազմակերպության բանկային հաշիվներ"}
+              </strong>
+              <p style={{ marginBottom: 0 }}>
+                {"Այստեղ ցուցադրվում են DEV DB-ում պահպանված գործող և փակված հաշիվները։"}
+              </p>
+            </div>
+
+            {newPartnerBankAccountsLoading ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                }}
+              >
+                {"Բանկային հաշիվները բեռնվում են..."}
+              </div>
+            ) : null}
+
+            {newPartnerBankAccountError ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                  color: "#991b1b",
+                  borderColor:
+                    "rgba(220, 38, 38, 0.3)",
+                  background:
+                    "rgba(254, 226, 226, 0.55)",
+                }}
+              >
+                {newPartnerBankAccountError}
+              </div>
+            ) : null}
+
+            {!newPartnerBankAccountsLoading &&
+            !newPartnerBankAccountError &&
+            newPartnerBankAccounts.length === 0 ? (
+              <div
+                style={{
+                  ...styles.previewBox,
+                  marginTop: "14px",
+                }}
+              >
+                {newPartnerBankText.empty}
+              </div>
+            ) : null}
+
+            <div
+              style={{
+                display: "grid",
+                gap: "12px",
+                marginTop: "16px",
+              }}
+            >
+              {newPartnerBankAccounts.map(
+                (account) => (
+                  <div
+                    key={account.id}
+                    style={styles.previewBox}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                      }}
+                    >
+                      <strong>
+                        {account.bankCode +
+                          "  " +
+                          account.bankName}
+                      </strong>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "6px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {account.isPrimary ? (
+                          <span
+                            style={{
+                              borderRadius:
+                                "999px",
+                              padding: "3px 8px",
+                              background:
+                                "#dcfce7",
+                              color: "#166534",
+                              fontSize:
+                                "0.78rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {
+                              newPartnerBankText.primaryBadge
+                            }
+                          </span>
+                        ) : null}
+
+                        <span
+                          style={{
+                            borderRadius: "999px",
+                            padding: "3px 8px",
+                            background:
+                              account.status ===
+                              "active"
+                                ? "#dbeafe"
+                                : "#fee2e2",
+                            color:
+                              account.status ===
+                              "active"
+                                ? "#1d4ed8"
+                                : "#991b1b",
+                            fontSize: "0.78rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {account.status === "active"
+                            ? "Գործող"
+                            : account.status ===
+                                "closed"
+                              ? "Փակված"
+                              : "Ակտիվ չէ"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p>
+                      {"Հաշվեհամար՝ "}
+                      {account.accountNumber}
+                    </p>
+
+                    <p>
+                      {"Արժույթ՝ "}
+                      {account.currencyCode}
+                    </p>
+
+                    <p>
+                      SWIFT:{" "}
+                      {account.swiftCode ?? ""}
+                    </p>
+
+                    {account.closedAt ? (
+                      <p>
+                        {"Փակման ամսաթիվ՝ "}
+                        {account.closedAt}
+                      </p>
+                    ) : null}
+
+                    <p
+                      style={{
+                        marginBottom: 0,
+                      }}
+                    >
+                      {"Նշումներ՝ "}
+                      {account.notes || ""}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        ) : null}
+
         <button
           type="button"
           style={{
@@ -5526,6 +6448,14 @@ function renderNewPartnerRegistrationWizard() {
                   <strong>Դադարեցման պատճառ</strong>
                   <p style={{ marginBottom: 0 }}>{organization.serviceStopReason ?? "—"}</p>
                 </div>
+
+                <button
+                  type="button"
+                  style={{ ...styles.primaryButton, width: "fit-content" }}
+                  onClick={() => openOrganizationProfile(organization.id)}
+                >
+                  Դիտել պրոֆիլը
+                </button>
               </article>
             ))}
           </div>

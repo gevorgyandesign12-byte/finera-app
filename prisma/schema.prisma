@@ -9,9 +9,12 @@ datasource db {
 
 model Organization {
   id                      String    @id @default(cuid())
-  name                    String
-  shortName               String?
-  legalType               String
+  name                     String
+  shortName                String?
+  individualFirstName      String?
+  individualLastName       String?
+  individualPatronymicName String?
+  legalType                String
   taxId                   String?   @unique
   serviceCode             String?   @unique
   status                  String    @default("draft")
@@ -48,9 +51,10 @@ model Organization {
   subdivisions            OrganizationSubdivision[]
   subdivisionResponsibles OrganizationSubdivisionResponsible[]
 
-  postalCode String?
-  activities OrganizationActivity[]
-  createdAt  DateTime               @default(now())
+  postalCode  String?
+  activities  OrganizationActivity[]
+  bankAccounts OrganizationBankAccount[]
+  createdAt   DateTime                  @default(now())
   updatedAt  DateTime               @updatedAt
 }
 
@@ -327,7 +331,8 @@ model Currency {
   isActive     Boolean @default(true)
   source       String @default("CBA")
 
-  exchangeRates ExchangeRate[]
+  exchangeRates             ExchangeRate[]
+  organizationBankAccounts OrganizationBankAccount[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -411,6 +416,8 @@ model ArmenianBank {
   sourceFetchedAt DateTime?
   rawPayloadHash  String?
   rawPayload      String?
+
+  organizationBankAccounts OrganizationBankAccount[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -503,4 +510,53 @@ model ImportError {
   @@index([fieldName])
   @@index([errorCode])
   @@index([severity])
+}
+
+model OrganizationBankAccount {
+  id String @id @default(cuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  armenianBankId String
+  armenianBank   ArmenianBank @relation(fields: [armenianBankId], references: [id])
+
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  accountNumber String
+  accountName   String?
+
+  bankCodeSnapshot     String
+  bankNameSnapshot     String
+  swiftCodeSnapshot    String?
+  currencyCodeSnapshot String
+
+  isPrimary Boolean @default(false)
+  status    String  @default("active")
+
+  openedAt String?
+  closedAt String?
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, accountNumber])
+  @@index([organizationId])
+  @@index([armenianBankId])
+  @@index([currencyId])
+  @@index([status])
+  @@index([isPrimary])
+}
+
+model City {
+  id        String   @id @default(cuid())
+  nameHy    String   @unique
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
 }
